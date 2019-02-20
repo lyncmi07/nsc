@@ -1,0 +1,7 @@
+#+STARTUP: content
+#+TITLE: Function Interence
+* Motivation
+  Function interence allows for a function to have multiple overloads for the 
+  same parameters types, but return values of different types depending on the context in which the 
+  function was used.
+  Function interence forms an integral part of NoSyn's extention framework
