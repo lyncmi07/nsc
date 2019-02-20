@@ -1,5 +1,5 @@
-#+STARTUP: overview
-#+TITLE The No-Syn Programming Language
+#+STARTUP: showall
+#+TITLE: The NoSyn Programming Language
 * Getting Started
 ** Installation
 * Examples
