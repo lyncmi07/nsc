@@ -1,4 +1,4 @@
-#+STARTUP: content
+#+STARTUP: showall
 #+TITLE: Function Inference
 
 * Motivation
@@ -28,33 +28,81 @@ the user could set up the language as follows:
 #+BEGIN_SRC c++
 //NO SYN code
 [T] operator_:_<T>(T a, T b) {
-  native-formArray(a,b)
+  native_formArray(a,b)
 }
 [T] operator_:_<T>(T x, [T] xs) {
-  native-formArray(x,xs)
+  native_formArray(x,xs)
 }
 
 T operator_[]_<T>([T] array, Int index) {
-  native-indexAccess(array, index)
+  native_indexAccess(array, index)
 }
 [T] operator_[]_<T>([T] array, [Int] index) {
-  native-sliceArray(array, index)
+  native_sliceArray(array, index)
 }
 
 [Int] slicedArray = a[2:6] //Assuming 'a' is an Integer array.
 #+END_SRC
 
-This system will work providing the user with the capability to use the colon symbol as both an array contacentator operator
+This system will work providing the user with the capability to use the colon symbol as both an array contatentation operator
 as well as an array slice operator.
 But this way comes with a serious flaw:
 #+BEGIN_SRC c++
 [Int] slicedArray = a[2:4:5:6]
 #+END_SRC
 
-This should be considered a syntax error. But it's not. As the operator overload for [] is expecting to see an 
-array, '''2:4:5:6''' is a perfectly plausible expression to put inside the square brackets.
-Of course the error could be picked up in the '''native-sliveArray''' expression but this would mean that 
+This should be considered a syntax error. But it's not. 
+As the operator overload for [] is expecting to see an 
+array, =2:4:5:6= is a perfectly plausible expression to put inside the square brackets.
+Of course the error could be picked up in the =native_sliceArray= expression but this would mean that 
 the check would only be made at runtime.
 This is where function inference can become very useful.
 
 *** Function Inference Example
+#+BEGIN_SRC c++
+//NO SYN code
+[T] operator_:_<T>(T a, T b) {
+  native_formArray(a,b)
+}
+(Int, Int) operator_:_(Int l, Int r) {
+  (l,r)
+}
+[T] operator_:_<T>(T x, [T] xs) {
+  native_formArray(x,xs)
+}
+
+T operator_[]_<T>([T] array, Int index) {
+  native_indexAccess(array, index)
+}
+[T] operator_[]_<T>([T] array,  (Int, Int) arraySlicer) {
+  native_sliceArray(array, index)
+}
+
+[Int] slicedArray = a[2:6] //Assuming 'a' is an Integer array.
+#+END_SRC
+
+This new implementation allows for both element concatenation and array slicing while maintaining the ability to throw an
+error at compile time when =a[1:2:3]= is provided.
+This code still has a problem however. The operator overload that has been created returns a tuple of two ints.
+This is not ideal as the syntax that was specifically designed for generating an array slice would also be used in other contexts:
+#+BEGIN_SRC c++
+(Int, Int) vector = 20:30 //Unwanted ability to create regular tuples
+[Int] slicedArray = a[(2,6)] //Unwanted ability to use tuples within the array access
+#+END_SRC
+
+In order to prevent this usage of the colon operator, a =closed alias= can be used:
+#+BEGIN_SRC c++
+alias closed ArraySlicer = (Int, Int)
+
+ArraySlicer operator_:_(Int a, Int b) {
+  (l,r)
+}
+
+operator_[]_<T>([T] array, ArraySlicer arraySlicer)_{
+  native_sliceArray(array, arraySlicer)
+}
+#+END_SRC
+
+Using this implementation. The colon operator overload function will only be infered if the context in which it is used is specifically 
+of the type =ArraySlicer= and not simply =(Int, Int)=.
+
