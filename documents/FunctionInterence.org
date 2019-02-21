@@ -9,9 +9,52 @@
   to create a DSL or general purpose language within NoSyn with great capability to customize it's syntax.
 
 ** Usage Example
-
-#+BEGIN_SRC java
-public static void main() {
-  System.out.println("HELLO WORLD")
-}
+Consider the following expression:
+#+BEGIN_SRC c++
+2:6
 #+END_SRC
+
+The user may with wish this to mean concatenating the two numbers into a list of integers.
+But there are also languages in which this symbol is used to denote to the start and the end of an 
+array slice:
+#+BEGIN_SRC go
+//GO CODE
+a[2:6]
+#+END_SRC
+
+NoSyn provides the user with the ability to overload all operators, infact by default no operators are defined.
+Assuming that an overload function has been created for the square brackets on an array to perform array access,
+the user could set up the language as follows:
+#+BEGIN_SRC c++
+//NO SYN code
+[T] operator_:_<T>(T a, T b) {
+  native-formArray(a,b)
+}
+[T] operator_:_<T>(T x, [T] xs) {
+  native-formArray(x,xs)
+}
+
+T operator_[]_<T>([T] array, Int index) {
+  native-indexAccess(array, index)
+}
+[T] operator_[]_<T>([T] array, [Int] index) {
+  native-sliceArray(array, index)
+}
+
+[Int] slicedArray = a[2:6] //Assuming 'a' is an Integer array.
+#+END_SRC
+
+This system will work providing the user with the capability to use the colon symbol as both an array contacentator operator
+as well as an array slice operator.
+But this way comes with a serious flaw:
+#+BEGIN_SRC c++
+[Int] slicedArray = a[2:4:5:6]
+#+END_SRC
+
+This should be considered a syntax error. But it's not. As the operator overload for [] is expecting to see an 
+array, '''2:4:5:6''' is a perfectly plausible expression to put inside the square brackets.
+Of course the error could be picked up in the '''native-sliveArray''' expression but this would mean that 
+the check would only be made at runtime.
+This is where function inference can become very useful.
+
+*** Function Inference Example
