@@ -1,7 +1,17 @@
 #+STARTUP: content
-#+TITLE: Function Interence
+#+TITLE: Function Inference
+
 * Motivation
-  Function interence allows for a function to have multiple overloads for the 
+  Function inference allows for a function to have multiple overloads for the 
   same parameters types, but return values of different types depending on the context in which the 
   function was used.
-  Function interence forms an integral part of NoSyn's extention framework
+  Function inference forms an integral part of NoSyn's extention framework, allowing the user of the language
+  to create a DSL or general purpose language within NoSyn with great capability to customize it's syntax.
+
+** Usage Example
+
+#+BEGIN_SRC java
+public static void main() {
+  System.out.println("HELLO WORLD")
+}
+#+END_SRC

@@ -1,5 +1,6 @@
 #+STARTUP: showall
 #+TITLE: The NoSyn Programming Language
+
 * Getting Started
 ** Installation
 * Examples
