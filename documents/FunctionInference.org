@@ -110,7 +110,7 @@ of the type =ArraySlicer= and not simply =(Int, Int)=.
    
 Function inference uses a type inference algorithm to work out which function overload to use. Where as type inference is often used to save the programmer time by
 not requiring the user to specify what the type of a variable or function is, function inference expects a certain amount of information about the context it is being
-used in. As such, *No Syn* does not allow the user to specify a variable without also specifying the type of that variable. Functions similarly must indicate what the return type
+used in. As such, *NoSyn* does not allow the user to specify a variable without also specifying the type of that variable. Functions similarly must indicate what the return type
 is, although template types are still valid.
 This constraint employed in using function inference is used to reduce the ambiguity which can arise using such a type system. Later I will explore ways in which type inference of variables
 may be possible alongside function inference, and why such a feature may not be wanted.
@@ -121,9 +121,42 @@ All function calls are expressions and can be built up into larger expressions.
 + All expressions have a single type
 + Expressions can be used as a statement if they have the type =Nothing=
 + literals have a clear concrete type
+
 Using these rules we can deduce that given the following statement:
 #+BEGIN_SRC c++
 foo(10)
 #+END_SRC
 + The type of the expression =foo(10)= must be =Nothing= as it is being used as a statement
 + The function overload of =foo= is =Int->Nothing= as the literal =10= has the concrete type of =Int=
+
+As the /NoSyn/ language, unlike similar languages like /C/, allows for functions with the same name and parameter types to have multiple different 
+return types, expressions already raise an issue of ambiguity. /C/ and /Java/ would in this situation go for the function overload for =foo= which took a single integer as a parameter and then
+ignore the return type. This is not possible in /NoSyn/ due to the potential for there to be multiple overloads with the same parameter types causing ambiguity.
+Instead there is a special datatype which a function can return if the programmer wants to use a call to the function at the statement level. This is the =Nothing= datatype, which as it's name
+suggests, does not return anything. An expression of the type =Nothing= is never a subexpression of another expression as =Nothing=. This is because =Nothing= does not have any value and as such cannot
+be passed into any other function. With this knowledge, we always know that the base type of any expression within the language is of type =Nothing=, and all subexpressions in that expression are 
+of some non =Nothing= type.
+
+** A slightly less simple program
+#+BEGIN_SRC c++
+Nothing foo(Int a) {..} //foo_IntNothing
+Int foo(Int a) {..} //foo_IntInt
+Int bar() {..} //bar_Int
+Float bar() {..} //bar_Float
+
+foo(foo(bar())) //Expression A
+#+END_SRC
+Expression A is an example of where function inference is required to find the correct function to be used. If you take the subexpressions of expression /A/ out of context, the functions they 
+refer to cannot be known:
+- =bar()= may refer to =bar_Int= or =bar_Float=
+- =foo(bar())= may refer to =foo_IntNothing= or =foo_IntInt=
+  
+In order to deduce the type of each subexpression, we must work from the information that we know concretely.
+The base expression =foo(foo(bar())= must return =Nothing= as it is being used as statement. From this we can gather all the function overloads for foo which return =Nothing=. In this 
+simple program there is only one function which this could be, =foo_IntNothing=. Given this information, we can now deduce that the subexpression =foo(bar())= must be of type =Int= if
+it is to satisfy the base expression. Again, as a simple program, there is in this case only one function which =foo= could be refering to: =foo_IntInt=.
+This then gives us the knowledge to work out what our final subexpression refers to. There is one function overload for =bar= which returns an =Int= which is 
+=bar_Int=. This completes the deduction of all functions in the expression giving us:
+#+BEGIN_SRC c++
+foo_IntNothing(foo_IntInt(bar_Int()))
+#+END_SRC
