@@ -90,7 +90,7 @@ This is not ideal as the syntax that was specifically designed for generating an
 [Int] slicedArray = a[(2,6)] //Unwanted ability to use tuples within the array access
 #+END_SRC
 
-In order to prevent this usage of the colon operator, a =closed alias= can be used:
+In order to prevent this usage of the colon operator, a closed alias can be used:
 #+BEGIN_SRC c++
 alias closed ArraySlicer = (Int, Int)
 
@@ -106,3 +106,24 @@ operator_[]_<T>([T] array, ArraySlicer arraySlicer)_{
 Using this implementation. The colon operator overload function will only be infered if the context in which it is used is specifically 
 of the type =ArraySlicer= and not simply =(Int, Int)=.
 
+* Algorithm for Function Inference
+   
+Function inference uses a type inference algorithm to work out which function overload to use. Where as type inference is often used to save the programmer time by
+not requiring the user to specify what the type of a variable or function is, function inference expects a certain amount of information about the context it is being
+used in. As such, *No Syn* does not allow the user to specify a variable without also specifying the type of that variable. Functions similarly must indicate what the return type
+is, although template types are still valid.
+This constraint employed in using function inference is used to reduce the ambiguity which can arise using such a type system. Later I will explore ways in which type inference of variables
+may be possible alongside function inference, and why such a feature may not be wanted.
+
+** Context Deduction
+Function inference works on the basis of deducing the context in which a function is being used. 
+All function calls are expressions and can be built up into larger expressions.
++ All expressions have a single type
++ Expressions can be used as a statement if they have the type =Nothing=
++ literals have a clear concrete type
+Using these rules we can deduce that given the following statement:
+#+BEGIN_SRC c++
+foo(10)
+#+END_SRC
++ The type of the expression =foo(10)= must be =Nothing= as it is being used as a statement
++ The function overload of =foo= is =Int->Nothing= as the literal =10= has the concrete type of =Int=
