@@ -37,6 +37,20 @@ exampleProgram = StandardBlock [
             ]) (SequentialBlock []))
     ]
     
+functionInferenceProgram = StandardBlock [
+        PSFuncDef (FDNoSyn "foo" "Nothing" (StandardBlock [PConst "Int" "a", PConst "Double" "b" ]) (SequentialBlock [])),
+        PSFuncDef (FDNoSyn "foo" "Nothing" (StandardBlock [PConst "Int" "a", PConst "Char" "b" ]) (SequentialBlock [])),
+        PSFuncDef (FDNoSyn "foo" "Nothing" (StandardBlock [PConst "Double" "a", PConst "Int" "b" ]) (SequentialBlock [])),
+        PSFuncDef (FDNoSyn "bar" "Int" (StandardBlock []) (SequentialBlock [])),
+        PSFuncDef (FDNoSyn "bar" "Char" (StandardBlock []) (SequentialBlock [])),
+        PSFuncDef (FDNoSyn "cello" "Int" (StandardBlock []) (SequentialBlock [])),
+        PSFuncDef (FDNoSyn "cello" "Double" (StandardBlock []) (SequentialBlock [])),
+
+
+        PSFuncDef (FDNoSyn "cello" "Nothing" (StandardBlock []) (SequentialBlock [
+                SExpression (EFuncCall "foo" [EFuncCall "bar" [], EFuncCall "cello" []])
+            ]))
+    ]
 
 generateExampleProgram :: CompilerStatus String
 generateExampleProgram = do

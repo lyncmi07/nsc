@@ -50,11 +50,11 @@ possibleFunctionsFromReturnAndParamTypes programEnvironment possibleReturnTypes 
     possibleFunctionsByReturnType <- possibleFunctionsFromReturnTypes programEnvironment possibleReturnTypes funcName (length possibleParameterTypes)
     let filteredPossibleFunctions = Prelude.map (\(x,_) -> x) $ Prelude.filter validFunctionPredicate $ zip possibleFunctionsByReturnType (repeat possibleParameterTypes) in
         if (length filteredPossibleFunctions) == 0
-            then Error $ "there are no function overloads for '" 
-                ++ funcName 
-                ++ "' that satisfy the return types " 
-                ++ show possibleReturnTypes 
-                ++ " and parameter types " 
+            then Error $ "there are no function overloads for '"
+                ++ funcName
+                ++ "' that satisfy the return types "
+                ++ show possibleReturnTypes
+                ++ " and parameter types "
                 ++ show possibleParameterTypes
             else return $ filteredPossibleFunctions
 
@@ -73,7 +73,7 @@ validFunctionPredicate' ((_, (VConst x _)):xs) (y:ys)
 validFunctionPredicate' ((_, (VPointer x _)):xs) (y:ys)
     | x `Set.member` y = validFunctionPredicate' xs ys
     | otherwise = False
-    
+
 generateExpression::ProgramEnvironment -> Expression -> CompilerStatus String
 generateExpression programEnvironment functionCall@(EFuncCall _ _) = do
     generatedExpression <- validateAndGenerateD programEnvironment (Set.singleton "Nothing") functionCall
@@ -101,21 +101,27 @@ validateAndGenerateD programEnvironment returnTypes (EIdent varName) = do
 
 validateAndGenerateD'::ProgramEnvironment -> Set Ident -> [Set Ident] -> Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
 validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTypes functionCall@(EFuncCall funcName paramExpressions) = do
-    reducedParameterTypeEithers <- 
-        let typesAndExprs = zip possibleParameterTypes paramExpressions in
-        let  typeReducer = \(paramTypes, paramExpr) -> validateAndGenerateD programEnvironment paramTypes paramExpr in
-            sequence $ Prelude.map typeReducer typesAndExprs
+    reducedParameterTypeEithers <- reduceParameterTypes programEnvironment possibleParameterTypes paramExpressions
     possibleFunctions <-
         let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
             possibleFunctionsFromReturnAndParamTypes programEnvironment possibleReturnTypes funcName reducedParameterTypes
     let reducedReturnTypes = Prelude.foldl (\typeSet (nextType, _) -> nextType `Set.insert` typeSet) Set.empty possibleFunctions in
         if (length possibleFunctions) == 1 
             then let funcToGenerate@(funcReturnType,_) = head possibleFunctions in
-                generateDFunctionCall programEnvironment funcName funcToGenerate reducedParameterTypeEithers >>= (\x -> return $ Right (funcReturnType, x))
+                let finalReducedParameterTypes = parameterSetsFromPossibleFunctions possibleFunctions (length paramExpressions) in
+                reduceParameterTypes programEnvironment finalReducedParameterTypes paramExpressions >>= 
+                    (\finalReducedParameterTypeEithers -> generateDFunctionCall programEnvironment funcName funcToGenerate finalReducedParameterTypeEithers >>=
+                        (\x -> return $ Right (funcReturnType, x)))
             else let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
                 if reductionWasMade possibleReturnTypes reducedReturnTypes possibleParameterTypes reducedParameterTypes
                     then validateAndGenerateD' programEnvironment reducedReturnTypes reducedParameterTypes functionCall 
                     else return $ Left reducedReturnTypes
+
+reduceParameterTypes::ProgramEnvironment -> [Set Ident] -> [Expression] -> CompilerStatus [(Either (Set Ident) (Ident, String))]
+reduceParameterTypes programEnvironment possibleParameterTypes parameterExpressions =
+    let typesAndExprs = zip possibleParameterTypes parameterExpressions in
+    let typeReducer = \(paramTypes, paramExpr) -> validateAndGenerateD programEnvironment paramTypes paramExpr in
+        sequence $ Prelude.map typeReducer typesAndExprs
 
 reductionWasMade::Set Ident -> Set Ident -> [Set Ident] -> [Set Ident] -> Bool
 reductionWasMade originalReturnTypes updatedReturnTypes originalParameterTypes updatedParameterTypes
