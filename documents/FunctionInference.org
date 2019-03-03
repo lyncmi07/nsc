@@ -199,7 +199,7 @@ This finds the only possible function overload that =foo= can be refering to as 
 foo_IntDoubleNothing(bar_Int(), cello_Double())
 #+END_SRC
 
-This can be considered horizontal inference as the type of =bar= had a direct effect on the type of =cello=. Had the possible function overloads for =bar= have been:
+This can be considered horizontal inference as the type of =bar= has a direct effect on the type of =cello=. Had the possible function overloads for =bar= have been:
 #+BEGIN_SRC c++
 Double bar() {..}
 Char bar() {..}
@@ -208,3 +208,18 @@ Then the expression would have evaluated as:
 #+BEGIN_SRC c++
 foo_DoubleIntNothing(bar_Double(), cello_Int())
 #+END_SRC
+
+*** Formal Explaination of Algorithm
+One function is applied recursively in order to perform function inference.
+Function overload reduction takes the knowledge of the context a function call is in and infers all the possible function overloads that could
+be used to a given situation. This is written as:
+=R(P..)F= where =R= is the set of possible return values, =P= is a list of sets of the possible types for all the parameters of the function, and =F= is
+the name of the function you wish to find the set of possible function overloads for. This function can also be used without specifying the types of the 
+parameters.
+
+In order to infer the functions used within an expression, the type of the expression must be known. From here, function overload reduction is performed on the parent
+function =F= of the expression. All base expressions are statements within /NoSyn/ and as such the first function overload reduction is always:
+={Nothing}(P)F= where =P= is a list of complete type sets with a length equal to the number of parameters in the function call to =F=.
+
+This will return a set of possible function overloads. From this set, the sets of possible types for parameters can be reduced.
+These sets of types are taken and the algorithm is applied again to every parameter. 
