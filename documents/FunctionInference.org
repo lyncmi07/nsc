@@ -1,5 +1,8 @@
 #+STARTUP: showall
 #+TITLE: Function Inference
+#+AUTHOR: Michael Lynch
+
+#+LATEX: \usepackage[cache=false]{minted}
 
 * Motivation
   Function inference allows for a function to have multiple overloads for the 
@@ -41,7 +44,8 @@ T operator_[]_<T>([T] array, Int index) {
   native_sliceArray(array, index)
 }
 
-[Int] slicedArray = a[2:6] //Assuming 'a' is an Integer array.
+//Assuming 'a' is an Integer array.
+[Int] slicedArray = a[2:6] 
 #+END_SRC
 
 This system will work providing the user with the capability to use the colon symbol as both an array contatentation operator
@@ -78,7 +82,8 @@ T operator_[]_<T>([T] array, Int index) {
   native_sliceArray(array, index)
 }
 
-[Int] slicedArray = a[2:6] //Assuming 'a' is an Integer array.
+//Assuming 'a' is an Integer array.
+[Int] slicedArray = a[2:6] 
 #+END_SRC
 
 This new implementation allows for both element concatenation and array slicing while maintaining the ability to throw an
@@ -86,21 +91,23 @@ error at compile time when =a[1:2:3]= is provided.
 This code still has a problem however. The operator overload that has been created returns a tuple of two ints.
 This is not ideal as the syntax that was specifically designed for generating an array slice would also be used in other contexts:
 #+BEGIN_SRC c++
-(Int, Int) vector = 20:30 //Unwanted ability to create regular tuples
-[Int] slicedArray = a[(2,6)] //Unwanted ability to use tuples within the array access
+//Unwanted ability to create regular tuples
+(Int, Int) vector = 20:30 
+//Unwanted ability to use tuples within the array access
+[Int] slicedArray = a[(2,6)] 
 #+END_SRC
 
 In order to prevent this usage of the colon operator, a closed alias can be used:
 #+BEGIN_SRC c++
-alias closed ArraySlicer = (Int, Int)
+  alias closed ArraySlicer = (Int, Int)
 
-ArraySlicer operator_:_(Int a, Int b) {
-  (l,r)
-}
+  ArraySlicer operator_:_(Int a, Int b) {
+    (l,r)
+  }
 
-operator_[]_<T>([T] array, ArraySlicer arraySlicer)_{
-  native_sliceArray(array, arraySlicer)
-}
+  operator_[]_<T>([T] array, ArraySlicer arraySlicer)_{
+    native_sliceArray(array, arraySlicer)
+  }
 #+END_SRC
 
 Using this implementation. The colon operator overload function will only be infered if the context in which it is used is specifically 
@@ -115,48 +122,96 @@ is, although template types are still valid.
 This constraint employed in using function inference is used to reduce the ambiguity which can arise using such a type system. Later I will explore ways in which type inference of variables
 may be possible alongside function inference, and why such a feature may not be wanted.
 
-** Context Deduction
-Function inference works on the basis of deducing the context in which a function is being used. 
-All function calls are expressions and can be built up into larger expressions.
-+ All expressions have a single type
-+ Expressions can be used as a statement if they have the type =Nothing=
-+ literals have a clear concrete type
+** Formal Definition of Function Inference Algorithm
+*** Function Definitions Used Within Algorithm Formula
+$\Lambda(r, p)[y] \Rightarrow k$
 
-Using these rules we can deduce that given the following statement:
-#+BEGIN_SRC c++
-foo(10)
-#+END_SRC
-+ The type of the expression =foo(10)= must be =Nothing= as it is being used as a statement
-+ The function overload of =foo= is =Int->Nothing= as the literal =10= has the concrete type of =Int=
+$Lambda r[y] \Rightarrow k$
 
-As the /NoSyn/ language, unlike similar languages like /C/, allows for functions with the same name and parameter types to have multiple different 
-return types, expressions already raise an issue of ambiguity. /C/ and /Java/ would in this situation go for the function overload for =foo= which took a single integer as a parameter and then
-ignore the return type. This is not possible in /NoSyn/ due to the potential for there to be multiple overloads with the same parameter types causing ambiguity.
-Instead there is a special datatype which a function can return if the programmer wants to use a call to the function at the statement level. This is the =Nothing= datatype, which as it's name
-suggests, does not return anything. An expression of the type =Nothing= is never a subexpression of another expression as =Nothing=. This is because =Nothing= does not have any value and as such cannot
-be passed into any other function. With this knowledge, we always know that the base type of any expression within the language is of type =Nothing=, and all subexpressions in that expression are 
-of some non =Nothing= type.
+- where $r$ is the set of all possible return types for function call $y$
+- where $p$ is the list of sets of all possible return types for the parameters of $y$
+- $k$ si the set of all possible function overloads for function call 
+$\Omega(r,p)[y] \Rightarrow k$
 
-** A slightly less simple program
-#+BEGIN_SRC c++
-Nothing foo(Int a) {..} //foo_IntNothing
-Int foo(Int a) {..} //foo_IntInt
-Int bar() {..} //bar_Int
-Float bar() {..} //bar_Float
+$\Omega(r)[y] \Rightarrow k$
 
-foo(foo(bar())) //Expression A
-#+END_SRC
-Expression A is an example of where function inference is required to find the correct function to be used. If you take the subexpressions of expression /A/ out of context, the functions they 
-refer to cannot be known:
-- =bar()= may refer to =bar_Int= or =bar_Float=
-- =foo(bar())= may refer to =foo_IntNothing= or =foo_IntInt=
+- Where $r$ is the set of all possible return types for a function call
+- Where $p$ is the list of sets of possible parameter types for a function call
+- Where $k$ is the set of all possible function overloads given $r$ and  $p$ for function call $y$
   
-In order to deduce the type of each subexpression, we must work from the information that we know concretely.
-The base expression =foo(foo(bar())= must return =Nothing= as it is being used as statement. From this we can gather all the function overloads for foo which return =Nothing=. In this 
-simple program there is only one function which this could be, =foo_IntNothing=. Given this information, we can now deduce that the subexpression =foo(bar())= must be of type =Int= if
-it is to satisfy the base expression. Again, as a simple program, there is in this case only one function which =foo= could be refering to: =foo_IntInt=.
-This then gives us the knowledge to work out what our final subexpression refers to. There is one function overload for =bar= which returns an =Int= which is 
-=bar_Int=. This completes the deduction of all functions in the expression giving us:
-#+BEGIN_SRC c++
-foo_IntNothing(foo_IntInt(bar_Int()))
-#+END_SRC
+$\Theta z \Rightarrow n$
+
+- Where $z$ is a set of possible function overloads
+- $n$ is the list of all possible return types for the parameters of function calls from the given overloads
+  
+$\Phi x \Rightarrow m$
+
+- where $z$ is a set of possible function overloads
+- $m$ is the set of all possible return types for those function overloads
+  
+$y^\dagger$
+
+- where $y$ is a function call
+- $y^\dagger$ is a list of function calls for the parameters on the function call $y$
+All parameters can be assumed to be function calls as literals can be expressed as function calls to functions with single overloads and no parameters
+*** Algorithm Formula
+ The algorithm for function inference can be written as:
+ \begin{align*}
+ \Lambda x[y] :=
+         \textit{let } p := [\forall \alpha.\Lambda \alpha| \textit{zip}(\Theta(\Omega x[y]), y^\dagger)] \textit{ in }
+         \Lambda(\Phi(\Omega(x, p)[y]), p)[y]
+ \end{align*}
+
+ The function $\Lambda x[y]$ calls recursively until $\Omega(x,p)[y]$ reduces to only a single possible function overload.
+ If $\Omega(x,p)[y]$ never reduces to a single function overload, the function call is ambigiuous and a compile error should occur.
+** Example Inferences
+*** Context Deduction
+ Function inference works on the basis of deducing the context in which a function is being used. 
+ All function calls are expressions and can be built up into larger expressions.
+ + All expressions have a single type
+ + Expressions can be used as a statement if they have the type =Nothing=
+ + literals have a clear concrete type
+
+ Using these rules we can deduce that given the following statement:
+ #+BEGIN_SRC c++
+ foo(10)
+ #+END_SRC
+ + The type of the expression =foo(10)= must be =Nothing= as it is being used as a statement
+ + The function overload of =foo= is =Int->Nothing= as the literal =10= has the concrete type of =Int=
+
+ As the /NoSyn/ language, unlike similar languages like /C/, allows for functions with the same name and parameter types to have multiple different 
+ return types, expressions already raise an issue of ambiguity. /C/ and /Java/ would in this situation go for the function overload for =foo= which took a single integer as a parameter and then
+ ignore the return type. This is not possible in /NoSyn/ due to the potential for there to be multiple overloads with the same parameter types causing ambiguity.
+ Instead there is a special datatype which a function can return if the programmer wants to use a call to the function at the statement level. This is the =Nothing= datatype, which as it's name
+ suggests, does not return anything. An expression of the type =Nothing= is never a subexpression of another expression as =Nothing=. This is because =Nothing= does not have any value and as such cannot
+ be passed into any other function. With this knowledge, we always know that the base type of any expression within the language is of type =Nothing=, and all subexpressions in that expression are 
+ of some non =Nothing= type.
+
+*** A slightly less simple program
+ #+BEGIN_SRC c++
+ //foo_IntNothing
+ Nothing foo(Int a) {..} 
+ //foo_IntInt
+ Int foo(Int a) {..} 
+ //bar_Int
+ Int bar() {..} 
+ //bar_Float
+ Float bar() {..} 
+
+ foo(foo(bar())) //Expression A
+ #+END_SRC
+ Expression A is an example of where function inference is required to find the correct function to be used. If you take the subexpressions of expression /A/ out of context, the functions they 
+ refer to cannot be known:
+ - =bar()= may refer to =bar_Int= or =bar_Float=
+ - =foo(bar())= may refer to =foo_IntNothing= or =foo_IntInt=
+  
+ In order to deduce the type of each subexpression, we must work from the information that we know concretely.
+ The base expression =foo(foo(bar())= must return =Nothing= as it is being used as statement. From this we can gather all the function overloads for foo which return =Nothing=. In this 
+ simple program there is only one function which this could be, =foo_IntNothing=. Given this information, we can now deduce that the subexpression =foo(bar())= must be of type =Int= if
+ it is to satisfy the base expression. Again, as a simple program, there is in this case only one function which =foo= could be refering to: =foo_IntInt=.
+ This then gives us the knowledge to work out what our final subexpression refers to. There is one function overload for =bar= which returns an =Int= which is 
+ =bar_Int=. This completes the deduction of all functions in the expression giving us:
+ #+BEGIN_SRC c++
+   foo_IntNothing(foo_IntInt(bar_Int()))
+ #+END_SRC
+
