@@ -158,7 +158,7 @@ All parameters can be assumed to be function calls as literals can be expressed 
  The algorithm for function inference can be written as:
  \begin{align*}
  \Lambda x[y] :=
-         \textit{let } p := [\forall \alpha.\Lambda \alpha| \textit{zip}(\Theta(\Omega x[y]), y^\dagger)] \textit{ in }
+         \textit{let } p := [\forall (\alpha, \beta).\Lambda \alpha [\beta]| \textit{zip}(\Theta(\Omega x[y]), y^\dagger)] \textit{ in }
          \Lambda(\Phi(\Omega(x, p)[y]), p)[y]
  \end{align*}
 
