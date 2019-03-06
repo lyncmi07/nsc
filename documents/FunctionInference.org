@@ -2,7 +2,7 @@
 #+TITLE: Function Inference
 #+AUTHOR: Michael Lynch
 
-#+LATEX: \usepackage[cache=false]{minted}
+#+LATEX: \usepackage{minted}
 
 * Motivation
   Function inference allows for a function to have multiple overloads for the 
@@ -126,7 +126,7 @@ may be possible alongside function inference, and why such a feature may not be 
 *** Function Definitions Used Within Algorithm Formula
 $\Lambda(r, p)[y] \Rightarrow k$
 
-$Lambda r[y] \Rightarrow k$
+$\Lambda r[y] \Rightarrow k$
 
 - where $r$ is the set of all possible return types for function call $y$
 - where $p$ is the list of sets of all possible return types for the parameters of $y$
@@ -142,7 +142,7 @@ $\Omega(r)[y] \Rightarrow k$
 $\Theta z \Rightarrow n$
 
 - Where $z$ is a set of possible function overloads
-- $n$ is the list of all possible return types for the parameters of function calls from the given overloads
+- $n$ is the list of sets of all possible return types for the parameters of function calls from the given overloads
   
 $\Phi x \Rightarrow m$
 
@@ -158,7 +158,7 @@ All parameters can be assumed to be function calls as literals can be expressed 
  The algorithm for function inference can be written as:
  \begin{align*}
  \Lambda x[y] :=
-         \textit{let } p := [\forall (\alpha, \beta).\Lambda \alpha [\beta]| \textit{zip}(\Theta(\Omega x[y]), y^\dagger)] \textit{ in }
+         \textit{let } p := [\forall (\alpha, \beta).\Theta \Lambda \alpha [\beta]| \textit{zip}(\Theta(\Omega x[y]), y^\dagger)] \textit{ in }
          \Lambda(\Phi(\Omega(x, p)[y]), p)[y]
  \end{align*}
 
@@ -215,3 +215,52 @@ All parameters can be assumed to be function calls as literals can be expressed 
    foo_IntNothing(foo_IntInt(bar_Int()))
  #+END_SRC
 
+*** Horizontal Inference
+ With the previous example, the correct function overloads could be infered by working in a top down fashion from the parent expression =foo(foo(bar()))= down to the leaf subexpression =bar()=.
+ This can be refered to as vertical inference in the sense that be looking at the context an expression or it's subexpressions it is possible to infer the type of the expression.
+ Horizontal Inference means that the type of a subexpression on the same level as the current one has an effect on the type which this subexpression could be. Such inference is achieved by 
+ working up and down the expression tree gradually eliminating the possible types of expressions until all are resolved down to a single type.
+ #+BEGIN_SRC c++
+ Nothing foo(Int a, Double a) {..} //foo_IntDoubleNothing
+ Nothing foo(Int a, Char a) {..} //foo_IntCharNothing
+ Nothing foo(Double, Int a) {..} //foo_DoubleIntNothing
+ Int bar() {..} //bar_Int
+ Char bar() {..} //bar_Char
+ Int cello() {..} //cello_Int
+ Double cello() {..} //cello_Double
+
+ foo(bar(), cello()) //Expression B
+ #+END_SRC
+*** Applying the Function Inference Algorithm to Expression B
+
+As with before, each expression within expression /B/ cannot on its own have it's function infered. As with before. As the main expression /B/ is being used as a statement,
+the type can be infered to be =Nothing=. As such, the set of possible =foo= functions expression /B/ could refer to is:
+
+={Nothing}{...}foo -> {foo_IntDoubleNothing, foo_IntCharNothing, foo_DoubleIntNothing}=
+(={Nothing}(?,?)foo= means to find all the possible function overloads for =foo= with return type =Nothing= and 2 parameters of any type)
+ 
+From this list of possible functions, a list of possible parameter types can be infered:
+- Parameter 1: ={Int, Double}=
+- Parameter 2: ={Double, Char, Int}=
+ 
+With these sets of parameter types, these can be applied to the parameter expressions =bar()= and =cello()=:
+- ={Int, Double}bar -> {Int}=
+- ={Double, Char, Int}cello -> {Double, Int}=
+ 
+With these reduced sets of parameter types this can be then applied again to the =foo= function overloads to see if the number of possible overloads can be reduced:
+={Nothing}({Int}, {Double, Int})foo -> {foo_IntDoubleNothing}=
+
+This finds the only possible function overload that =foo= can be refering to as =foo_IntDoubleNothing= allowing for the whole expression to be infered as:
+#+BEGIN_SRC c++
+foo_IntDoubleNothing(bar_Int(), cello_Double())
+#+END_SRC
+
+This can be considered horizontal inference as the type of =bar= has a direct effect on the type of =cello=. Had the possible function overloads for =bar= have been:
+#+BEGIN_SRC c++
+Double bar() {..}
+Char bar() {..}
+#+END_SRC
+Then the expression would have evaluated as:
+#+BEGIN_SRC c++
+foo_DoubleIntNothing(bar_Double(), cello_Int())
+#+END_SRC
