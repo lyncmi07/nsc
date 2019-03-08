@@ -309,12 +309,6 @@ This gives the \lambda function:
 
   - $\Rightarrow \Lambda(\{Nothing\}, \ast)[foo(bar(),cello())] = \{foo\_IntDoubleNothing\}$
 
-----------------
-$\Lambda x[y] :=$
-
-$\textit{let } p := [\forall (\alpha, \beta).\Theta \Lambda (\alpha, \ast) [\beta]| \textit{zip}(\Theta \Omega x[y'], y^\dagger)] \textit{ in }$
-
-$\Lambda(\Phi \Omega(x \cap (\ast, p))[y'], p)[y]$
 **** Applying the Function Inference Algorithm to Expression B
 
  As with before, each expression within expression /B/ cannot on its own have it's function infered. As with before. As the main expression /B/ is being used as a statement,
