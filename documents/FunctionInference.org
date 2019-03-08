@@ -3,6 +3,7 @@
 #+AUTHOR: Michael Lynch
 
 #+LATEX: \usepackage{minted}
+#+LATEX: \usepackage{amsmath}
 
 * Motivation
   Function inference allows for a function to have multiple overloads for the 
@@ -124,20 +125,11 @@ may be possible alongside function inference, and why such a feature may not be 
 
 ** Formal Definition of Function Inference Algorithm
 *** Function Definitions Used Within Algorithm Formula
-$\Lambda(r, p)[y] \Rightarrow k$
+$\Omega(r,p)[y'] \Rightarrow k$
 
-$\Lambda r[y] \Rightarrow k$
-
-- where $r$ is the set of all possible return types for function call $y$
-- where $p$ is the list of sets of all possible return types for the parameters of $y$
-- $k$ si the set of all possible function overloads for function call 
-$\Omega(r,p)[y] \Rightarrow k$
-
-$\Omega(r)[y] \Rightarrow k$
-
-- Where $r$ is the set of all possible return types for a function call
-- Where $p$ is the list of sets of possible parameter types for a function call
-- Where $k$ is the set of all possible function overloads given $r$ and  $p$ for function call $y$
+- Where $r$ is the set of all possible return types for a function call to function identifier $y'$
+- Where $p$ is the list of sets of possible parameter types for a function call to function identifier $y'$
+- Where $k$ is the set of all possible function overloads given $r$ and  $p$ for a function call to identifier $y'$
   
 $\Theta z \Rightarrow n$
 
@@ -152,18 +144,38 @@ $\Phi x \Rightarrow m$
 $y^\dagger$
 
 - where $y$ is a function call
-- $y^\dagger$ is a list of function calls for the parameters on the function call $y$
-All parameters can be assumed to be function calls as literals can be expressed as function calls to functions with single overloads and no parameters
-*** Algorithm Formula
- The algorithm for function inference can be written as:
- \begin{align*}
- \Lambda x[y] :=
-         \textit{let } p := [\forall (\alpha, \beta).\Theta \Lambda \alpha [\beta]| \textit{zip}(\Theta(\Omega x[y]), y^\dagger)] \textit{ in }
-         \Lambda(\Phi(\Omega(x, p)[y]), p)[y]
- \end{align*}
+- $y^\dagger$ is a list of parameter expressions for the function call $y$. 
+  All parameters can be assumed to be function calls as literals can be expressed as function calls to functions with single overloads and no parameters
+  
+$y'$
+- where $y$ is a function call
+- $y'$ is the identifier for that function call ($y$ = =foo(bar())= \Rightarrow $y'$ = =foo=)
 
- The function $\Lambda x[y]$ calls recursively until $\Omega(x,p)[y]$ reduces to only a single possible function overload.
- If $\Omega(x,p)[y]$ never reduces to a single function overload, the function call is ambigiuous and a compile error should occur.
+$\ast$ is the wildcard operator. When applying this to an intersection $\ast \cap \alpha$ the result is always $\alpha$
+
+$\cap$ intersection applies recursively within a data structure.
+- The intersection of two lists is the intersection of its elements
+- The intersection of two tuples is the intersection of its elements
+- The intersection of two sets is equivalent to a standard intersection
+
+*** Algorithm Formula
+$\Lambda(r, p)[y] \Rightarrow k$
+- where $y$ is a function call
+- where $r$ is the set of all possible return types for function call $y$
+- where $p$ is the list of sets of all possible return types for the parameters of $y$
+- $k$ is the set of all possible function overloads for function call $y$
+
+
+The algorithm for function inference can be written as:
+
+$\Lambda x[y] :=$
+
+$\textit{let } p := [\forall (\alpha, \beta).\Theta \Lambda (\alpha, \ast) [\beta]| \textit{zip}(\Theta \Omega x[y'], y^\dagger)] \textit{ in }$
+
+$\Lambda(\Phi \Omega(x \cap (\ast, p))[y'], p)[y]$
+
+ The function $\Lambda x[y]$ calls recursively until $\Omega(x,p)[y']$ reduces to only a single possible function overload.
+ If $\Omega(x,p)[y']$ never reduces to a single function overload, the function call is ambigiuous and a compile error should occur.
 ** Example Inferences
 *** Context Deduction
  Function inference works on the basis of deducing the context in which a function is being used. 
@@ -231,36 +243,108 @@ All parameters can be assumed to be function calls as literals can be expressed 
 
  foo(bar(), cello()) //Expression B
  #+END_SRC
-*** Applying the Function Inference Algorithm to Expression B
 
-As with before, each expression within expression /B/ cannot on its own have it's function infered. As with before. As the main expression /B/ is being used as a statement,
-the type can be infered to be =Nothing=. As such, the set of possible =foo= functions expression /B/ could refer to is:
+**** Applying the Function Inference Algorithm to Expression B
+As expression B is being used as a a statement, the function inference begins with the known return type =Nothing= and unknown parameter types.
+This gives the \lambda function: 
 
-={Nothing}{...}foo -> {foo_IntDoubleNothing, foo_IntCharNothing, foo_DoubleIntNothing}=
-(={Nothing}(?,?)foo= means to find all the possible function overloads for =foo= with return type =Nothing= and 2 parameters of any type)
+- $\Lambda(\{Nothing\}.\ast)[foo(bar(),cello())]$
+
+  - $p := [\forall (\alpha,\beta).\Theta \Lambda (\alpha, \ast) [\beta] | \textit{zip}(\Theta \Omega (\{Nothing\}.\ast)[foo], [bar(),cello()]])]$
+    - $\Omega (\{Nothing\}.\ast)[foo] = \{ foo\_IntDoubleNothing, foo\_IntCharNothing, foo\_DoubleIntNothing \}$
+
+    - $\Theta \{ foo\_IntDoubleNothing, foo\_IntCharNothing, foo\_DoubleIntNothing \} = [\{Int, Double\}, \{Int, Double, Char\}]$
+
+    - $\textit{zip}([\{Int, Double\}, \{Int, Double, Char\}], [bar(), cello()]) = [(\{Int, Double\}, bar()), (\{Int, Double, Char\}, cello())$
+
+    - $p = [\Theta \Lambda(\{Int, Double\}, \ast)[bar()], \Theta \Lambda(\{Int, Double, Char\}, \ast)[cello()]]$
+
+      - $\Lambda(\{Int, Double\}, \ast)[bar()]$
+
+        - $p := []$
+          
+        - $\Omega (\{Int, Double\}, [])[bar] = \{bar\_Int\}$
+
+          *RESOLVES*
+
+        - $\Rightarrow \Lambda (\{Int, Double\}, \ast)[bar()] = \{bar\_Int\} = \{bar\_Int\}$
+
+      - $\Lambda(\{Int, Double, Char\}, \ast)[cello()]$
+
+        - $p := []$
+
+        - $\Lambda(\Phi \Omega (\{Int, Double, Char\}, [])[cello], [])[cello()]$
+
+          - $\Omega (\{Int, Double, Char\}, [])[cello] = \{cello\_Int, cello\_Double\}$
+
+          - $\Phi \{cello\_Int, cello\_Double\}$
+
+          - $\Lambda(\{Int, Double\}, [])[cello()]$
+
+            - $p := []$
+
+            - $\Omega(\{Int, Double\}, [])[cello] = \{cello\_Int, cello\_Double\}$
+
+              *CYCLIC*
+
+            - $\Rightarrow \Lambda(\{Int, Double\}, [])[cello()] = \{cello\_Int, cello\_Double\}$
+
+        - $\Rightarrow \Lambda(\{Int, Double, Char\}, \ast)[cello()] = \{cello\_Int, cello\_Double\}$
+
+      - $p = [\Theta \{bar\_Int\}, \Theta \{cello\_Int, cello\_Double]$
+
+      - $p = [\{Int\}, \{Int, Double\}]$
+
+  - $\Lambda(\Phi \Omega(\{Nothing\}, [\{Int\}, \{Int, Double\}])[foo], [\{Int\}, \{Int, Double\}])[foo(bar(),cello())]$
+
+    - $\Phi \Omega(\{Nothing\}, [\{Int\}, \{Int, Double\}])[foo] = \{Nothing\}$
+
+    - $\Lambda(\{Nothing\}, [\{Int\}, \{Int, Double\}])[foo(bar(),cello())]$
+
+      - $\Omega(\{Nothing\}, [\{Int\}, \{Int, Double\}])[foo] = \{foo\_IntDoubleNothing\}$
+
+        *RESOLVES*
+
+      - $\Rightarrow \Lambda(\Phi \Omega(\{Nothing\}, [\{Int\}, \{Int, Double\}])[foo], [\{Int\}, \{Int, Double\}])[foo(bar(),cello())] = \{foo\_IntDoubleNothing\}$
+
+  - $\Rightarrow \Lambda(\{Nothing\}, \ast)[foo(bar(),cello())] = \{foo\_IntDoubleNothing\}$
+
+----------------
+$\Lambda x[y] :=$
+
+$\textit{let } p := [\forall (\alpha, \beta).\Theta \Lambda (\alpha, \ast) [\beta]| \textit{zip}(\Theta \Omega x[y'], y^\dagger)] \textit{ in }$
+
+$\Lambda(\Phi \Omega(x \cap (\ast, p))[y'], p)[y]$
+**** Applying the Function Inference Algorithm to Expression B
+
+ As with before, each expression within expression /B/ cannot on its own have it's function infered. As with before. As the main expression /B/ is being used as a statement,
+ the type can be infered to be =Nothing=. As such, the set of possible =foo= functions expression /B/ could refer to is:
+
+ ={Nothing}{...}foo -> {foo_IntDoubleNothing, foo_IntCharNothing, foo_DoubleIntNothing}=
+ (={Nothing}(?,?)foo= means to find all the possible function overloads for =foo= with return type =Nothing= and 2 parameters of any type)
  
-From this list of possible functions, a list of possible parameter types can be infered:
-- Parameter 1: ={Int, Double}=
-- Parameter 2: ={Double, Char, Int}=
+ From this list of possible functions, a list of possible parameter types can be infered:
+ - Parameter 1: ={Int, Double}=
+ - Parameter 2: ={Double, Char, Int}=
  
-With these sets of parameter types, these can be applied to the parameter expressions =bar()= and =cello()=:
-- ={Int, Double}bar -> {Int}=
-- ={Double, Char, Int}cello -> {Double, Int}=
+ With these sets of parameter types, these can be applied to the parameter expressions =bar()= and =cello()=:
+ - ={Int, Double}bar -> {Int}=
+ - ={Double, Char, Int}cello -> {Double, Int}=
  
-With these reduced sets of parameter types this can be then applied again to the =foo= function overloads to see if the number of possible overloads can be reduced:
-={Nothing}({Int}, {Double, Int})foo -> {foo_IntDoubleNothing}=
+ With these reduced sets of parameter types this can be then applied again to the =foo= function overloads to see if the number of possible overloads can be reduced:
+ ={Nothing}({Int}, {Double, Int})foo -> {foo_IntDoubleNothing}=
 
-This finds the only possible function overload that =foo= can be refering to as =foo_IntDoubleNothing= allowing for the whole expression to be infered as:
-#+BEGIN_SRC c++
-foo_IntDoubleNothing(bar_Int(), cello_Double())
-#+END_SRC
+ This finds the only possible function overload that =foo= can be refering to as =foo_IntDoubleNothing= allowing for the whole expression to be infered as:
+ #+BEGIN_SRC c++
+ foo_IntDoubleNothing(bar_Int(), cello_Double())
+ #+END_SRC
 
-This can be considered horizontal inference as the type of =bar= has a direct effect on the type of =cello=. Had the possible function overloads for =bar= have been:
-#+BEGIN_SRC c++
-Double bar() {..}
-Char bar() {..}
-#+END_SRC
-Then the expression would have evaluated as:
-#+BEGIN_SRC c++
-foo_DoubleIntNothing(bar_Double(), cello_Int())
-#+END_SRC
+ This can be considered horizontal inference as the type of =bar= has a direct effect on the type of =cello=. Had the possible function overloads for =bar= have been:
+ #+BEGIN_SRC c++
+ Double bar() {..}
+ Char bar() {..}
+ #+END_SRC
+ Then the expression would have evaluated as:
+ #+BEGIN_SRC c++
+ foo_DoubleIntNothing(bar_Double(), cello_Int())
+ #+END_SRC
