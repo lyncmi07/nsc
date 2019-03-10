@@ -13,55 +13,55 @@
   to create a DSL or general purpose language within NoSyn with great capability to customize it's syntax.
 
 ** Usage Example
-Consider the following expression:
-#+BEGIN_SRC c++
-2:6
-#+END_SRC
+ Consider the following expression:
+ #+BEGIN_SRC c++
+ 2:6
+ #+END_SRC
 
-The user may with wish this to mean concatenating the two numbers into a list of integers.
-But there are also languages in which this symbol is used to denote to the start and the end of an 
-array slice:
-#+BEGIN_SRC go
-//GO CODE
-a[2:6]
-#+END_SRC
+ The user may with wish this to mean concatenating the two numbers into a list of integers.
+ But there are also languages in which this symbol is used to denote to the start and the end of an 
+ array slice:
+ #+BEGIN_SRC go
+ //GO CODE
+ a[2:6]
+ #+END_SRC
 
-NoSyn provides the user with the ability to overload all operators, infact by default no operators are defined.
-Assuming that an overload function has been created for the square brackets on an array to perform array access,
-the user could set up the language as follows:
-#+BEGIN_SRC c++
-//NO SYN code
-[T] operator_:_<T>(T a, T b) {
-  native_formArray(a,b)
-}
-[T] operator_:_<T>(T x, [T] xs) {
-  native_formArray(x,xs)
-}
+ NoSyn provides the user with the ability to overload all operators, infact by default no operators are defined.
+ Assuming that an overload function has been created for the square brackets on an array to perform array access,
+ the user could set up the language as follows:
+ #+BEGIN_SRC c++
+ //NO SYN code
+ [T] operator_:_<T>(T a, T b) {
+   native_formArray(a,b)
+ }
+ [T] operator_:_<T>(T x, [T] xs) {
+   native_formArray(x,xs)
+ }
 
-T operator_[]_<T>([T] array, Int index) {
-  native_indexAccess(array, index)
-}
-[T] operator_[]_<T>([T] array, [Int] index) {
-  native_sliceArray(array, index)
-}
+ T operator_[]_<T>([T] array, Int index) {
+   native_indexAccess(array, index)
+ }
+ [T] operator_[]_<T>([T] array, [Int] index) {
+   native_sliceArray(array, index)
+ }
 
-//Assuming 'a' is an Integer array.
-[Int] slicedArray = a[2:6] 
-#+END_SRC
+ //Assuming 'a' is an Integer array.
+ [Int] slicedArray = a[2:6] 
+ #+END_SRC
 
-This system will work providing the user with the capability to use the colon symbol as both an array contatentation operator
-as well as an array slice operator.
-But this way comes with a serious flaw:
-#+BEGIN_SRC c++
-[Int] slicedArray = a[2:4:5:6]
-#+END_SRC
+ This system will work providing the user with the capability to use the colon symbol as both an array contatentation operator
+ as well as an array slice operator.
+ But this way comes with a serious flaw:
+ #+BEGIN_SRC c++
+ [Int] slicedArray = a[2:4:5:6]
+ #+END_SRC
 
-This should be considered a syntax error. But it's not. 
-As the operator overload for [] is expecting to see an 
-array, =2:4:5:6= is a perfectly plausible expression to put inside the square brackets.
-Of course the error could be picked up in the =native_sliceArray= expression but this would mean that 
-the check would only be made at runtime.
-This is where function inference can become very useful.
+ This should be considered a syntax error. But it's not. 
+ As the operator overload for [] is expecting to see an 
+ array, =2:4:5:6= is a perfectly plausible expression to put inside the square brackets.
+ Of course the error could be picked up in the =native_sliceArray= expression but this would mean that 
+ the check would only be made at runtime.
+ This is where function inference can become very useful.
 
 *** Function Inference Example
 #+BEGIN_SRC c++
@@ -229,8 +229,9 @@ $\Lambda(\Phi \Omega(x \cap (\ast, p))[y'], p)[y]$
 
 *** Horizontal Inference
  With the previous example, the correct function overloads could be infered by working in a top down fashion from the parent expression =foo(foo(bar()))= down to the leaf subexpression =bar()=.
- This can be refered to as vertical inference in the sense that be looking at the context an expression or it's subexpressions it is possible to infer the type of the expression.
- Horizontal Inference means that the type of a subexpression on the same level as the current one has an effect on the type which this subexpression could be. Such inference is achieved by 
+ This can be refered to as vertical inference in the sense that by looking at the context of an expression or it's subexpressions it is possible to infer the type of the expression.
+ 
+Horizontal Inference means that the type of a subexpression on the same level as the current one has an effect on the type which this subexpression could be. Such inference is achieved by 
  working up and down the expression tree gradually eliminating the possible types of expressions until all are resolved down to a single type.
  #+BEGIN_SRC c++
  Nothing foo(Int a, Double a) {..} //foo_IntDoubleNothing
@@ -245,7 +246,7 @@ $\Lambda(\Phi \Omega(x \cap (\ast, p))[y'], p)[y]$
  #+END_SRC
 
 **** Applying the Function Inference Algorithm to Expression B
-As expression B is being used as a a statement, the function inference begins with the known return type =Nothing= and unknown parameter types.
+As expression B is being used as a statement, the function inference begins with the known return type =Nothing= and unknown parameter types.
 This gives the \lambda function: 
 
 - $\Lambda(\{Nothing\}.\ast)[foo(bar(),cello())]$
@@ -309,36 +310,38 @@ This gives the \lambda function:
 
   - $\Rightarrow \Lambda(\{Nothing\}, \ast)[foo(bar(),cello())] = \{foo\_IntDoubleNothing\}$
 
-**** Applying the Function Inference Algorithm to Expression B
 
- As with before, each expression within expression /B/ cannot on its own have it's function infered. As with before. As the main expression /B/ is being used as a statement,
- the type can be infered to be =Nothing=. As such, the set of possible =foo= functions expression /B/ could refer to is:
+***** Explaination
 
- ={Nothing}{...}foo -> {foo_IntDoubleNothing, foo_IntCharNothing, foo_DoubleIntNothing}=
- (={Nothing}(?,?)foo= means to find all the possible function overloads for =foo= with return type =Nothing= and 2 parameters of any type)
+   As with before, each expression within expression /B/ cannot on its own have it's function infered. 
+   Again as before, as the main expression /B/ is being used as a statement,
+   the type can be infered to be =Nothing=. As such, the set of possible =foo= functions expression /B/ could refer to is:
+
+   $\Omega (\{Nothing\}.\ast)[foo] = \{ foo\_IntDoubleNothing, foo\_IntCharNothing, foo\_DoubleIntNothing \}$
  
- From this list of possible functions, a list of possible parameter types can be infered:
- - Parameter 1: ={Int, Double}=
- - Parameter 2: ={Double, Char, Int}=
+    From this list of possible functions, a list of possible parameter types can be infered:
+   - Parameter 1: ={Int, Double}=
+   - Parameter 2: ={Double, Char, Int}=
  
- With these sets of parameter types, these can be applied to the parameter expressions =bar()= and =cello()=:
- - ={Int, Double}bar -> {Int}=
- - ={Double, Char, Int}cello -> {Double, Int}=
+   With these sets of parameter types, these can be applied to the parameter expressions =bar()= and =cello()=:
+   - $\Theta \Lambda(\{Int, Double\}, \ast)[bar()] = \{ Int \}$
+   - $\Theta \Lambda(\{Int, Double, Char\}, \ast)[cello()]] = \{ Int, Double \}$
  
- With these reduced sets of parameter types this can be then applied again to the =foo= function overloads to see if the number of possible overloads can be reduced:
- ={Nothing}({Int}, {Double, Int})foo -> {foo_IntDoubleNothing}=
+   With these reduced sets of parameter types this can be then applied again to the =foo= function overloads to see if the number of possible overloads can be reduced:
 
- This finds the only possible function overload that =foo= can be refering to as =foo_IntDoubleNothing= allowing for the whole expression to be infered as:
- #+BEGIN_SRC c++
- foo_IntDoubleNothing(bar_Int(), cello_Double())
- #+END_SRC
+   $\Omega (\{Nothing\}.[\{Int\}, \{Double, Int\}])[foo] = \{foo\_IntDoubleNothing\}$
 
- This can be considered horizontal inference as the type of =bar= has a direct effect on the type of =cello=. Had the possible function overloads for =bar= have been:
- #+BEGIN_SRC c++
- Double bar() {..}
- Char bar() {..}
- #+END_SRC
- Then the expression would have evaluated as:
- #+BEGIN_SRC c++
- foo_DoubleIntNothing(bar_Double(), cello_Int())
- #+END_SRC
+   This finds the only possible function overload that =foo= can be refering to as =foo_IntDoubleNothing= allowing for the whole expression to be infered as:
+   #+BEGIN_SRC c++
+   foo_IntDoubleNothing(bar_Int(), cello_Double())
+   #+END_SRC
+
+   This can be considered horizontal inference as the type of =bar= has a direct effect on the type of =cello=. Had the possible function overloads for =bar= have been:
+   #+BEGIN_SRC c++
+   Double bar() {..}
+   Char bar() {..}
+   #+END_SRC
+   Then the expression would have evaluated as:
+   #+BEGIN_SRC c++
+   foo_DoubleIntNothing(bar_Double(), cello_Int())
+   #+END_SRC
