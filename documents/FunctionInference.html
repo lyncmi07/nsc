@@ -1,0 +1,851 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2019-03-10 Sun 18:15 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Function Inference</title>
+<meta name="generator" content="Org mode" />
+<meta name="author" content="Michael Lynch" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { width: 90%; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2019 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        displayAlign: "center",
+        displayIndent: "0em",
+
+        "HTML-CSS": { scale: 100,
+                        linebreaks: { automatic: "false" },
+                        webFont: "TeX"
+                       },
+        SVG: {scale: 100,
+              linebreaks: { automatic: "false" },
+              font: "TeX"},
+        NativeMML: {scale: 100},
+        TeX: { equationNumbers: {autoNumber: "AMS"},
+               MultLineWidth: "85%",
+               TagSide: "right",
+               TagIndent: ".8em"
+             }
+});
+</script>
+<script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS_HTML"></script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">Function Inference</h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#org8642a5f">1. Motivation</a>
+<ul>
+<li><a href="#org02ce82b">1.1. Usage Example</a>
+<ul>
+<li><a href="#org4584b08">1.1.1. Function Inference Example</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#org964979a">2. Algorithm for Function Inference</a>
+<ul>
+<li><a href="#org93ce1ac">2.1. Formal Definition of Function Inference Algorithm</a>
+<ul>
+<li><a href="#orge901c54">2.1.1. Function Definitions Used Within Algorithm Formula</a></li>
+<li><a href="#org6fd2740">2.1.2. Algorithm Formula</a></li>
+</ul>
+</li>
+<li><a href="#org2e6368a">2.2. Example Inferences</a>
+<ul>
+<li><a href="#orgfb96285">2.2.1. Context Deduction</a></li>
+<li><a href="#org337087f">2.2.2. A slightly less simple program</a></li>
+<li><a href="#org3249938">2.2.3. Horizontal Inference</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org8642a5f" class="outline-2">
+<h2 id="org8642a5f"><span class="section-number-2">1</span> Motivation</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Function inference allows for a function to have multiple overloads for the 
+same parameters types, but return values of different types depending on the context in which the 
+function was used.
+Function inference forms an integral part of NoSyn's extention framework, allowing the user of the language
+to create a DSL or general purpose language within NoSyn with great capability to customize it's syntax.
+</p>
+</div>
+
+<div id="outline-container-org02ce82b" class="outline-3">
+<h3 id="org02ce82b"><span class="section-number-3">1.1</span> Usage Example</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+Consider the following expression:
+</p>
+<div class="org-src-container">
+<pre class="src src-c++">2:6
+</pre>
+</div>
+
+<p>
+The user may with wish this to mean concatenating the two numbers into a list of integers.
+But there are also languages in which this symbol is used to denote to the start and the end of an 
+array slice:
+</p>
+<div class="org-src-container">
+<pre class="src src-go">//GO CODE
+a[2:6]
+</pre>
+</div>
+
+<p>
+NoSyn provides the user with the ability to overload all operators, infact by default no operators are defined.
+Assuming that an overload function has been created for the square brackets on an array to perform array access,
+the user could set up the language as follows:
+</p>
+<div class="org-src-container">
+<pre class="src src-c++">//NO SYN code
+[T] operator_:_&lt;T&gt;(T a, T b) {
+  native_formArray(a,b)
+}
+[T] operator_:_&lt;T&gt;(T x, [T] xs) {
+  native_formArray(x,xs)
+}
+
+T operator_[]_&lt;T&gt;([T] array, Int index) {
+  native_indexAccess(array, index)
+}
+[T] operator_[]_&lt;T&gt;([T] array, [Int] index) {
+  native_sliceArray(array, index)
+}
+
+//Assuming 'a' is an Integer array.
+[Int] slicedArray = a[2:6] 
+</pre>
+</div>
+
+<p>
+This system will work providing the user with the capability to use the colon symbol as both an array contatentation operator
+as well as an array slice operator.
+But this way comes with a serious flaw:
+</p>
+<div class="org-src-container">
+<pre class="src src-c++">[Int] slicedArray = a[2:4:5:6]
+</pre>
+</div>
+
+<p>
+This should be considered a syntax error. But it's not. 
+As the operator overload for [] is expecting to see an 
+array, <code>2:4:5:6</code> is a perfectly plausible expression to put inside the square brackets.
+Of course the error could be picked up in the <code>native_sliceArray</code> expression but this would mean that 
+the check would only be made at runtime.
+This is where function inference can become very useful.
+</p>
+</div>
+
+<div id="outline-container-org4584b08" class="outline-4">
+<h4 id="org4584b08"><span class="section-number-4">1.1.1</span> Function Inference Example</h4>
+<div class="outline-text-4" id="text-1-1-1">
+<div class="org-src-container">
+<pre class="src src-c++">//NO SYN code
+[T] operator_:_&lt;T&gt;(T a, T b) {
+  native_formArray(a,b)
+}
+(Int, Int) operator_:_(Int l, Int r) {
+  (l,r)
+}
+[T] operator_:_&lt;T&gt;(T x, [T] xs) {
+  native_formArray(x,xs)
+}
+
+T operator_[]_&lt;T&gt;([T] array, Int index) {
+  native_indexAccess(array, index)
+}
+[T] operator_[]_&lt;T&gt;([T] array,  (Int, Int) arraySlicer) {
+  native_sliceArray(array, index)
+}
+
+//Assuming 'a' is an Integer array.
+[Int] slicedArray = a[2:6] 
+</pre>
+</div>
+
+<p>
+This new implementation allows for both element concatenation and array slicing while maintaining the ability to throw an
+error at compile time when <code>a[1:2:3]</code> is provided.
+This code still has a problem however. The operator overload that has been created returns a tuple of two ints.
+This is not ideal as the syntax that was specifically designed for generating an array slice would also be used in other contexts:
+</p>
+<div class="org-src-container">
+<pre class="src src-c++">//Unwanted ability to create regular tuples
+(Int, Int) vector = 20:30 
+//Unwanted ability to use tuples within the array access
+[Int] slicedArray = a[(2,6)] 
+</pre>
+</div>
+
+<p>
+In order to prevent this usage of the colon operator, a closed alias can be used:
+</p>
+<div class="org-src-container">
+<pre class="src src-c++">alias closed ArraySlicer = (Int, Int)
+
+ArraySlicer operator_:_(Int a, Int b) {
+  (l,r)
+}
+
+operator_[]_&lt;T&gt;([T] array, ArraySlicer arraySlicer)_{
+  native_sliceArray(array, arraySlicer)
+}
+</pre>
+</div>
+
+<p>
+Using this implementation. The colon operator overload function will only be infered if the context in which it is used is specifically 
+of the type <code>ArraySlicer</code> and not simply <code>(Int, Int)</code>.
+</p>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org964979a" class="outline-2">
+<h2 id="org964979a"><span class="section-number-2">2</span> Algorithm for Function Inference</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+Function inference uses a type inference algorithm to work out which function overload to use. Where as type inference is often used to save the programmer time by
+not requiring the user to specify what the type of a variable or function is, function inference expects a certain amount of information about the context it is being
+used in. As such, <b>NoSyn</b> does not allow the user to specify a variable without also specifying the type of that variable. Functions similarly must indicate what the return type
+is, although template types are still valid.
+This constraint employed in using function inference is used to reduce the ambiguity which can arise using such a type system. Later I will explore ways in which type inference of variables
+may be possible alongside function inference, and why such a feature may not be wanted.
+</p>
+</div>
+
+<div id="outline-container-org93ce1ac" class="outline-3">
+<h3 id="org93ce1ac"><span class="section-number-3">2.1</span> Formal Definition of Function Inference Algorithm</h3>
+<div class="outline-text-3" id="text-2-1">
+</div>
+<div id="outline-container-orge901c54" class="outline-4">
+<h4 id="orge901c54"><span class="section-number-4">2.1.1</span> Function Definitions Used Within Algorithm Formula</h4>
+<div class="outline-text-4" id="text-2-1-1">
+<p>
+\(\Omega(r,p)[y'] \Rightarrow k\)
+</p>
+
+<ul class="org-ul">
+<li>Where \(r\) is the set of all possible return types for a function call to function identifier \(y'\)</li>
+<li>Where \(p\) is the list of sets of possible parameter types for a function call to function identifier \(y'\)</li>
+<li>Where \(k\) is the set of all possible function overloads given \(r\) and  \(p\) for a function call to identifier \(y'\)</li>
+</ul>
+
+<p>
+\(\Theta z \Rightarrow n\)
+</p>
+
+<ul class="org-ul">
+<li>Where \(z\) is a set of possible function overloads</li>
+<li>\(n\) is the list of sets of all possible return types for the parameters of function calls from the given overloads</li>
+</ul>
+
+<p>
+\(\Phi x \Rightarrow m\)
+</p>
+
+<ul class="org-ul">
+<li>where \(z\) is a set of possible function overloads</li>
+<li>\(m\) is the set of all possible return types for those function overloads</li>
+</ul>
+
+<p>
+\(y^\dagger\)
+</p>
+
+<ul class="org-ul">
+<li>where \(y\) is a function call</li>
+<li>\(y^\dagger\) is a list of parameter expressions for the function call \(y\). 
+All parameters can be assumed to be function calls as literals can be expressed as function calls to functions with single overloads and no parameters</li>
+</ul>
+
+<p>
+\(y'\)
+</p>
+<ul class="org-ul">
+<li>where \(y\) is a function call</li>
+<li>\(y'\) is the identifier for that function call (\(y\) = <code>foo(bar())</code> &rArr; \(y'\) = <code>foo</code>)</li>
+</ul>
+
+<p>
+\(\ast\) is the wildcard operator. When applying this to an intersection \(\ast \cap \alpha\) the result is always \(\alpha\)
+</p>
+
+<p>
+\(\cap\) intersection applies recursively within a data structure.
+</p>
+<ul class="org-ul">
+<li>The intersection of two lists is the intersection of its elements</li>
+<li>The intersection of two tuples is the intersection of its elements</li>
+<li>The intersection of two sets is equivalent to a standard intersection</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org6fd2740" class="outline-4">
+<h4 id="org6fd2740"><span class="section-number-4">2.1.2</span> Algorithm Formula</h4>
+<div class="outline-text-4" id="text-2-1-2">
+<p>
+\(\Lambda(r, p)[y] \Rightarrow k\)
+</p>
+<ul class="org-ul">
+<li>where \(y\) is a function call</li>
+<li>where \(r\) is the set of all possible return types for function call \(y\)</li>
+<li>where \(p\) is the list of sets of all possible return types for the parameters of \(y\)</li>
+<li>\(k\) is the set of all possible function overloads for function call \(y\)</li>
+</ul>
+
+
+<p>
+The algorithm for function inference can be written as:
+</p>
+
+<p>
+\(\Lambda x[y] :=\)
+</p>
+
+<p>
+\(\textit{let } p := [\forall (\alpha, \beta).\Theta \Lambda (\alpha, \ast) [\beta]| \textit{zip}(\Theta \Omega x[y'], y^\dagger)] \textit{ in }\)
+</p>
+
+<p>
+\(\Lambda(\Phi \Omega(x \cap (\ast, p))[y'], p)[y]\)
+</p>
+
+<p>
+The function \(\Lambda x[y]\) calls recursively until \(\Omega(x,p)[y']\) reduces to only a single possible function overload.
+If \(\Omega(x,p)[y']\) never reduces to a single function overload, the function call is ambigiuous and a compile error should occur.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org2e6368a" class="outline-3">
+<h3 id="org2e6368a"><span class="section-number-3">2.2</span> Example Inferences</h3>
+<div class="outline-text-3" id="text-2-2">
+</div>
+<div id="outline-container-orgfb96285" class="outline-4">
+<h4 id="orgfb96285"><span class="section-number-4">2.2.1</span> Context Deduction</h4>
+<div class="outline-text-4" id="text-2-2-1">
+<p>
+Function inference works on the basis of deducing the context in which a function is being used. 
+All function calls are expressions and can be built up into larger expressions.
+</p>
+<ul class="org-ul">
+<li>All expressions have a single type</li>
+<li>Expressions can be used as a statement if they have the type <code>Nothing</code></li>
+<li>literals have a clear concrete type</li>
+</ul>
+
+<p>
+Using these rules we can deduce that given the following statement:
+</p>
+<div class="org-src-container">
+<pre class="src src-c++">foo(10)
+</pre>
+</div>
+<ul class="org-ul">
+<li>The type of the expression <code>foo(10)</code> must be <code>Nothing</code> as it is being used as a statement</li>
+<li>The function overload of <code>foo</code> is <code>Int-&gt;Nothing</code> as the literal <code>10</code> has the concrete type of <code>Int</code></li>
+</ul>
+
+<p>
+As the <i>NoSyn</i> language, unlike similar languages like <i>C</i>, allows for functions with the same name and parameter types to have multiple different 
+return types, expressions already raise an issue of ambiguity. <i>C</i> and <i>Java</i> would in this situation go for the function overload for <code>foo</code> which took a single integer as a parameter and then
+ignore the return type. This is not possible in <i>NoSyn</i> due to the potential for there to be multiple overloads with the same parameter types causing ambiguity.
+Instead there is a special datatype which a function can return if the programmer wants to use a call to the function at the statement level. This is the <code>Nothing</code> datatype, which as it's name
+suggests, does not return anything. An expression of the type <code>Nothing</code> is never a subexpression of another expression as <code>Nothing</code>. This is because <code>Nothing</code> does not have any value and as such cannot
+be passed into any other function. With this knowledge, we always know that the base type of any expression within the language is of type <code>Nothing</code>, and all subexpressions in that expression are 
+of some non <code>Nothing</code> type.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org337087f" class="outline-4">
+<h4 id="org337087f"><span class="section-number-4">2.2.2</span> A slightly less simple program</h4>
+<div class="outline-text-4" id="text-2-2-2">
+<div class="org-src-container">
+<pre class="src src-c++">//foo_IntNothing
+Nothing foo(Int a) {..} 
+//foo_IntInt
+Int foo(Int a) {..} 
+//bar_Int
+Int bar() {..} 
+//bar_Float
+Float bar() {..} 
+
+foo(foo(bar())) //Expression A
+</pre>
+</div>
+<p>
+Expression A is an example of where function inference is required to find the correct function to be used. If you take the subexpressions of expression <i>A</i> out of context, the functions they 
+refer to cannot be known:
+</p>
+<ul class="org-ul">
+<li><code>bar()</code> may refer to <code>bar_Int</code> or <code>bar_Float</code></li>
+<li><code>foo(bar())</code> may refer to <code>foo_IntNothing</code> or <code>foo_IntInt</code></li>
+</ul>
+
+<p>
+In order to deduce the type of each subexpression, we must work from the information that we know concretely.
+The base expression <code>foo(foo(bar())</code> must return <code>Nothing</code> as it is being used as statement. From this we can gather all the function overloads for foo which return <code>Nothing</code>. In this 
+simple program there is only one function which this could be, <code>foo_IntNothing</code>. Given this information, we can now deduce that the subexpression <code>foo(bar())</code> must be of type <code>Int</code> if
+it is to satisfy the base expression. Again, as a simple program, there is in this case only one function which <code>foo</code> could be refering to: <code>foo_IntInt</code>.
+This then gives us the knowledge to work out what our final subexpression refers to. There is one function overload for <code>bar</code> which returns an <code>Int</code> which is 
+<code>bar_Int</code>. This completes the deduction of all functions in the expression giving us:
+</p>
+<div class="org-src-container">
+<pre class="src src-c++">foo_IntNothing(foo_IntInt(bar_Int()))
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org3249938" class="outline-4">
+<h4 id="org3249938"><span class="section-number-4">2.2.3</span> Horizontal Inference</h4>
+<div class="outline-text-4" id="text-2-2-3">
+<p>
+With the previous example, the correct function overloads could be infered by working in a top down fashion from the parent expression <code>foo(foo(bar()))</code> down to the leaf subexpression <code>bar()</code>.
+This can be refered to as vertical inference in the sense that by looking at the context of an expression or it's subexpressions it is possible to infer the type of the expression.
+</p>
+
+<p>
+Horizontal Inference means that the type of a subexpression on the same level as the current one has an effect on the type which this subexpression could be. Such inference is achieved by 
+ working up and down the expression tree gradually eliminating the possible types of expressions until all are resolved down to a single type.
+</p>
+<div class="org-src-container">
+<pre class="src src-c++">Nothing foo(Int a, Double a) {..} //foo_IntDoubleNothing
+Nothing foo(Int a, Char a) {..} //foo_IntCharNothing
+Nothing foo(Double, Int a) {..} //foo_DoubleIntNothing
+Int bar() {..} //bar_Int
+Char bar() {..} //bar_Char
+Int cello() {..} //cello_Int
+Double cello() {..} //cello_Double
+
+foo(bar(), cello()) //Expression B
+</pre>
+</div>
+</div>
+
+<ol class="org-ol">
+<li><a id="org60b8f49"></a>Applying the Function Inference Algorithm to Expression B<br />
+<div class="outline-text-5" id="text-2-2-3-1">
+<p>
+As expression B is being used as a statement, the function inference begins with the known return type <code>Nothing</code> and unknown parameter types.
+This gives the &lambda; function: 
+</p>
+
+<ul class="org-ul">
+<li>\(\Lambda(\{Nothing\}.\ast)[foo(bar(),cello())]\)
+
+<ul class="org-ul">
+<li>\(p := [\forall (\alpha,\beta).\Theta \Lambda (\alpha, \ast) [\beta] | \textit{zip}(\Theta \Omega (\{Nothing\}.\ast)[foo], [bar(),cello()]])]\)
+<ul class="org-ul">
+<li>\(\Omega (\{Nothing\}.\ast)[foo] = \{ foo\_IntDoubleNothing, foo\_IntCharNothing, foo\_DoubleIntNothing \}\)</li>
+
+<li>\(\Theta \{ foo\_IntDoubleNothing, foo\_IntCharNothing, foo\_DoubleIntNothing \} = [\{Int, Double\}, \{Int, Double, Char\}]\)</li>
+
+<li>\(\textit{zip}([\{Int, Double\}, \{Int, Double, Char\}], [bar(), cello()]) = [(\{Int, Double\}, bar()), (\{Int, Double, Char\}, cello())\)</li>
+
+<li>\(p = [\Theta \Lambda(\{Int, Double\}, \ast)[bar()], \Theta \Lambda(\{Int, Double, Char\}, \ast)[cello()]]\)
+
+<ul class="org-ul">
+<li>\(\Lambda(\{Int, Double\}, \ast)[bar()]\)
+
+<ul class="org-ul">
+<li>\(p := []\)</li>
+
+<li><p>
+\(\Omega (\{Int, Double\}, [])[bar] = \{bar\_Int\}\)
+</p>
+
+<p>
+<b>RESOLVES</b>
+</p></li>
+
+<li>\(\Rightarrow \Lambda (\{Int, Double\}, \ast)[bar()] = \{bar\_Int\} = \{bar\_Int\}\)</li>
+</ul></li>
+
+<li>\(\Lambda(\{Int, Double, Char\}, \ast)[cello()]\)
+
+<ul class="org-ul">
+<li>\(p := []\)</li>
+
+<li>\(\Lambda(\Phi \Omega (\{Int, Double, Char\}, [])[cello], [])[cello()]\)
+
+<ul class="org-ul">
+<li>\(\Omega (\{Int, Double, Char\}, [])[cello] = \{cello\_Int, cello\_Double\}\)</li>
+
+<li>\(\Phi \{cello\_Int, cello\_Double\}\)</li>
+
+<li>\(\Lambda(\{Int, Double\}, [])[cello()]\)
+
+<ul class="org-ul">
+<li>\(p := []\)</li>
+
+<li><p>
+\(\Omega(\{Int, Double\}, [])[cello] = \{cello\_Int, cello\_Double\}\)
+</p>
+
+<p>
+<b>CYCLIC</b>
+</p></li>
+
+<li>\(\Rightarrow \Lambda(\{Int, Double\}, [])[cello()] = \{cello\_Int, cello\_Double\}\)</li>
+</ul></li>
+</ul></li>
+
+<li>\(\Rightarrow \Lambda(\{Int, Double, Char\}, \ast)[cello()] = \{cello\_Int, cello\_Double\}\)</li>
+</ul></li>
+
+<li>\(p = [\Theta \{bar\_Int\}, \Theta \{cello\_Int, cello\_Double]\)</li>
+
+<li>\(p = [\{Int\}, \{Int, Double\}]\)</li>
+</ul></li>
+</ul></li>
+
+<li>\(\Lambda(\Phi \Omega(\{Nothing\}, [\{Int\}, \{Int, Double\}])[foo], [\{Int\}, \{Int, Double\}])[foo(bar(),cello())]\)
+
+<ul class="org-ul">
+<li>\(\Phi \Omega(\{Nothing\}, [\{Int\}, \{Int, Double\}])[foo] = \{Nothing\}\)</li>
+
+<li>\(\Lambda(\{Nothing\}, [\{Int\}, \{Int, Double\}])[foo(bar(),cello())]\)
+
+<ul class="org-ul">
+<li><p>
+\(\Omega(\{Nothing\}, [\{Int\}, \{Int, Double\}])[foo] = \{foo\_IntDoubleNothing\}\)
+</p>
+
+<p>
+<b>RESOLVES</b>
+</p></li>
+
+<li>\(\Rightarrow \Lambda(\Phi \Omega(\{Nothing\}, [\{Int\}, \{Int, Double\}])[foo], [\{Int\}, \{Int, Double\}])[foo(bar(),cello())] = \{foo\_IntDoubleNothing\}\)</li>
+</ul></li>
+</ul></li>
+
+<li>\(\Rightarrow \Lambda(\{Nothing\}, \ast)[foo(bar(),cello())] = \{foo\_IntDoubleNothing\}\)</li>
+</ul></li>
+</ul>
+</div>
+
+
+<ol class="org-ol">
+<li><a id="org9954606"></a>Explaination<br />
+<div class="outline-text-6" id="text-2-2-3-1-1">
+<p>
+As with before, each expression within expression <i>B</i> cannot on its own have it's function infered. 
+Again as before, as the main expression <i>B</i> is being used as a statement,
+the type can be infered to be <code>Nothing</code>. As such, the set of possible <code>foo</code> functions expression <i>B</i> could refer to is:
+</p>
+
+<p>
+\(\Omega (\{Nothing\}.\ast)[foo] = \{ foo\_IntDoubleNothing, foo\_IntCharNothing, foo\_DoubleIntNothing \}\)
+</p>
+
+<p>
+From this list of possible functions, a list of possible parameter types can be infered:
+</p>
+<ul class="org-ul">
+<li>Parameter 1: <code>{Int, Double}</code></li>
+<li>Parameter 2: <code>{Double, Char, Int}</code></li>
+</ul>
+
+<p>
+With these sets of parameter types, these can be applied to the parameter expressions <code>bar()</code> and <code>cello()</code>:
+</p>
+<ul class="org-ul">
+<li>\(\Theta \Lambda(\{Int, Double\}, \ast)[bar()] = \{ Int \}\)</li>
+<li>\(\Theta \Lambda(\{Int, Double, Char\}, \ast)[cello()]] = \{ Int, Double \}\)</li>
+</ul>
+
+<p>
+With these reduced sets of parameter types this can be then applied again to the <code>foo</code> function overloads to see if the number of possible overloads can be reduced:
+</p>
+
+<p>
+\(\Omega (\{Nothing\}.[\{Int\}, \{Double, Int\}])[foo] = \{foo\_IntDoubleNothing\}\)
+</p>
+
+<p>
+This finds the only possible function overload that <code>foo</code> can be refering to as <code>foo_IntDoubleNothing</code> allowing for the whole expression to be infered as:
+</p>
+<div class="org-src-container">
+<pre class="src src-c++">foo_IntDoubleNothing(bar_Int(), cello_Double())
+</pre>
+</div>
+
+<p>
+This can be considered horizontal inference as the type of <code>bar</code> has a direct effect on the type of <code>cello</code>. Had the possible function overloads for <code>bar</code> have been:
+</p>
+<div class="org-src-container">
+<pre class="src src-c++">Double bar() {..}
+Char bar() {..}
+</pre>
+</div>
+<p>
+Then the expression would have evaluated as:
+</p>
+<div class="org-src-container">
+<pre class="src src-c++">foo_DoubleIntNothing(bar_Double(), cello_Int())
+</pre>
+</div>
+</div>
+</li>
+</ol>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Michael Lynch</p>
+<p class="date">Created: 2019-03-10 Sun 18:15</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

@@ -1,7 +1,7 @@
 module Com.NoSyn.Evaluation.Program.Internal.AliasEvaluation (programAliasEvaluate) where
 
-import Com.NoSyn.Ast.Program
-import Com.NoSyn.Ast.Listable
+import Com.NoSyn.Ast.If.Program
+import Com.NoSyn.Ast.Traits.Listable as Listable
 import Com.NoSyn.Error.CompilerStatus
 import Data.Map.Ordered
 import Data.Set
@@ -10,7 +10,7 @@ import Com.NoSyn.Data.Types
 
 programAliasEvaluate::AliasEnvironment -> Program -> CompilerStatus AliasEnvironment
 programAliasEvaluate defaultEnvironment program =
-    let noSynLookupTable = createNoSynTypeLookupTable (Com.NoSyn.Ast.Listable.toList program) in
+    let noSynLookupTable = createNoSynTypeLookupTable (Listable.toList program) in
     createRealTypeLookupTable noSynLookupTable defaultEnvironment
 
 createNoSynTypeLookupTable::[ProgramStmt] -> OMap Ident Ident

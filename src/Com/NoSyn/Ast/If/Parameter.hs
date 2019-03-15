@@ -1,13 +1,15 @@
-module Com.NoSyn.Ast.Parameter where
+{-# LANGUAGE MultiParamTypeClasses #-}
+module Com.NoSyn.Ast.If.Parameter where
 
-import Com.NoSyn.Ast.AstElement
-import Com.NoSyn.Ast.EnvironmentUpdater
-import Com.NoSyn.Ast.Typeable
+import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
+import Com.NoSyn.Ast.Traits.IfCodeGeneratable
+import Com.NoSyn.Ast.Traits.EnvironmentUpdater
+import Com.NoSyn.Ast.Traits.Typeable
+import Com.NoSyn.Ast.Helpers.TypeCheckFunctions
 import Com.NoSyn.Data.Types
-import Com.NoSyn.Ast.TypeCheckFunctions
 import Com.NoSyn.Data.Variable
-import Com.NoSyn.Ast.Block
-import Com.NoSyn.Ast.Listable as Listable
+import Com.NoSyn.Ast.If.Block
+import Com.NoSyn.Ast.Traits.Listable as Listable
 import Data.List
 import Data.Map
 import Com.NoSyn.Environment.ProgramEnvironment
@@ -27,7 +29,10 @@ instance EnvironmentUpdater Parameter where
         verifiedType <- getNoSynType programEnvironment param
         return (ae, fe, Data.Map.insert paramName (VPointer verifiedType paramName) variableEnvironment)
 
-instance AstElement Parameter where
+instance IfCodeGeneratable Parameter Parameter where
+    generateIf programEnvironment param = return param
+
+instance TargetCodeGeneratable Parameter where
     generateD programEnvironment parameter@(PConst paramType paramName) = do
         parameterDType <- getRealType programEnvironment parameter
         return $ parameterDType ++ " " ++ paramName

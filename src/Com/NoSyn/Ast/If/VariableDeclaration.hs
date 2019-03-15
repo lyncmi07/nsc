@@ -1,10 +1,12 @@
-module Com.NoSyn.Ast.VariableDeclaration where
+{-# LANGUAGE MultiParamTypeClasses #-}
+module Com.NoSyn.Ast.If.VariableDeclaration where
 
-import Com.NoSyn.Ast.Typeable
-import Com.NoSyn.Ast.TypeCheckFunctions
-import Com.NoSyn.Ast.AstElement
-import Com.NoSyn.Ast.DIdentifiable
-import Com.NoSyn.Ast.EnvironmentUpdater
+import Com.NoSyn.Ast.Traits.Typeable
+import Com.NoSyn.Ast.Helpers.TypeCheckFunctions
+import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
+import Com.NoSyn.Ast.Traits.IfCodeGeneratable
+import Com.NoSyn.Ast.Traits.DIdentifiable
+import Com.NoSyn.Ast.Traits.EnvironmentUpdater
 import Com.NoSyn.Data.Types
 import Com.NoSyn.Data.Variable
 import Com.NoSyn.Environment.ProgramEnvironment
@@ -12,7 +14,10 @@ import Data.Map
 
 data VariableDeclaration = VDec Ident Ident
 
-instance AstElement VariableDeclaration where
+instance IfCodeGeneratable VariableDeclaration VariableDeclaration where
+    generateIf _ variableDeclaration = return variableDeclaration
+
+instance TargetCodeGeneratable VariableDeclaration where
     generateD programEnvironment varDec@(VDec varType varName) = do
         dType <- (getRealType programEnvironment varDec)
         return $ dType ++ " " ++ varName

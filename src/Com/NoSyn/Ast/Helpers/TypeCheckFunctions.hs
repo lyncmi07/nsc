@@ -1,8 +1,8 @@
-module Com.NoSyn.Ast.TypeCheckFunctions where
+module Com.NoSyn.Ast.Helpers.TypeCheckFunctions where
 
 import Com.NoSyn.Environment.ProgramEnvironment
 import Com.NoSyn.Error.CompilerStatus
-import Com.NoSyn.Ast.Typeable
+import Com.NoSyn.Ast.Traits.Typeable
 
 getRealType :: (Typeable a) => ProgramEnvironment -> a -> CompilerStatus String
 getRealType (aliasEnvironment, _, _) a =

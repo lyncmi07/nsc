@@ -1,7 +1,7 @@
-module Com.NoSyn.Ast.AstElement where
+module Com.NoSyn.Ast.Traits.TargetCodeGeneratable where
 
 import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Environment.ProgramEnvironment
 
-class AstElement a where
+class TargetCodeGeneratable a where
     generateD :: ProgramEnvironment -> a -> CompilerStatus String

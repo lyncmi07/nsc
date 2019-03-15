@@ -1,4 +1,4 @@
-module Com.NoSyn.Ast.EnvironmentUpdater where
+module Com.NoSyn.Ast.Traits.EnvironmentUpdater where
 
 import Com.NoSyn.Environment.ProgramEnvironment
 import Com.NoSyn.Error.CompilerStatus

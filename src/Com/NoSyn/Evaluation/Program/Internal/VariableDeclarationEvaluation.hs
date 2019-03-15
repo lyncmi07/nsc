@@ -6,14 +6,14 @@ import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Environment.AliasEnvironment
 import Com.NoSyn.Environment.VariableEnvironment
 import Com.NoSyn.Environment.ProgramEnvironment
-import Com.NoSyn.Ast.VariableDeclaration
-import Com.NoSyn.Ast.Listable
-import Com.NoSyn.Ast.Program
+import Com.NoSyn.Ast.If.VariableDeclaration
+import Com.NoSyn.Ast.Traits.Listable as Listable
+import Com.NoSyn.Ast.If.Program
 import Data.Map
 
 programVariableDeclarationEvaluate::AliasEnvironment -> Program -> CompilerStatus VariableEnvironment
 programVariableDeclarationEvaluate aliasEnvironment program = do
-    variableDeclarations <- programVariableDeclarationEvaluate' aliasEnvironment (Com.NoSyn.Ast.Listable.toList program)    
+    variableDeclarations <- programVariableDeclarationEvaluate' aliasEnvironment (Listable.toList program)    
     return $ Data.Map.fromList variableDeclarations
 
 programVariableDeclarationEvaluate'::AliasEnvironment -> [ProgramStmt] -> CompilerStatus [(Ident, Variable)]

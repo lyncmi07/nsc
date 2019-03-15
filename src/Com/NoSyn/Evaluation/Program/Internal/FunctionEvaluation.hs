@@ -5,21 +5,21 @@ import Com.NoSyn.Data.Variable
 import Com.NoSyn.Environment.AliasEnvironment
 import Com.NoSyn.Environment.ProgramEnvironment
 import Com.NoSyn.Environment.FunctionEnvironment
-import Com.NoSyn.Ast.Program
-import Com.NoSyn.Ast.FunctionDefinition
-import Com.NoSyn.Ast.Parameter
-import Com.NoSyn.Ast.Listable
+import Com.NoSyn.Ast.If.Program
+import Com.NoSyn.Ast.If.FunctionDefinition
+import Com.NoSyn.Ast.If.Parameter
+import Com.NoSyn.Ast.Traits.Listable as Listable
 import Com.NoSyn.Error.CompilerStatus
 import Data.Map
 import Data.Map.Ordered
 import Data.Maybe
-import Com.NoSyn.Ast.Typeable
+import Com.NoSyn.Ast.Traits.Typeable
 
 type Param = (Ident, Ident)
 
 programFunctionDefinitionEvaluate::AliasEnvironment -> Program -> CompilerStatus FunctionEnvironment
 programFunctionDefinitionEvaluate aliasEnvironment program =
-    programFunctionDefinitionEvaluate' aliasEnvironment (Com.NoSyn.Ast.Listable.toList program) Data.Map.empty
+    programFunctionDefinitionEvaluate' aliasEnvironment (Listable.toList program) Data.Map.empty
 
 programFunctionDefinitionEvaluate'::AliasEnvironment->[ProgramStmt]->FunctionEnvironment->CompilerStatus FunctionEnvironment
 programFunctionDefinitionEvaluate' _ [] functionLookup = return functionLookup

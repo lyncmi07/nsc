@@ -1,8 +1,9 @@
-module Com.NoSyn.Ast.Block where
+module Com.NoSyn.Ast.If.Block where
 
-import Com.NoSyn.Ast.AstElement
-import Com.NoSyn.Ast.Listable
-import Com.NoSyn.Ast.EnvironmentUpdater
+import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
+import Com.NoSyn.Ast.Traits.IfCodeGeneratable
+import Com.NoSyn.Ast.Traits.Listable
+import Com.NoSyn.Ast.Traits.EnvironmentUpdater
 import Data.List
 import Com.SetTheory.SetSatisfiable
 import Control.Monad
@@ -25,8 +26,15 @@ instance (EnvironmentUpdater a) => EnvironmentUpdater (Block a) where
     updateEnvironment programEnvironment (SequentialBlock m) =
         foldM updateEnvironment programEnvironment m
 
+--instance (EnvironmentUpdater a, TargetCodeGeneratable a, IfCodeGeneratable a, Blockable a) => IfCodeGeneratable (Block a) where
+    --generateIf programEnvironment (StandardBlock a) = do
+        --generatedElements <- sequence $ map (generateIf programEnvironment) a
+        --return $ StandardBlock generatedElements
+    --generateIf programEnvironment (SequentialBlock a) = do
+        --generatedElements <- environmentUpdatingMapMonad updateEnvironment generateIf programEnvironment a
+        --return $ SequentialBlock generatedElements
 
-instance (EnvironmentUpdater a, AstElement a, Blockable a) => AstElement (Block a) where
+instance (EnvironmentUpdater a, TargetCodeGeneratable a, Blockable a) => TargetCodeGeneratable (Block a) where
     generateD programEnvironment (StandardBlock a) = do
         generatedElements <- sequence $ map (generateD programEnvironment)  a
         return $ 

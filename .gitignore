@@ -2,4 +2,7 @@
 no-syn.cabal
 *~
 *.swp
+*.odt
+*.tex
+_minted*
 #*

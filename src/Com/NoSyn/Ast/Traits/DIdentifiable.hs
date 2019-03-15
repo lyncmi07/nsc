@@ -1,4 +1,4 @@
-module Com.NoSyn.Ast.DIdentifiable where
+module Com.NoSyn.Ast.Traits.DIdentifiable where
 
 import Com.NoSyn.Environment.ProgramEnvironment
 import Com.NoSyn.Error.CompilerStatus

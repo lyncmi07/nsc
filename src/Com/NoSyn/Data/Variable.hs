@@ -1,7 +1,7 @@
 module Com.NoSyn.Data.Variable where
 
 import Com.NoSyn.Data.Types
-import Com.NoSyn.Ast.Typeable
+import Com.NoSyn.Ast.Traits.Typeable
 
 data Variable = 
     VConst Ident Ident

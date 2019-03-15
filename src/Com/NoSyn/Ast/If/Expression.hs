@@ -1,6 +1,6 @@
-module Com.NoSyn.Ast.Expression where
+module Com.NoSyn.Ast.If.Expression where
 
-import Com.NoSyn.Ast.AstElement
+import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 import Data.List
 import Data.Set as Set
 import Data.Map as Map
@@ -8,9 +8,9 @@ import Data.Map.Ordered as OrderMap
 import Data.Either
 import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Environment.ProgramEnvironment
-import Com.NoSyn.Ast.TypeCheckFunctions
-import Com.NoSyn.Ast.Typeable
-import Com.NoSyn.Ast.Constant
+import Com.NoSyn.Ast.Helpers.TypeCheckFunctions
+import Com.NoSyn.Ast.Traits.Typeable
+import Com.NoSyn.Ast.If.Constant
 import Com.NoSyn.Data.Types
 import Com.NoSyn.Data.Variable
 
@@ -19,7 +19,7 @@ data Expression =
     | EConst Constant
     | EIdent Ident
 
-instance AstElement Expression where
+instance TargetCodeGeneratable Expression where
     generateD = generateExpression
 instance Typeable Expression where
     getTypeNoCheck (EConst constant) = getTypeNoCheck constant

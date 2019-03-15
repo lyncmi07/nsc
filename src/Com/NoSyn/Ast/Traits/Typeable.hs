@@ -1,4 +1,4 @@
-module Com.NoSyn.Ast.Typeable where
+module Com.NoSyn.Ast.Traits.Typeable where
 
 import Com.NoSyn.Error.CompilerStatus
 

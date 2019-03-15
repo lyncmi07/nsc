@@ -1,10 +1,10 @@
-module Com.NoSyn.Ast.Statement where
+module Com.NoSyn.Ast.If.Statement where
 
-import Com.NoSyn.Ast.AstElement
-import Com.NoSyn.Ast.Block
-import Com.NoSyn.Ast.VariableDeclaration
-import Com.NoSyn.Ast.Expression
-import Com.NoSyn.Ast.EnvironmentUpdater
+import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
+import Com.NoSyn.Ast.Traits.EnvironmentUpdater
+import Com.NoSyn.Ast.If.Block
+import Com.NoSyn.Ast.If.VariableDeclaration
+import Com.NoSyn.Ast.If.Expression
 import Data.List
 
 
@@ -13,7 +13,7 @@ type BlockStatement = Block Statement
 data Statement = 
     SVarDec VariableDeclaration
     | SExpression Expression
-instance AstElement Statement where
+instance TargetCodeGeneratable Statement where
     generateD programEnvironment (SVarDec varDec) =
         generateD programEnvironment varDec
     generateD programEnvironment (SExpression expr) =

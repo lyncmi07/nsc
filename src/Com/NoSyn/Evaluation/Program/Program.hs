@@ -5,7 +5,7 @@ import Com.NoSyn.Environment.ProgramEnvironment
 import Com.NoSyn.Evaluation.Program.Internal.AliasEvaluation
 import Com.NoSyn.Evaluation.Program.Internal.FunctionEvaluation
 import Com.NoSyn.Evaluation.Program.Internal.VariableDeclarationEvaluation
-import Com.NoSyn.Ast.Program
+import Com.NoSyn.Ast.If.Program
 import Data.Map
 
 programEnvironmentEvaluate::ProgramEnvironment -> Program -> CompilerStatus ProgramEnvironment

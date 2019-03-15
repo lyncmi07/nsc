@@ -1,15 +1,15 @@
 module Lib where
 
-import Com.NoSyn.Ast.Program
-import Com.NoSyn.Ast.Parameter
-import Com.NoSyn.Ast.FunctionDefinition
-import Com.NoSyn.Ast.Block
-import Com.NoSyn.Ast.Statement
-import Com.NoSyn.Ast.VariableDeclaration
-import Com.NoSyn.Ast.Expression
-import Com.NoSyn.Ast.Constant
+import Com.NoSyn.Ast.If.Program
+import Com.NoSyn.Ast.If.Parameter
+import Com.NoSyn.Ast.If.FunctionDefinition
+import Com.NoSyn.Ast.If.Block
+import Com.NoSyn.Ast.If.Statement
+import Com.NoSyn.Ast.If.VariableDeclaration
+import Com.NoSyn.Ast.If.Expression
+import Com.NoSyn.Ast.If.Constant
 import Com.NoSyn.Error.CompilerStatus
-import Com.NoSyn.Ast.AstElement
+import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 import Com.NoSyn.Evaluation.Program.Program
 import Com.NoSyn.Environment.ProgramEnvironment
 

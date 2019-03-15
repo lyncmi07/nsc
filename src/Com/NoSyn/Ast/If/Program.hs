@@ -1,11 +1,11 @@
-module Com.NoSyn.Ast.Program where
+module Com.NoSyn.Ast.If.Program where
 
-import Com.NoSyn.Ast.AstElement
-import Com.NoSyn.Ast.FunctionDefinition
-import Com.NoSyn.Ast.VariableDeclaration
+import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
+import Com.NoSyn.Ast.Traits.EnvironmentUpdater
+import Com.NoSyn.Ast.If.FunctionDefinition
+import Com.NoSyn.Ast.If.VariableDeclaration
+import Com.NoSyn.Ast.If.Block
 import Com.NoSyn.Data.Types
-import Com.NoSyn.Ast.Block
-import Com.NoSyn.Ast.EnvironmentUpdater
 import Data.Map.Ordered
 import Com.NoSyn.Environment.ProgramEnvironment
 
@@ -15,7 +15,7 @@ data ProgramStmt =
     | PSFuncDef FunctionDefinition
     | PSVarDec VariableDeclaration
 
-instance AstElement ProgramStmt where
+instance TargetCodeGeneratable ProgramStmt where
     generateD _ (PSAliasDef _ _) = return "";
     generateD programEnvironment (PSFuncDef functionDefinition) = generateD programEnvironment functionDefinition
     generateD programEnvironment (PSVarDec variableDeclaration) = generateD programEnvironment variableDeclaration
