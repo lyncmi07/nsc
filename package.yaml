@@ -27,6 +27,7 @@ library:
   dependencies:
   - ordered-containers
   - containers
+  - template-haskell
 
 executables:
   no-syn-exe:
@@ -40,6 +41,7 @@ executables:
     - no-syn
     - ordered-containers
     - containers
+    - template-haskell
 
 tests:
   no-syn-test:
