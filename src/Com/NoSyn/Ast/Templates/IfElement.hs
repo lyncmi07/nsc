@@ -7,11 +7,12 @@ import Language.Haskell.TH
 import Language.Haskell.TH.Syntax
 import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 
+data Empty = Empty
 createIfElement :: Name -> String -> Q [Dec]
 createIfElement elementName elementNameStr = do
     elementClass <- createIfElementClass elementName className generationFunctionName
-    targetGenInstance <- createTargetCodeGeneratableInstance className generationFunctionName
-    return $ elementClass ++ targetGenInstance
+    emptyInstance <- createEmptyInstance className generationFunctionName
+    return $ elementClass ++ emptyInstance
     where
         className = mkName ("If" ++ elementNameStr)
         generationFunctionName = mkName $ "generateIf" ++ elementNameStr
@@ -23,11 +24,20 @@ createIfElementClass elementName className generationFunctionName = do
         [SigD generationFunctionName 
             (AppT (AppT ArrowT (ConT ''ProgramEnvironment))
                 (AppT (AppT ArrowT (VarT a))
-                    (AppT (ConT ''CompilerStatus) (ConT elementName))))]]
+                    (AppT (ConT ''CompilerStatus) (AppT (ConT elementName) (VarT a)))))]]
+createEmptyInstance :: Name -> Name -> Q [Dec]
+createEmptyInstance className generationFunctionName =
+    --[d| instance $(conT className) Nothing where 
+    return $ [InstanceD Prelude.Nothing [] (AppT (ConT className) (ConT ''Empty))
+             [ FunD generationFunctionName [Clause [WildP, WildP] (NormalB (AppE (ConE 'Error) (LitE (StringL "Invalid transformation")))) []] ]]
 
-createTargetCodeGeneratableInstance :: Name -> Name -> Q [Dec]
-createTargetCodeGeneratableInstance className generationFunctionName =
-    [d|instance $(conT className) a => TargetCodeGeneratable a where
-            generateD programEnvironment x = do
-                y <- $(varE generationFunctionName) programEnvironment x
-                generateD programEnvironment y|]
+ifm1GeneratorExpression :: Name -> Name -> String -> ExpQ
+ifm1GeneratorExpression a b elementNameStr = do
+    n <- newName "n"
+    [| case $(varE b) of
+            $(return $ ConP ifBox [VarP n]) -> do
+                m <- $(varE generationFunction) $(varE a) $(varE n)
+                generateD $(varE a) m |]
+    where
+        generationFunction = mkName $ "generateIf" ++ elementNameStr
+        ifBox = mkName "Ifm1Element"
