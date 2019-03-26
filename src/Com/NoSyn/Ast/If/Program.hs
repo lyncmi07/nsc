@@ -19,6 +19,7 @@ instance TargetCodeGeneratable ProgramStmt where
     generateD _ (PSAliasDef _ _) = return "";
     generateD programEnvironment (PSFuncDef functionDefinition) = generateD programEnvironment functionDefinition
     generateD programEnvironment (PSVarDec variableDeclaration) = generateD programEnvironment variableDeclaration
+
 instance EnvironmentUpdater ProgramStmt where
     updateEnvironment programEnvironment@(aliasEnvironment, fe, ve) (PSAliasDef aliasName aliasType) = do
         _ <- lookupDType aliasType aliasEnvironment

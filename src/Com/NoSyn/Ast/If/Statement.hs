@@ -7,7 +7,6 @@ import Com.NoSyn.Ast.If.VariableDeclaration
 import Com.NoSyn.Ast.If.Expression
 import Data.List
 
-
 type BlockStatement = Block Statement
 
 data Statement = 
@@ -18,6 +17,7 @@ instance TargetCodeGeneratable Statement where
         generateD programEnvironment varDec
     generateD programEnvironment (SExpression expr) =
         generateD programEnvironment expr
+
 instance EnvironmentUpdater Statement where
     updateEnvironment programEnvironment (SVarDec varDec) =
         updateEnvironment programEnvironment varDec

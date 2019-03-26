@@ -8,5 +8,5 @@ data Constant =
     IfConstant IfConstant.Constant
 
 instance IfElementGeneratable Constant where
-    generateIfElement programEnvironment (IfConstant a) =
+    generateIfElement _ (IfConstant a) =
         return $ IfElement.IfConstant a

@@ -1,8 +1,6 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
 module Com.NoSyn.Ast.If.Parameter where
 
 import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
-import Com.NoSyn.Ast.Traits.IfCodeGeneratable
 import Com.NoSyn.Ast.Traits.EnvironmentUpdater
 import Com.NoSyn.Ast.Traits.Typeable
 import Com.NoSyn.Ast.Helpers.TypeCheckFunctions
@@ -29,9 +27,6 @@ instance EnvironmentUpdater Parameter where
         verifiedType <- getNoSynType programEnvironment param
         return (ae, fe, Data.Map.insert paramName (VPointer verifiedType paramName) variableEnvironment)
 
-instance IfCodeGeneratable Parameter Parameter where
-    generateIf programEnvironment param = return param
-
 instance TargetCodeGeneratable Parameter where
     generateD programEnvironment parameter@(PConst paramType paramName) = do
         parameterDType <- getRealType programEnvironment parameter
@@ -39,6 +34,7 @@ instance TargetCodeGeneratable Parameter where
     generateD programEnvironment parameter@(PPointer paramType paramName) = do
         parameterDType <- getRealType programEnvironment parameter
         return $ parameterDType ++ "* " ++ paramName
+
 instance Typeable Parameter where
     getTypeNoCheck (PConst paramType _) = paramType
     getTypeNoCheck (PPointer paramType _) = paramType

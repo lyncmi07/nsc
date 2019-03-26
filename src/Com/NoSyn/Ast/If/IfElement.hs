@@ -17,6 +17,8 @@ data IfElement =
     | IfProgram Program
     | IfStatement Statement
     | IfVariableDeclaration VariableDeclaration
+    | IfParameters Parameters
+    | IfBlockStatement BlockStatement
 
 instance TargetCodeGeneratable IfElement where
     generateD a (IfConstant b) = generateD a b
@@ -26,3 +28,5 @@ instance TargetCodeGeneratable IfElement where
     generateD a (IfProgram b) = generateD a b
     generateD a (IfStatement b) = generateD a b
     generateD a (IfVariableDeclaration b) = generateD a b
+    generateD a (IfParameters b) = generateD a b
+    generateD a (IfBlockStatement b) = generateD a b

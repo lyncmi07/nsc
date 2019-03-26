@@ -1,7 +1,6 @@
 module Com.NoSyn.Ast.If.Block where
 
 import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
-import Com.NoSyn.Ast.Traits.IfCodeGeneratable
 import Com.NoSyn.Ast.Traits.Listable
 import Com.NoSyn.Ast.Traits.EnvironmentUpdater
 import Data.List
