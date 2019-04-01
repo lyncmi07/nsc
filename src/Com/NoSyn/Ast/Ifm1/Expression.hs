@@ -15,7 +15,6 @@ data Expression =
     | EIdent Ident
     | EOp OperatorType String [Expression]
     | EBrackets BracketType [Expression]
-    --TODO: Add Ifm1 versions of element
 
 instance IfElementGeneratable Expression where
     generateIfElement programEnvironment expression = do
@@ -28,8 +27,7 @@ generateIfExpression programEnvironment expression = case expression of
         ifParameters <- generateIfParameters parameters
         return $ IfExpression.EFuncCall (funcName ++ "_function") ifParameters
     EConst constant -> do
-        --In order to do this MonadFail needs to be implemented for CompilerStatus
-        (IfElement.IfConstant ifConstant) <- generateIfElement programEnvironment constant
+        ~(IfElement.IfConstant ifConstant) <- generateIfElement programEnvironment constant
         return $ IfExpression.EConst ifConstant
     EIdent ident -> do
         return $ IfExpression.EIdent ident

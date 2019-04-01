@@ -6,7 +6,11 @@ data OperatorType =
     Prefix
     | Postfix
     | Infix
-    deriving Show
+
+instance Show OperatorType where
+    show Prefix = "prefix"
+    show Postfix = "postfix"
+    show Infix = "infix"
 
 data BracketType =
     Parentheses

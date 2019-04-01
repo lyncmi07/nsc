@@ -1,12 +1,44 @@
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module Com.NoSyn.Ast.Ifm1.Program where
 
 import qualified Com.NoSyn.Ast.If.IfElement as IfElement
 import qualified Com.NoSyn.Ast.If.Program as IfProgram
+import Com.NoSyn.Data.Types
 import Com.NoSyn.Ast.Traits.IfElementGeneratable
+import Com.NoSyn.Ast.Ifm1.VariableDeclaration
+import Com.NoSyn.Ast.Ifm1.FunctionDefinition
+import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Ast.If.Block
+import Com.NoSyn.Ast.Traits.Listable
 
-data Program =
-    IfProgram IfProgram.Program
+type Program = Block ProgramStmt
+data ProgramStmt =
+    PSAliasDef Ident Ident
+    | PSFuncDef FunctionDefinition
+    | PSVarDec VariableDeclaration
+
+instance IfElementGeneratable ProgramStmt where
+    generateIfElement programEnvironment (PSAliasDef a b) =
+        return $ IfElement.IfProgramStmt (IfProgram.PSAliasDef a b)
+    generateIfElement programEnvironment (PSVarDec a) = do
+        ~(IfElement.IfVariableDeclaration b) <- generateIfElement programEnvironment a
+        return $ IfElement.IfProgramStmt (IfProgram.PSVarDec b)
+    generateIfElement programEnvironment (PSFuncDef a) = do
+        ~(IfElement.IfFunctionDefinition b) <- generateIfElement programEnvironment a
+        return $ IfElement.IfProgramStmt (IfProgram.PSFuncDef b)
+
 
 instance IfElementGeneratable Program where
-    generateIfElement _ (IfProgram a) =
-        return $ IfElement.IfProgram a
+    generateIfElement programEnvironment program = do
+        ifElements <- sequence $ map (generateIfElement programEnvironment) programStmtList
+        ifProgramStmts <- extractIfProgramStatements ifElements
+        return $ IfElement.IfProgram (StandardBlock ifProgramStmts)
+        where
+            programStmtList = toList program
+
+extractIfProgramStatements :: [IfElement.IfElement] -> CompilerStatus [IfProgram.ProgramStmt]
+extractIfProgramStatements [] = return []
+extractIfProgramStatements ((IfElement.IfProgramStmt x):xs) = do
+    xsm <- extractIfProgramStatements xs
+    return $ x:xsm
+extractIfProgramStatements _ = Error "Unexpected non-ProgramStatement"

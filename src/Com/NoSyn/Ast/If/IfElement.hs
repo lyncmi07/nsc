@@ -15,6 +15,7 @@ data IfElement =
     | IfFunctionDefinition FunctionDefinition
     | IfParameter Parameter
     | IfProgram Program
+    | IfProgramStmt ProgramStmt
     | IfStatement Statement
     | IfVariableDeclaration VariableDeclaration
     | IfParameters Parameters
@@ -26,6 +27,7 @@ instance TargetCodeGeneratable IfElement where
     generateD a (IfFunctionDefinition b) = generateD a b
     generateD a (IfParameter b) = generateD a b
     generateD a (IfProgram b) = generateD a b
+    generateD a (IfProgramStmt b) = generateD a b
     generateD a (IfStatement b) = generateD a b
     generateD a (IfVariableDeclaration b) = generateD a b
     generateD a (IfParameters b) = generateD a b
