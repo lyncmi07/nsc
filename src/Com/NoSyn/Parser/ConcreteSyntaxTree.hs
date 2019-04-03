@@ -1,9 +1,11 @@
 module Com.NoSyn.Parser.ConcreteSyntaxTree where
 
+import Com.NoSyn.Data.Operators
+
 data CConstant =
     CCString String
     | CCInt Int
-    | CCDouble Float
+    | CCDouble Double
     | CCChar Char
     deriving Show
 
@@ -43,14 +45,18 @@ data CParameters =
     | CPParams CFilledParameters
 
 data CFilledBlock =
-    CMultiStatement CStatement CStatement
+    CMultiStatement CStatement CFilledBlock
     | CFinalStatement CStatement
 
 data CBlockStatement =
     CBlockEmpty
     | CFilledBlock CFilledBlock
 
-data CFunctionDefinition = CFuncDef String String CParameters CBlockStatement
+data CFunctionDefinition = 
+    CFuncDef String String CParameters CBlockStatement
+    | COpOverloadDef String OperatorType String CParameters CBlockStatement
+    | CBracketOpOverloadDef String BracketType CParameters CBlockStatement
+
 
 data CAliasDefinition = CAliasDef String String
 

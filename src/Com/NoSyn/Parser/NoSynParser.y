@@ -1,6 +1,7 @@
 {
 module Com.NoSyn.Parser.NoSynParser where
 
+import Com.NoSyn.Data.Operators
 import Com.NoSyn.Data.Types
 import Com.NoSyn.Parser.ConcreteSyntaxTree
 import Com.NoSyn.Parser.Token
@@ -21,11 +22,18 @@ import Com.NoSyn.Parser.Token
     ')'        { TokenParameterClose }
     '='        { TokenEquals }
     alias      { TokenAliasKeyword }
+    prefix     { TokenPrefixKeyword }
+    postfix    { TokenPostfixKeyword }
+    tinfix     { TokenInfixKeyword }
+    bracketop  { TokenBracketOpKeyword }
     '{'        { TokenCurlyOpen }
     '}'        { TokenCurlyClose }
+    '['        { TokenSquareOpen }
+    ']'        { TokenSquareClose }
     ';'        { TokenSemicolon }
+    '_'        { TokenUnderscore }
     empty      { TokenEmpty }
-    ident      { TokenIdent }
+    ident      { TokenIdent $$ }
 
 %%
 
@@ -66,7 +74,17 @@ FilledBlock : Statement ';' FilledBlock         { CMultiStatement $1 $3 }
 BlockStatement : empty          { CBlockEmpty }
 	       | FilledBlock    { CFilledBlock $1 }
 
-FunctionDefinition : ident ident '(' Parameters ')' '{' BlockStatement '}' { CFuncDef $1 $2 $4 $7 }
+FunctionDefinition : ident ident '(' Parameters ')' '{' BlockStatement '}'                             { CFuncDef $1 $2 $4 $7 }
+		   | ident OperatorType '_' operator '_' '(' Parameters ')' '{' BlockStatement '}'     { COpOverloadDef $1 $2 $4 $7 $10 }
+                   | ident bracketop '_' BracketType '_' '(' Parameters ')' '{' BlockStatement '}'     { CBracketOpOverloadDef $1 $4 $7 $10 } 
+
+OperatorType : prefix        { Prefix }
+	     | postfix       { Postfix }
+             | tinfix        { Infix }
+
+BraketType : '(' empty ')' { Parentheses }
+	   | '[' empty ']' { Square }
+           | '{' empty '}' { Curly }
 
 AliasDefinition : alias ident '=' ident    { CAliasDef $2 $4 }
 
@@ -80,10 +98,4 @@ Program : empty                             { CProgramEnd }
 {
 parseError :: [Token] -> a
 parseError _ = error "Parser Error"
-
-lexer :: String -> [Token]
-lexer [] = []
-lexer (c:cs)
-    | isWhiteSpace c = lexer cs
-
 }

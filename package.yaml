@@ -28,6 +28,7 @@ library:
   - ordered-containers
   - containers
   - template-haskell
+  - array
 
 executables:
   no-syn-exe:
@@ -42,6 +43,7 @@ executables:
     - ordered-containers
     - containers
     - template-haskell
+    - array
 
 tests:
   no-syn-test:
