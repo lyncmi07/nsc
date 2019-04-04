@@ -16,6 +16,7 @@ class (EnvironmentUpdater m) => Blockable m where
 data Block a =
     StandardBlock [a]
     | SequentialBlock [a]
+    deriving Show
 
 instance (EnvironmentUpdater a) => EnvironmentUpdater (Block a) where
     updateEnvironment programEnvironment (StandardBlock m) = do

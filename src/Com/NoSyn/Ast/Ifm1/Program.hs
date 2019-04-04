@@ -16,6 +16,7 @@ data ProgramStmt =
     PSAliasDef Ident Ident
     | PSFuncDef FunctionDefinition
     | PSVarDec VariableDeclaration
+    deriving Show
 
 instance IfElementGeneratable ProgramStmt where
     generateIfElement programEnvironment (PSAliasDef a b) =

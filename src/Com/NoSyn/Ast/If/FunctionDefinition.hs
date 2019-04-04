@@ -17,6 +17,7 @@ import Com.NoSyn.Environment.ProgramEnvironment
 data FunctionDefinition =
     FDNative Ident Ident Parameters    
     | FDNoSyn Ident Ident Parameters BlockStatement
+    deriving Show
 
 instance EnvironmentUpdater FunctionDefinition where
     updateEnvironment programEnvironment (FDNoSyn funcName _ parameters _) =

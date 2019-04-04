@@ -18,6 +18,7 @@ data Expression =
     EFuncCall Ident [Expression]
     | EConst Constant
     | EIdent Ident
+    deriving Show
 
 instance TargetCodeGeneratable Expression where
     generateD = generateExpression

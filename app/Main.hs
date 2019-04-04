@@ -1,6 +1,11 @@
 module Main where
 
-import Lib
+import System.Environment
 
-main :: IO ()
-main = someFunc
+import Lib
+import Com.NoSyn.Parser.NoSynParser
+import Com.NoSyn.Parser.Lexer
+
+main = do
+    (x:_) <- getArgs
+    readFile x >>= print.parse.lexer

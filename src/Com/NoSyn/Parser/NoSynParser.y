@@ -7,7 +7,7 @@ import Com.NoSyn.Parser.ConcreteSyntaxTree
 import Com.NoSyn.Parser.Token
 }
 
-%name parser
+%name parse
 %tokentype { Token }
 %error { parseError }
 
@@ -37,13 +37,9 @@ import Com.NoSyn.Parser.Token
 
 %%
 
-Constant : string    { CCString $1 }
-	 | integer   { CCInt $1 }
-         | double    { CCDouble $1 }
-         | char      { CCChar $1 }
-
-FilledExpressionList : Expression ',' FilledExpressionList   { CMultiExpression $1 $3 }
-		     | Expression                            { CFinalExpression $1 }
+FunctionDefinition : ident ident '(' Parameters ')' '{' BlockStatement '}'                             { CFuncDef $1 $2 $4 $7 }
+		   | ident OperatorType '_' operator '_' '(' Parameters ')' '{' BlockStatement '}'     { COpOverloadDef $1 $2 $4 $7 $10 }
+                   | ident bracketop '_' BracketType '_' '(' Parameters ')' '{' BlockStatement '}'     { CBracketOpOverloadDef $1 $4 $7 $10 } 
 
 ExpressionList : empty                  { CListEmpty }
 	       | FilledExpressionList   { CListNonEmpty $1 }
@@ -55,18 +51,26 @@ Expression : Constant                         { CEConst $1 }
            | Expression operator              { CEPostfixOp $2 $1 }
            | Expression operator Expression   { CEInfixOp $2 $1 $3 }
 
+Constant : string    { CCString $1 }
+	 | integer   { CCInt $1 }
+         | double    { CCDouble $1 }
+         | char      { CCChar $1 }
+
+FilledExpressionList : Expression ',' FilledExpressionList   { CMultiExpression $1 $3 }
+		     | Expression                            { CFinalExpression $1 }
+
 VariableDeclaration : ident ident        { CVarDec $1 $2 }
 
 Statement : Expression              { CSExpression $1 }
 	  | VariableDeclaration     { CSVarDec $1 }
 
-Parameter : ident ident { Param $1 $2 }
+Parameter : ident ident { CParam $1 $2 }
 
 FilledParameters : Parameter ',' FilledParameters     { CMultiParam $1 $3 }
 		 | Parameter                          { CFinalParam $1 }
 
-Parameters : empty               { PEmpty }
-	   | FilledParameters    { PParams $1 }
+Parameters : empty               { CPEmpty }
+	   | FilledParameters    { CPParams $1 }
 
 FilledBlock : Statement ';' FilledBlock         { CMultiStatement $1 $3 }
 	    | Statement                         { CFinalStatement $1 }
@@ -74,15 +78,11 @@ FilledBlock : Statement ';' FilledBlock         { CMultiStatement $1 $3 }
 BlockStatement : empty          { CBlockEmpty }
 	       | FilledBlock    { CFilledBlock $1 }
 
-FunctionDefinition : ident ident '(' Parameters ')' '{' BlockStatement '}'                             { CFuncDef $1 $2 $4 $7 }
-		   | ident OperatorType '_' operator '_' '(' Parameters ')' '{' BlockStatement '}'     { COpOverloadDef $1 $2 $4 $7 $10 }
-                   | ident bracketop '_' BracketType '_' '(' Parameters ')' '{' BlockStatement '}'     { CBracketOpOverloadDef $1 $4 $7 $10 } 
-
 OperatorType : prefix        { Prefix }
 	     | postfix       { Postfix }
              | tinfix        { Infix }
 
-BraketType : '(' empty ')' { Parentheses }
+BracketType : '(' empty ')' { Parentheses }
 	   | '[' empty ']' { Square }
            | '{' empty '}' { Curly }
 
@@ -97,5 +97,5 @@ Program : empty                             { CProgramEnd }
 
 {
 parseError :: [Token] -> a
-parseError _ = error "Parser Error"
+parseError (x:_) = error $ "Parser Error at " ++ (show x)
 }

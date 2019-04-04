@@ -11,6 +11,7 @@ import Com.NoSyn.Error.CompilerStatus
 type Parameters = Block Parameter
 data Parameter = 
     IfParameter IfParameter.Parameter
+    deriving Show
 
 instance IfElementGeneratable Parameter where
     generateIfElement programEnvironment (IfParameter a) =

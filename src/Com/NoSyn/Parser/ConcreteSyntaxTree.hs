@@ -29,42 +29,53 @@ data CExpression =
     deriving Show
 
 data CVariableDeclaration = CVarDec String String
+    deriving Show
 
 data CStatement = 
     CSExpression CExpression
     | CSVarDec CVariableDeclaration
+    deriving Show
 
 data CParameter = CParam String String
+    deriving Show
 
 data CFilledParameters =
     CMultiParam CParameter CFilledParameters
     | CFinalParam CParameter
+    deriving Show
 
 data CParameters =
     CPEmpty
     | CPParams CFilledParameters
+    deriving Show
 
 data CFilledBlock =
     CMultiStatement CStatement CFilledBlock
     | CFinalStatement CStatement
+    deriving Show
 
 data CBlockStatement =
     CBlockEmpty
     | CFilledBlock CFilledBlock
+    deriving Show
 
 data CFunctionDefinition = 
     CFuncDef String String CParameters CBlockStatement
     | COpOverloadDef String OperatorType String CParameters CBlockStatement
     | CBracketOpOverloadDef String BracketType CParameters CBlockStatement
+    deriving Show
 
 
 data CAliasDefinition = CAliasDef String String
+    deriving Show
 
 data CProgramStatement = 
     CPSVarDec CVariableDeclaration
     | CPSFuncDef CFunctionDefinition
     | CPSAliasDef CAliasDefinition
+    deriving Show
 
 data CProgram =
     CProgramEnd
     | CProgram CProgramStatement CProgram
+    deriving Show

@@ -6,6 +6,7 @@ import Com.NoSyn.Ast.Traits.IfElementGeneratable
 
 data VariableDeclaration =
     IfVariableDeclaration IfVariableDeclaration.VariableDeclaration
+    deriving Show
 
 instance IfElementGeneratable VariableDeclaration where
     generateIfElement _ (IfVariableDeclaration a) =

@@ -13,6 +13,7 @@ data FunctionDefinition =
     FDNative Ident Ident Parameters
     | FDNoSyn Ident Ident Parameters BlockStatement
     | FDOperatorOverload OperatorType String Ident Parameters BlockStatement
+    deriving Show
 
 instance IfElementGeneratable FunctionDefinition where
     generateIfElement programEnvironment (FDNative a b parameters) = do

@@ -14,6 +14,7 @@ data ProgramStmt =
     PSAliasDef Ident Ident
     | PSFuncDef FunctionDefinition
     | PSVarDec VariableDeclaration
+    deriving Show
 
 instance TargetCodeGeneratable ProgramStmt where
     generateD _ (PSAliasDef _ _) = return "";

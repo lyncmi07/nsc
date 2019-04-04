@@ -39,6 +39,8 @@ operatorNames = [
         ('<', "Less"),
         ('>', "Greater")]
 
+operatorChars = ['+','-','/','*','?','^','#','@',':','£','$','%','&','|','!','.','<','>']
+
 operatorStringConverter operatorString =
     compilerStatusFromMaybe (operatorString ++ " is an invalid operator") $ sequence $ map (\x -> lookup x operatorNames) operatorString
 

@@ -12,6 +12,7 @@ import Com.NoSyn.Environment.ProgramEnvironment
 import Data.Map
 
 data VariableDeclaration = VDec Ident Ident
+    deriving Show
 
 instance TargetCodeGeneratable VariableDeclaration where
     generateD programEnvironment varDec@(VDec varType varName) = do

@@ -18,6 +18,7 @@ type Parameters = Block Parameter
 data Parameter = 
     PConst Ident Ident
     | PPointer Ident Ident
+    deriving Show
 
 instance EnvironmentUpdater Parameter where
     updateEnvironment programEnvironment@(ae, fe, variableEnvironment) param@(PConst paramType paramName) = do

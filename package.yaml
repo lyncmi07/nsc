@@ -29,6 +29,7 @@ library:
   - containers
   - template-haskell
   - array
+  - text-latin1
 
 executables:
   no-syn-exe:

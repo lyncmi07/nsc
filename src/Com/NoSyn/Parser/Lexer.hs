@@ -1,13 +1,18 @@
 module Com.NoSyn.Parser.Lexer where
 
 import Com.NoSyn.Parser.Token
+import Text.Ascii
+import Com.NoSyn.Data.Operators
+
+digits = ['0','1','2','3','4','5','6','7','8','9']
 
 lexer :: String -> [Token]
 lexer [] = []
 lexer (x:xs)
-    | isSpace c = lexer xs
-    | isAlpha c lexVar (x:xs)
-    | isDigit c = lexNum (x:xs)
+    | isWhiteSpace x = lexer xs
+    | isAlpha x = lexVar (x:xs)
+    | x `elem` digits = lexNum (x:xs)
+    | x `elem` operatorChars = lexOperator (x:xs)
 lexer ('"':xs) = lexString xs
 lexer ('(':')':xs) = [TokenParameterOpen, TokenEmpty, TokenParameterClose] ++ lexer xs
 lexer ('[':']':xs) = [TokenSquareOpen, TokenEmpty, TokenSquareOpen] ++ lexer xs
@@ -29,26 +34,27 @@ lexVar xs = case span isAlpha xs of
     ("postfix", rest)       -> TokenPostfixKeyword : lexer rest
     ("infix", rest)         -> TokenInfixKeyword : lexer rest
     ("bracketop", rest)     -> TokenBracketOpKeyword : lexer rest
-    (ident, rest)           -> TokenIdent ident
+    (ident, rest)           -> TokenIdent ident : lexer rest
 
 lexString x = let (stringToken, rest) = lexString' x "" in stringToken : lexer rest
 lexString' :: String -> String -> (Token, String)
 lexString' ('"':xs) finalString = (TokenString finalString, xs)
 lexString' (x:xs) currentString = lexString' xs (x:currentString)
 
-digits = ['0','1','2','3','4','5','6','7','8','9']
 lexNum x = let (numToken, rest) = lexNum' x "" in numToken : lexer rest
 lexNum' :: String -> String -> (Token, String)
-lexNum' ('.':xs) currentInt = lexDouble xs (currentInt )
+lexNum' ('.':xs) currentInt = lexDouble xs (currentInt ++ ".")
 lexNum' (x:xs) currentInt
-    | x `elem` digits = lexNum' xs (x:currentInt)
-    | otherwise = TokenInt (read currentInt :: Int) : lexer (x:xs)
+    | x `elem` digits = lexNum' xs (currentInt++[x])
+    | otherwise = (TokenInt (read currentInt :: Int), x:xs)
 
-lexDouble a = let (numToken, rest) = lexDouble' x "" in numToken : lexer rest
 lexDouble :: String -> String -> (Token, String)
-lexNum' (x:xs) currentInt
-    | x `elem` digits = lexNum' xs (x:currentInt)
-    | otherwise = TokenInt (read currentInt :: Int) : lexer (x:xs)
+lexDouble (x:xs) currentInt
+    | x `elem` digits = lexDouble xs (currentInt++[x])
+    | otherwise = (TokenDouble (read currentInt :: Double), x:xs)
 
-
-
+lexOperator x = let (operatorToken, rest) = lexOperator' x "" in operatorToken : lexer rest
+lexOperator' :: String -> String -> (Token, String)
+lexOperator' (x:xs) currentOperator
+    | x `elem` operatorChars = lexOperator' xs (currentOperator++[x])
+    | otherwise = (TokenOperator currentOperator, x:xs)

@@ -14,6 +14,7 @@ type BlockStatement = Block Statement
 data Statement =
     SVarDec VariableDeclaration
     | SExpression Expression
+    deriving Show
 
 instance IfElementGeneratable Statement where
     generateIfElement programEnvironment (SVarDec a) = do

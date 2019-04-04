@@ -12,6 +12,8 @@ type BlockStatement = Block Statement
 data Statement = 
     SVarDec VariableDeclaration
     | SExpression Expression
+    deriving Show
+
 instance TargetCodeGeneratable Statement where
     generateD programEnvironment (SVarDec varDec) =
         generateD programEnvironment varDec

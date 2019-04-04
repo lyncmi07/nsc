@@ -20,6 +20,7 @@ data IfElement =
     | IfVariableDeclaration VariableDeclaration
     | IfParameters Parameters
     | IfBlockStatement BlockStatement
+    deriving Show
 
 instance TargetCodeGeneratable IfElement where
     generateD a (IfConstant b) = generateD a b

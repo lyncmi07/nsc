@@ -8,6 +8,7 @@ data Constant =
     CInt Int
     | CDouble Double
     | CChar Char
+    deriving Show
 
 instance TargetCodeGeneratable Constant where
     generateD _ (CInt i) = return (show i)

@@ -15,6 +15,7 @@ data Expression =
     | EIdent Ident
     | EOp OperatorType String [Expression]
     | EBrackets BracketType [Expression]
+    deriving Show
 
 instance IfElementGeneratable Expression where
     generateIfElement programEnvironment expression = do

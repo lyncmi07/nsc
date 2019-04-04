@@ -3,16 +3,24 @@ module Com.NoSyn.Parser.Token where
 data Token =
     TokenString String
     | TokenInt Int
-    | TokenDouble Float
+    | TokenDouble Double
     | TokenChar Char
     | TokenOperator String
+    | TokenIdent String
     | TokenComma
     | TokenParameterOpen
     | TokenParameterClose
-    | TokenEquals
-    | TokenAliasKeyword
     | TokenCurlyOpen
     | TokenCurlyClose
+    | TokenSquareOpen
+    | TokenSquareClose
+    | TokenEquals
+    | TokenAliasKeyword
+    | TokenPrefixKeyword
+    | TokenPostfixKeyword
+    | TokenInfixKeyword
+    | TokenBracketOpKeyword
     | TokenSemicolon
     | TokenEmpty
-    | TokenIdent
+    | TokenUnderscore
+    deriving Show

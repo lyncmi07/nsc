@@ -81,6 +81,7 @@ convertFilledParameters (CMultiParam x xs) = do
     n <- convertParameter x
     m <- convertFilledParameters xs
     return $ n:m
+convertFilledParameters (CFinalParam a) = sequence $ [convertParameter a]
 
 convertParameters :: CParameters -> CompilerStatus Ifm1Parameter.Parameters
 convertParameters CPEmpty = return $ StandardBlock []

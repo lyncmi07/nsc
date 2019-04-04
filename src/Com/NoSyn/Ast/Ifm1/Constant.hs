@@ -6,6 +6,7 @@ import Com.NoSyn.Ast.Traits.IfElementGeneratable
 
 data Constant =
     IfConstant IfConstant.Constant
+    deriving Show
 
 instance IfElementGeneratable Constant where
     generateIfElement _ (IfConstant a) =
