@@ -1,1 +1,13 @@
-Int prefix_++_(Int a, Int b) {}
+Nothing infix_>>_(Int a, Double b) {};
+Double infix_>>_(Int a, Double b) {};
+
+Nothing foo(Int a, Int b) {
+  Int a;
+  Int b;
+  Double c;
+  Double d;
+  foo(a,b);
+  b >> a >> d
+};
+
+
