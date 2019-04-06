@@ -1,13 +1,10 @@
 Nothing infix_>>_(Int a, Double b) {};
-Double infix_>>_(Int a, Double b) {};
+Int infix_>>_(Int a, Double b) {};
 
 Nothing foo(Int a, Int b) {
-  Int a;
-  Int b;
   Double c;
+  c = 10.34;
   Double d;
   foo(a,b);
-  b >> a >> d
+  a >> c >> d
 };
-
-

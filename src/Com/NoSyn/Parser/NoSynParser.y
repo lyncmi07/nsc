@@ -37,6 +37,9 @@ import Com.NoSyn.Parser.Token
 
 %%
 
+Program : empty                             { CProgramEnd }
+	| ProgramStatement ';' Program      { CProgram $1 $3 }
+
 FunctionDefinition : ident ident '(' Parameters ')' '{' BlockStatement '}'                             { CFuncDef $1 $2 $4 $7 }
 		   | ident OperatorType '_' operator '_' '(' Parameters ')' '{' BlockStatement '}'     { COpOverloadDef $1 $2 $4 $7 $10 }
                    | ident bracketop '_' BracketType '_' '(' Parameters ')' '{' BlockStatement '}'     { CBracketOpOverloadDef $1 $4 $7 $10 } 
@@ -91,9 +94,6 @@ AliasDefinition : alias ident '=' ident    { CAliasDef $2 $4 }
 ProgramStatement : VariableDeclaration     { CPSVarDec $1 }
 		 | FunctionDefinition      { CPSFuncDef $1 }
                  | AliasDefinition         { CPSAliasDef $1 }
-
-Program : empty                             { CProgramEnd }
-	| ProgramStatement ';' Program      { CProgram $1 $3 }
 
 {
 parseError :: [Token] -> a

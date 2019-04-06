@@ -106,7 +106,7 @@ convertBlockStatement (CFilledBlock a) = do
 --convertFunctionDefinition CFunctionDefinition -> CompilerStatus FunctionDefinition
 
 convertFunctionDefinition :: CFunctionDefinition -> CompilerStatus FunctionDefinition
-convertFunctionDefinition (CFuncDef a b c d) = do
+convertFunctionDefinition (CFuncDef b a c d) = do
     n <- convertParameters c
     m <- convertBlockStatement d
     return $ FDNoSyn a b n m

@@ -1,6 +1,7 @@
 module Com.NoSyn.Error.CompilerStatus where
 
 import Com.NoSyn.Error.MaybeConvertable
+import Com.NoSyn.Error.IOConvertable
 
 data CompilerStatus a =
     Valid a
@@ -24,6 +25,10 @@ instance Monad CompilerStatus where
 instance MaybeConvertable CompilerStatus where
     toMaybe (Valid a) = (Just a)
     toMaybe (Error _) = Nothing
+
+instance IOConvertable CompilerStatus where
+    toIO (Valid a) = return a
+    toIO (Error a) = fail a
 
 compilerStatusFromMaybe::String->Maybe a->CompilerStatus a
 compilerStatusFromMaybe _ (Just a) = Valid a
