@@ -49,10 +49,28 @@ convertExpression (CEPrefixOp a b) = do
 convertExpression (CEPostfixOp a b) = do
     n <- convertExpression b
     return $ EOp Postfix a [n]
-convertExpression (CEInfixOp o a b) = do
+convertExpression reversedInfix@(CEInfixOp _ _ _)= do
     n <- convertExpression a
     m <- convertExpression b
     return $ EOp Infix o (n:m:[])
+    where
+        (CEInfixOp o a b) = reverseOperatorOrder reversedInfix
+
+reverseOperatorOrder :: CExpression -> CExpression
+reverseOperatorOrder a =
+    let flattenedExpressions = flattenInfixExpression a in
+    createLeftOrderedInfixExpression flattenedExpressions
+
+flattenInfixExpression :: CExpression -> [(String, CExpression)]
+flattenInfixExpression (CEInfixOp o a b) =
+    (o, a):(flattenInfixExpression b)
+flattenInfixExpression a = [("", a)]
+
+createLeftOrderedInfixExpression (x:xs) = createLeftOrderedInfixExpression' x xs
+createLeftOrderedInfixExpression' :: (String, CExpression) -> [(String, CExpression)] -> CExpression
+createLeftOrderedInfixExpression' (o, a) ((_, b):[]) = CEInfixOp o a b
+createLeftOrderedInfixExpression' (o, a) ((on, b):xs) =
+    createLeftOrderedInfixExpression' (on, CEInfixOp o a b) xs
 
 convertVariableDeclaration :: CVariableDeclaration -> CompilerStatus Ifm1VariableDeclaration.VariableDeclaration
 convertVariableDeclaration (CVarDec a b) = return $ Ifm1VariableDeclaration.IfVariableDeclaration $ VDec a b
