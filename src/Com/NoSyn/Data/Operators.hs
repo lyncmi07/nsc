@@ -37,7 +37,8 @@ operatorNames = [
         ('!', "Exclaimation"),
         ('.', "Period"),
         ('<', "Less"),
-        ('>', "Greater")]
+        ('>', "Greater"),
+        ('=', "Equals")]
 
 operatorChars = ['+','-','/','*','?','^','#','@',':','£','$','%','&','|','!','.','<','>']
 

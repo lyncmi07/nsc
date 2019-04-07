@@ -1,5 +1,5 @@
 Int foo(Int a, Int b) {
-    !a >> b >>< b
+    a >> b >>< b //This is a comment. It shouldn't effect the code in any way
 };
 
 Int prefix_!_(Int a) {

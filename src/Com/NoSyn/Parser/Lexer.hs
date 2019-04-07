@@ -8,25 +8,21 @@ digits = ['0','1','2','3','4','5','6','7','8','9']
 
 lexer :: String -> [Token]
 lexer [] = [TokenEmpty]
+lexer ('/':xs) = lexMaybeComment xs
 lexer (x:xs)
     | isWhiteSpace x = lexer xs
     | isAlpha x = lexVar (x:xs)
     | x `elem` digits = lexNum (x:xs)
     | x `elem` operatorChars = lexOperator (x:xs)
 lexer ('"':xs) = lexString xs
--- lexer ('(':')':xs) = [TokenParameterOpen, TokenEmpty, TokenParameterClose] ++ lexer xs
--- lexer ('[':']':xs) = [TokenSquareOpen, TokenEmpty, TokenSquareOpen] ++ lexer xs
--- lexer ('{':'}':xs) = [TokenCurlyOpen, TokenEmpty, TokenCurlyClose] ++ lexer xs
 lexer (x:xs)
     | x `elem` ['(', '[', '{'] = let (tokens, rest) = lexBracket x xs in
         tokens ++ lexer rest
+
 lexer (',':xs) = TokenComma : lexer xs
--- lexer ('(':xs) = TokenParameterOpen : lexer xs
 lexer (')':xs) = TokenParameterClose : lexer xs
 lexer ('=':xs) = TokenEquals : lexer xs
--- lexer ('{':xs) = TokenCurlyOpen : lexer xs
 lexer ('}':xs) = TokenCurlyClose : lexer xs
--- lexer ('[':xs) = TokenSquareOpen : lexer xs
 lexer (']':xs) = TokenSquareClose : lexer xs
 lexer (';':xs) = TokenSemicolon : lexer xs
 lexer ('_':xs) = TokenUnderscore : lexer xs
@@ -66,6 +62,12 @@ lexBracket bracket (x:xs)
     | isWhiteSpace x = lexBracket bracket xs
     | x == (closingBracket bracket) = ([bracketOpenToken bracket, TokenEmpty, bracketCloseToken bracket], xs)
     | otherwise = ([bracketOpenToken bracket], x:xs)
+
+lexMaybeComment ('/':xs) = lexComment xs
+lexMaybeComment xs = lexOperator ('/':xs)
+
+lexComment ('\n':xs) = lexer xs
+lexComment (_:xs) = lexComment xs
 
 
 closingBracket '{' = '}'
