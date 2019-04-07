@@ -14,16 +14,19 @@ lexer (x:xs)
     | x `elem` digits = lexNum (x:xs)
     | x `elem` operatorChars = lexOperator (x:xs)
 lexer ('"':xs) = lexString xs
-lexer ('(':')':xs) = [TokenParameterOpen, TokenEmpty, TokenParameterClose] ++ lexer xs
-lexer ('[':']':xs) = [TokenSquareOpen, TokenEmpty, TokenSquareOpen] ++ lexer xs
-lexer ('{':'}':xs) = [TokenCurlyOpen, TokenEmpty, TokenCurlyClose] ++ lexer xs
+-- lexer ('(':')':xs) = [TokenParameterOpen, TokenEmpty, TokenParameterClose] ++ lexer xs
+-- lexer ('[':']':xs) = [TokenSquareOpen, TokenEmpty, TokenSquareOpen] ++ lexer xs
+-- lexer ('{':'}':xs) = [TokenCurlyOpen, TokenEmpty, TokenCurlyClose] ++ lexer xs
+lexer (x:xs)
+    | x `elem` ['(', '[', '{'] = let (tokens, rest) = lexBracket x xs in
+        tokens ++ lexer rest
 lexer (',':xs) = TokenComma : lexer xs
-lexer ('(':xs) = TokenParameterOpen : lexer xs
+-- lexer ('(':xs) = TokenParameterOpen : lexer xs
 lexer (')':xs) = TokenParameterClose : lexer xs
 lexer ('=':xs) = TokenEquals : lexer xs
-lexer ('{':xs) = TokenCurlyOpen : lexer xs
+-- lexer ('{':xs) = TokenCurlyOpen : lexer xs
 lexer ('}':xs) = TokenCurlyClose : lexer xs
-lexer ('[':xs) = TokenSquareOpen : lexer xs
+-- lexer ('[':xs) = TokenSquareOpen : lexer xs
 lexer (']':xs) = TokenSquareClose : lexer xs
 lexer (';':xs) = TokenSemicolon : lexer xs
 lexer ('_':xs) = TokenUnderscore : lexer xs
@@ -58,3 +61,21 @@ lexOperator' :: String -> String -> (Token, String)
 lexOperator' (x:xs) currentOperator
     | x `elem` operatorChars = lexOperator' xs (currentOperator++[x])
     | otherwise = (TokenOperator currentOperator, x:xs)
+
+lexBracket bracket (x:xs)
+    | isWhiteSpace x = lexBracket bracket xs
+    | x == (closingBracket bracket) = ([bracketOpenToken bracket, TokenEmpty, bracketCloseToken bracket], xs)
+    | otherwise = ([bracketOpenToken bracket], x:xs)
+
+
+closingBracket '{' = '}'
+closingBracket '(' = ')'
+closingBracket '[' = ']'
+
+bracketOpenToken '{' = TokenCurlyOpen
+bracketOpenToken '(' = TokenParameterOpen
+bracketOpenToken '[' = TokenSquareOpen
+bracketCloseToken '{' = TokenCurlyClose
+bracketCloseToken '(' = TokenParameterClose
+bracketCloseToken '[' = TokenSquareClose
+
