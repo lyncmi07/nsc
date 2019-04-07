@@ -1,10 +1,14 @@
-Nothing infix_>>_(Int a, Double b) {};
-Int infix_>>_(Int a, Double b) {};
+Int foo(Int a, Int b) {
+    !a >> b >>< b
+};
 
-Nothing foo(Int a, Int b) {
-  Double c;
-  c = 10.34;
-  Double d;
-  foo(a,b);
-  a >> c >> d
+Int prefix_!_(Int a) {
+
+};
+
+Nothing infix_>><_(Int a, Int b) {
+
+};
+Int infix_>>_(Int a, Int b) {
+
 };
