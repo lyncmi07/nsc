@@ -89,7 +89,7 @@ BracketType : '(' empty ')' { Parentheses }
 	   | '[' empty ']' { Square }
            | '{' empty '}' { Curly }
 
-AliasDefinition : alias ident '=' ident    { CAliasDef $2 $4 }
+AliasDefinition : alias ident operator ident    { CAliasDef $3 $2 $4 }
 
 ProgramStatement : VariableDeclaration     { CPSVarDec $1 }
 		 | FunctionDefinition      { CPSFuncDef $1 }

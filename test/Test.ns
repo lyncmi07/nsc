@@ -2,7 +2,14 @@ Int foo(Int a, Int b) {
     a >> b >>< b //This is a comment. It shouldn't effect the code in any way
 };
 
-Int prefix_!_(Int a) {
+alias Integer = Int;
+
+Integer prefix_!_(Int a) {
+    Int b;
+    a = b
+};
+
+Nothing infix_=_(Int a, Int b) {
 
 };
 

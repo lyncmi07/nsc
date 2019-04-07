@@ -120,9 +120,6 @@ convertBlockStatement (CFilledBlock a) = do
     n <- convertFilledBlock a
     return $ SequentialBlock n
 
---this requires some lexing
---convertFunctionDefinition CFunctionDefinition -> CompilerStatus FunctionDefinition
-
 convertFunctionDefinition :: CFunctionDefinition -> CompilerStatus FunctionDefinition
 convertFunctionDefinition (CFuncDef b a c d) = do
     n <- convertParameters c
@@ -134,7 +131,9 @@ convertFunctionDefinition (COpOverloadDef a b c d e) = do
     return $ FDOperatorOverload b c a n m
 
 convertAliasDefinition :: CAliasDefinition -> CompilerStatus ProgramStmt
-convertAliasDefinition (CAliasDef a b) = return $ PSAliasDef a b
+convertAliasDefinition (CAliasDef o a b)
+  | o == "=" = return $ PSAliasDef a b
+  | otherwise = Error "alias statement must assign using '=' symbol"
 
 convertProgramStatement :: CProgramStatement -> CompilerStatus ProgramStmt
 convertProgramStatement (CPSVarDec a) = do

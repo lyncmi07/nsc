@@ -40,7 +40,7 @@ operatorNames = [
         ('>', "Greater"),
         ('=', "Equals")]
 
-operatorChars = ['+','-','/','*','?','^','#','@',':','£','$','%','&','|','!','.','<','>']
+operatorChars = ['+','-','/','*','?','^','#','@',':','£','$','%','&','|','!','.','<','>', '=']
 
 operatorStringConverter operatorString =
     compilerStatusFromMaybe (operatorString ++ " is an invalid operator") $ sequence $ map (\x -> lookup x operatorNames) operatorString

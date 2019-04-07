@@ -66,7 +66,7 @@ data CFunctionDefinition =
     deriving Show
 
 
-data CAliasDefinition = CAliasDef String String
+data CAliasDefinition = CAliasDef String String String
     deriving Show
 
 data CProgramStatement = 
