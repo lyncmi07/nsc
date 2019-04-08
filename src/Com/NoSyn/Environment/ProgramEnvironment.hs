@@ -41,9 +41,29 @@ instance SetSatisfiable ProgramEnvironment where
         aeu + feu + veu
 
 lookupDType::Ident->AliasEnvironment->CompilerStatus Ident
-lookupDType noSynType aliasEnvironment = do
-    compilerStatusFromMaybe 
-        ("There is no alias '" ++ noSynType ++ "' in the environment") (OrderMap.lookup noSynType aliasEnvironment)
+lookupDType noSynType aliasEnvironment
+    | noSynType `OrderMap.member` aliasEnvironment = lookupDType' noSynType aliasEnvironment
+    | otherwise = Error $ "There is no type '" ++ noSynType ++ "' in scope"
+
+lookupDType' noSynType aliasEnvironment
+    | noSynType `OrderMap.member` aliasEnvironment = do
+        nextAlias <- compilerStatusFromMaybe ("COMPILER ERROR: imported library incorrect") (OrderMap.lookup noSynType aliasEnvironment)
+        lookupDType' nextAlias aliasEnvironment
+    | otherwise = return noSynType
+
+lookupAtomicNoSynType::Ident->AliasEnvironment->CompilerStatus Ident
+lookupAtomicNoSynType noSynType aliasEnvironment
+    | noSynType `OrderMap.member` aliasEnvironment = do
+      nextAlias <- compilerStatusFromMaybe ("COMPILER ERROR: imported library incorrect") (OrderMap.lookup noSynType aliasEnvironment)
+      lookupAtomicNoSynType' noSynType nextAlias aliasEnvironment
+    | otherwise = Error $ "There is no type '" ++ noSynType ++ "' in scope"
+
+lookupAtomicNoSynType' previousType noSynType aliasEnvironment
+    | noSynType `OrderMap.member` aliasEnvironment = do
+        nextAlias <- compilerStatusFromMaybe ("COMPILER ERROR: imported library incorrect") (OrderMap.lookup noSynType aliasEnvironment)
+        lookupAtomicNoSynType' noSynType nextAlias aliasEnvironment
+    | otherwise = return previousType
+
 
 lookupVariableType :: ProgramEnvironment -> Ident -> CompilerStatus Variable
 lookupVariableType (_, _, variableEnvironment) varName =

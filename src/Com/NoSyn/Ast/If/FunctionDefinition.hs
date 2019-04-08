@@ -42,11 +42,11 @@ instance TargetCodeGeneratable FunctionDefinition where
 instance DIdentifiable FunctionDefinition where
     getDIdentifier _ (FDNative funcName _ _) = return funcName
     getDIdentifier programEnvironment func@(FDNoSyn funcName returnType parameters _) = do
-        _ <- getNoSynType programEnvironment func
+        noSynReturnType <- getNoSynType programEnvironment func
         parameterNoSynTypes <- sequence $ Prelude.map (getNoSynType programEnvironment) (Listable.toList parameters)
         return $ funcName 
             ++ "_" 
-            ++ returnType
+            ++ noSynReturnType
             ++ concat parameterNoSynTypes
 
 instance Nameable FunctionDefinition where
