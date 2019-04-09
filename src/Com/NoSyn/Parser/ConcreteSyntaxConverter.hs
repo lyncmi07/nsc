@@ -43,9 +43,12 @@ convertExpression (CEIdent a) = return $ EIdent a
 convertExpression (CEFuncCall a b) = do
     n <- convertExpressionList b
     return $ EFuncCall a n
-convertExpression (CEPrefixOp a b) = do
-    n <- convertExpression b
-    return $ EOp Prefix a [n]
+convertExpression prefixOp@(CEPrefixOp a b) =
+    case b of
+        (CEInfixOp _ _ _) -> convertExpression $ reorderPrefixOperator prefixOp
+        _ -> do
+            n <- convertExpression b
+            return $ EOp Prefix a [n]
 convertExpression (CEPostfixOp a b) = do
     n <- convertExpression b
     return $ EOp Postfix a [n]
@@ -55,6 +58,15 @@ convertExpression reversedInfix@(CEInfixOp _ _ _)= do
     return $ EOp Infix o (n:m:[])
     where
         (CEInfixOp o a b) = reverseOperatorOrder reversedInfix
+
+reorderPrefixOperator :: CExpression -> CExpression
+reorderPrefixOperator (CEPrefixOp a b) = reorderPrefixOperator' a b
+
+reorderPrefixOperator' :: String -> CExpression -> CExpression
+reorderPrefixOperator' prefixOp (CEInfixOp a b c) =
+    (CEInfixOp a (reorderPrefixOperator' prefixOp b) c)
+reorderPrefixOperator' prefixOp nonInfixExp = (CEPrefixOp prefixOp nonInfixExp)
+
 
 reverseOperatorOrder :: CExpression -> CExpression
 reverseOperatorOrder a =

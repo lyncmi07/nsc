@@ -1,12 +1,15 @@
 Int foo(Int a, Int b) {
-    a >> b >>< b //This is a comment. It shouldn't effect the code in any way
+    !a >> b >>< b //This is a comment. It shouldn't effect the code in any way
 };
 
 alias Integer = Int;
 
-Integer prefix_!_(Int a) {
+Int prefix_!_(Int a) {
     Int b;
     a = b
+};
+Int postfix_!_(Int a) {
+
 };
 
 Nothing infix_=_(Int a, Int b) {
@@ -16,6 +19,10 @@ Nothing infix_=_(Int a, Int b) {
 Nothing infix_>><_(Int a, Int b) {
 
 };
+Int infix_>><_(Int a, Int b) {
+
+};
+
 Int infix_>>_(Int a, Int b) {
 
 };

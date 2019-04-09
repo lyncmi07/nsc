@@ -49,6 +49,7 @@ ExpressionList : empty                  { CListEmpty }
 
 Expression : Constant                         { CEConst $1 }
 	   | ident                            { CEIdent $1 }
+           | '(' Expression ')'               { $2 }
            | ident '(' ExpressionList ')'     { CEFuncCall $1 $3 }
            | operator Expression              { CEPrefixOp $1 $2 }
            | Expression operator              { CEPostfixOp $2 $1 }
