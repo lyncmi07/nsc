@@ -13,6 +13,7 @@ import Com.NoSyn.Ast.Traits.Typeable
 import Com.NoSyn.Ast.If.Constant
 import Com.NoSyn.Data.Types
 import Com.NoSyn.Data.Variable
+import Control.Monad
 
 data Expression =
     EFuncCall Ident [Expression]
@@ -40,11 +41,17 @@ parameterSetsFromPossibleFunctions' ((_, overloadParameterTypes):xs) initialPara
 
 possibleFunctionsFromReturnTypes::ProgramEnvironment -> Set Ident -> Ident -> Int -> CompilerStatus [(Ident, OMap Ident Variable)]
 possibleFunctionsFromReturnTypes (_, functionEnvironment, _) possibleReturnTypes funcName noOfParams = do
-    allFunctions <- compilerStatusFromMaybe ("There is no function '" ++ funcName ++ "'") $ Map.lookup funcName functionEnvironment
+    allFunctions <- lookupFunction funcName functionEnvironment
     let possibleFunctions = Prelude.filter (\(x,y) -> (x `Set.member` possibleReturnTypes) && ((OrderMap.size y) == noOfParams)) allFunctions in
         if (length possibleFunctions) == 0
             then Error $ "There are no function overloads for '" ++ funcName ++ "' that satisfy the return types " ++ (show possibleReturnTypes)
             else return $ possibleFunctions
+
+lookupFunction :: String -> Map Ident [(Ident, OMap Ident Variable)] -> CompilerStatus [(Ident, OMap Ident Variable)]
+lookupFunction funcName funcEnvironment =
+    compilerStatusFromMaybe ("There is no function '" ++ funcName ++ "'") $ mplus (funcLookup funcName) (mplus (funcLookup (dropPostfix "_function" funcName)) (funcLookup (dropPostfix "_operator" funcName)))
+        where
+            funcLookup name = Map.lookup name funcEnvironment
 
 possibleFunctionsFromReturnAndParamTypes::ProgramEnvironment -> Set Ident -> Ident -> [Set Ident] ->  CompilerStatus [(Ident, OMap Ident Variable)]
 possibleFunctionsFromReturnAndParamTypes programEnvironment possibleReturnTypes funcName possibleParameterTypes = do
@@ -111,8 +118,9 @@ validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTy
             then let funcToGenerate@(funcReturnType,_) = head possibleFunctions in
                 let finalReducedParameterTypes = parameterSetsFromPossibleFunctions possibleFunctions (length paramExpressions) in
                 reduceParameterTypes programEnvironment finalReducedParameterTypes paramExpressions >>= 
-                    (\finalReducedParameterTypeEithers -> generateDFunctionCall programEnvironment funcName funcToGenerate finalReducedParameterTypeEithers >>=
-                        (\x -> return $ Right (funcReturnType, x)))
+                    (\finalReducedParameterTypeEithers ->
+                        generateDFunctionCall programEnvironment funcName funcToGenerate finalReducedParameterTypeEithers >>=
+                            (\x -> return $ Right (funcReturnType, x)))
             else let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
                 if reductionWasMade possibleReturnTypes reducedReturnTypes possibleParameterTypes reducedParameterTypes
                     then validateAndGenerateD' programEnvironment reducedReturnTypes reducedParameterTypes functionCall 
@@ -145,8 +153,19 @@ generateDFunctionCall programEnvironment funcName (returnType, paramTypesAndName
         generateDFunctionCall' programEnvironment funcName returnType paramTypes generatedParameters
 
 generateDFunctionCall'::ProgramEnvironment -> Ident -> Ident -> [Ident] -> [String] -> CompilerStatus String
-generateDFunctionCall' (aliasEnvironment, _, _) funcName returnType parameterTypes parameterExpressions =
-    let dFuncSuffix = returnType ++ (concat $ Prelude.map id parameterTypes) in
+generateDFunctionCall' programEnvironment@(aliasEnvironment, _, _) funcName returnType parameterTypes parameterExpressions =
     let joinedParameterExpressions = concat $ intersperse "," parameterExpressions in
-    return $ funcName ++ "_" ++ dFuncSuffix ++ "(" ++ joinedParameterExpressions ++ ")"
+    return $ fullDName ++ "(" ++ joinedParameterExpressions ++ ")"
+    where
+      fullDName = case functionIsNative programEnvironment funcName of
+        (Just postfix) -> dropPostfix postfix funcName
+        Nothing -> let dFuncSuffix = returnType ++ (concat $ Prelude.map id parameterTypes) in
+                funcName ++ "_" ++ dFuncSuffix
 
+dropPostfix postfix = (reverse.(Prelude.drop $ length postfix).reverse)
+
+functionIsNative:: ProgramEnvironment -> Ident -> Maybe String
+functionIsNative (_, funcEnvironment, _) funcName
+    | ((dropPostfix "_function" funcName) `Map.member` funcEnvironment) = return "_function"
+    | ((dropPostfix "_operator" funcName) `Map.member` funcEnvironment) = return "_operator"
+    | otherwise = Nothing

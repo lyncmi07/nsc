@@ -19,6 +19,7 @@ data Token =
     | TokenPrefixKeyword
     | TokenPostfixKeyword
     | TokenInfixKeyword
+    | TokenNativeKeyword
     | TokenBracketOpKeyword
     | TokenSemicolon
     | TokenEmpty

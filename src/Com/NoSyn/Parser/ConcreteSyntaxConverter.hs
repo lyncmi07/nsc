@@ -133,6 +133,9 @@ convertBlockStatement (CFilledBlock a) = do
     return $ SequentialBlock n
 
 convertFunctionDefinition :: CFunctionDefinition -> CompilerStatus FunctionDefinition
+convertFunctionDefinition (CFuncDefNative b a c) = do
+    n <- convertParameters c
+    return $ FDNative a b n
 convertFunctionDefinition (CFuncDef b a c d) = do
     n <- convertParameters c
     m <- convertBlockStatement d

@@ -33,6 +33,7 @@ lexVar xs = case span isAlpha xs of
     ("postfix", rest)       -> TokenPostfixKeyword : lexer rest
     ("infix", rest)         -> TokenInfixKeyword : lexer rest
     ("bracketop", rest)     -> TokenBracketOpKeyword : lexer rest
+    ("native", rest)        -> TokenNativeKeyword : lexer rest
     (ident, rest)           -> TokenIdent ident : lexer rest
 
 lexString x = let (stringToken, rest) = lexString' x "" in stringToken : lexer rest

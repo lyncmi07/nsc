@@ -24,5 +24,7 @@ Int infix_>><_(Int a, Int b) {
 };
 
 Int infix_>>_(Int a, Int b) {
-
+    nativeFunction()
 };
+
+native Nothing nativeFunction();

@@ -26,6 +26,7 @@ import Com.NoSyn.Parser.Token
     postfix    { TokenPostfixKeyword }
     tinfix     { TokenInfixKeyword }
     bracketop  { TokenBracketOpKeyword }
+    native     { TokenNativeKeyword }
     '{'        { TokenCurlyOpen }
     '}'        { TokenCurlyClose }
     '['        { TokenSquareOpen }
@@ -42,6 +43,7 @@ Program : empty                             { CProgramEnd }
 
 FunctionDefinition : ident ident '(' Parameters ')' '{' BlockStatement '}'                             { CFuncDef $1 $2 $4 $7 }
 		   | ident OperatorType '_' operator '_' '(' Parameters ')' '{' BlockStatement '}'     { COpOverloadDef $1 $2 $4 $7 $10 }
+                   | native ident ident '(' Parameters ')'                                             { CFuncDefNative $2 $3 $5}
                    | ident bracketop '_' BracketType '_' '(' Parameters ')' '{' BlockStatement '}'     { CBracketOpOverloadDef $1 $4 $7 $10 } 
 
 ExpressionList : empty                  { CListEmpty }

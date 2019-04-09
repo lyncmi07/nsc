@@ -60,7 +60,8 @@ data CBlockStatement =
     deriving Show
 
 data CFunctionDefinition = 
-    CFuncDef String String CParameters CBlockStatement
+    CFuncDefNative String String CParameters
+    | CFuncDef String String CParameters CBlockStatement
     | COpOverloadDef String OperatorType String CParameters CBlockStatement
     | CBracketOpOverloadDef String BracketType CParameters CBlockStatement
     deriving Show
