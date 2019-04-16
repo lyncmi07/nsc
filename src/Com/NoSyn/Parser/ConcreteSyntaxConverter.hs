@@ -97,14 +97,10 @@ convertStatement (CSVarDec a) = do
 
 
 convertParameter :: CParameter -> CompilerStatus Ifm1Parameter.Parameter
-convertParameter (CParam a b)
-    | (a `endsWith` "*") = return $ Ifm1Parameter.IfParameter $ PPointer (dropEnd 1 a) b
-    | otherwise = return $ Ifm1Parameter.IfParameter $ PConst a b
-    where
-        dropEnd x = (reverse.(drop x).reverse)
-        endsWith x y
-            | (((take 1).reverse $ x) == y) = True
-            | otherwise = False
+convertParameter (CParam a b) = return $ Ifm1Parameter.IfParameter $ PConst a b
+convertParameter (CPointerParam a op b)
+    | op == "*" = return $ Ifm1Parameter.IfParameter $ PPointer a b
+    | otherwise = Error "Only '*' can be used on a type to denote an operator"
 
 convertFilledParameters :: CFilledParameters -> CompilerStatus [Ifm1Parameter.Parameter]
 convertFilledParameters (CMultiParam x xs) = do

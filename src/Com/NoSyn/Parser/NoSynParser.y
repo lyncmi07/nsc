@@ -71,6 +71,7 @@ Statement : Expression              { CSExpression $1 }
 	  | VariableDeclaration     { CSVarDec $1 }
 
 Parameter : ident ident { CParam $1 $2 }
+          | ident operator ident {CPointerParam $1 $2 $3}
 
 FilledParameters : Parameter ',' FilledParameters     { CMultiParam $1 $3 }
 		 | Parameter                          { CFinalParam $1 }

@@ -36,7 +36,9 @@ data CStatement =
     | CSVarDec CVariableDeclaration
     deriving Show
 
-data CParameter = CParam String String
+data CParameter =
+    CParam String String
+    | CPointerParam String String String
     deriving Show
 
 data CFilledParameters =
