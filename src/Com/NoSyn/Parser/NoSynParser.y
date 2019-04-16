@@ -78,11 +78,12 @@ FilledParameters : Parameter ',' FilledParameters     { CMultiParam $1 $3 }
 Parameters : empty               { CPEmpty }
 	   | FilledParameters    { CPParams $1 }
 
+-- Removing from use
 FilledBlock : Statement ';' FilledBlock         { CMultiStatement $1 $3 }
-	    | Statement                         { CFinalStatement $1 }
+      | Statement ';'                   { CFinalStatement $1 }
 
-BlockStatement : empty          { CBlockEmpty }
-	       | FilledBlock    { CFilledBlock $1 }
+BlockStatement : empty                           { CBlockEmpty }
+      | FilledBlock    { CFilledBlock $1 }
 
 OperatorType : prefix        { Prefix }
 	     | postfix       { Postfix }
