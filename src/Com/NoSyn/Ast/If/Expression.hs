@@ -149,17 +149,21 @@ parameterTypesFromEithers parameterTypeEithers =
 generateDFunctionCall::ProgramEnvironment -> Ident -> (Ident, OMap Ident Variable) -> [Either (Set Ident) (Ident, String)] -> CompilerStatus String
 generateDFunctionCall programEnvironment funcName (returnType, paramTypesAndNames) paramTypeEithers = do
     generatedParameters <- sequence $ Prelude.map (either (\_ -> Error "Parameter expression could not be generated") (\(_,x) -> return x)) paramTypeEithers
-    let paramTypes = Prelude.map (\(_, x) -> getTypeNoCheck x) $ OrderMap.assocs paramTypesAndNames in
-        generateDFunctionCall' programEnvironment funcName returnType paramTypes generatedParameters
+    let addressWrappedParameters = Prelude.map (\((_,x),y) -> addressWrapper x y) (zip (OrderMap.assocs paramTypesAndNames) generatedParameters) in
+        let paramTypes = Prelude.map (\(_, x) -> getTypeNoCheck x) $ OrderMap.assocs paramTypesAndNames in
+            generateDFunctionCall' programEnvironment funcName returnType paramTypes addressWrappedParameters
+    where
+        addressWrapper (VPointer _ _) x = "&(" ++ x ++ ")"
+        addressWrapper _ x = x
 
 generateDFunctionCall'::ProgramEnvironment -> Ident -> Ident -> [Ident] -> [String] -> CompilerStatus String
 generateDFunctionCall' programEnvironment@(aliasEnvironment, _, _) funcName returnType parameterTypes parameterExpressions =
     let joinedParameterExpressions = concat $ intersperse "," parameterExpressions in
     return $ fullDName ++ "(" ++ joinedParameterExpressions ++ ")"
     where
-      fullDName = case functionIsNative programEnvironment funcName of
-        (Just postfix) -> dropPostfix postfix funcName
-        Nothing -> let dFuncSuffix = returnType ++ (concat $ Prelude.map id parameterTypes) in
+        fullDName = case functionIsNative programEnvironment funcName of
+          (Just postfix) -> dropPostfix postfix funcName
+          Nothing -> let dFuncSuffix = returnType ++ (concat $ Prelude.map id parameterTypes) in
                 funcName ++ "_" ++ dFuncSuffix
 
 dropPostfix postfix = (reverse.(Prelude.drop $ length postfix).reverse)
