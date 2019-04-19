@@ -82,3 +82,17 @@ data CProgram =
     CProgramEnd
     | CProgram CProgramStatement CProgram
     deriving Show
+
+data CImportBlock =
+    CFinalImport CImportStatement
+    | CMultiImport CImportStatement CImportBlock
+
+data CImportStatement =
+    CNSImport CModuleName
+    | CNativeImport CModuleName
+
+data CModuleName =
+    CModuleIdent String
+    | CPackage String String CModuleName
+
+data CPreProgram = CPreProgram CImportBlock CProgram

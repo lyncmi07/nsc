@@ -27,6 +27,7 @@ import Com.NoSyn.Parser.Token
     tinfix     { TokenInfixKeyword }
     bracketop  { TokenBracketOpKeyword }
     native     { TokenNativeKeyword }
+    import     { TokenImportKeyword }
     '{'        { TokenCurlyOpen }
     '}'        { TokenCurlyClose }
     '['        { TokenSquareOpen }
@@ -99,6 +100,12 @@ AliasDefinition : alias ident operator ident    { CAliasDef $3 $2 $4 }
 ProgramStatement : VariableDeclaration     { CPSVarDec $1 }
 		 | FunctionDefinition      { CPSFuncDef $1 }
                  | AliasDefinition         { CPSAliasDef $1 }
+
+ImportStatement : import ModuleName            { CNSImport $2 }
+                | native import ModuleName     { CNativeImport $3 }
+
+ModuleName : ident                      { CModuleIdent $1 }
+| ident operator ModuleName  { CPackage $1 $2 $3 }
 
 {
 parseError :: [Token] -> a

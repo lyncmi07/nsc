@@ -12,6 +12,8 @@ import Com.NoSyn.Ast.Ifm1.Statement
 import Com.NoSyn.Ast.If.VariableDeclaration as IfVariableDeclaration
 import Com.NoSyn.Ast.Ifm1.VariableDeclaration as Ifm1VariableDeclaration
 import Com.NoSyn.Ast.Traits.Listable
+import Com.NoSyn.Ast.If.ImportStatement as IfImportStatement
+import Com.NoSyn.Ast.Ifm1.ImportStatement as Ifm1ImportStatement
 
 import Com.NoSyn.Parser.ConcreteSyntaxTree
 
@@ -163,3 +165,19 @@ convertProgram (CProgram x xs) = do
     m <- convertProgram xs
     let mList = toList m in
         return $ StandardBlock $ n:mList
+
+convertImportStatement :: CImportStatement -> CompilerStatus Ifm1ImportStatement.ImportStatement
+convertImportStatement (CNSImport a) = do
+    n <- convertModuleName a
+    return $ Ifm1ImportStatement.IfImportStatement $ NSImport n
+convertImportStatement (CNativeImport a) = do
+    n <- convertModuleName a
+    return $ Ifm1ImportStatement.IfImportStatement $ NativeImport n
+
+convertModuleName :: CModuleName -> CompilerStatus [String]
+convertModuleName (CModuleIdent moduleName) = return [moduleName]
+convertModuleName (CPackage parentPackage operator childPackage)
+    | (operator == ".") = do
+        rest <- convertModuleName childPackage
+        return $ parentPackage:rest
+    | otherwise = Error "package names are separated by '.' operator"

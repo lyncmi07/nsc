@@ -21,6 +21,7 @@ data Token =
     | TokenInfixKeyword
     | TokenNativeKeyword
     | TokenBracketOpKeyword
+    | TokenImportKeyword
     | TokenSemicolon
     | TokenEmpty
     | TokenUnderscore

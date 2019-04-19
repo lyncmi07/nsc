@@ -7,9 +7,10 @@ import Com.NoSyn.Ast.If.Parameter
 import Com.NoSyn.Ast.If.Program
 import Com.NoSyn.Ast.If.Statement
 import Com.NoSyn.Ast.If.VariableDeclaration
+import Com.NoSyn.Ast.If.ImportStatement
 import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 
-data IfElement = 
+data IfElement =
     IfConstant Constant
     | IfExpression Expression
     | IfFunctionDefinition FunctionDefinition
@@ -20,6 +21,8 @@ data IfElement =
     | IfVariableDeclaration VariableDeclaration
     | IfParameters Parameters
     | IfBlockStatement BlockStatement
+    | IfImportStatement ImportStatement
+    | IfImpotyStatements ImportStatements
     deriving Show
 
 instance TargetCodeGeneratable IfElement where
@@ -33,3 +36,5 @@ instance TargetCodeGeneratable IfElement where
     generateD a (IfVariableDeclaration b) = generateD a b
     generateD a (IfParameters b) = generateD a b
     generateD a (IfBlockStatement b) = generateD a b
+    generateD a (IfImportStatement b) = generateD a b
+    generateD a (IfImportStatements b) = generateD a b
