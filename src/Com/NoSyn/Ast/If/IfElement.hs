@@ -5,6 +5,7 @@ import Com.NoSyn.Ast.If.Expression
 import Com.NoSyn.Ast.If.FunctionDefinition
 import Com.NoSyn.Ast.If.Parameter
 import Com.NoSyn.Ast.If.Program
+import Com.NoSyn.Ast.If.PreProgram
 import Com.NoSyn.Ast.If.Statement
 import Com.NoSyn.Ast.If.VariableDeclaration
 import Com.NoSyn.Ast.If.ImportStatement
@@ -16,13 +17,14 @@ data IfElement =
     | IfFunctionDefinition FunctionDefinition
     | IfParameter Parameter
     | IfProgram Program
+    | IfPreProgram PreProgram
     | IfProgramStmt ProgramStmt
     | IfStatement Statement
     | IfVariableDeclaration VariableDeclaration
     | IfParameters Parameters
     | IfBlockStatement BlockStatement
     | IfImportStatement ImportStatement
-    | IfImpotyStatements ImportStatements
+    | IfImportStatements ImportStatements
     deriving Show
 
 instance TargetCodeGeneratable IfElement where
@@ -31,6 +33,7 @@ instance TargetCodeGeneratable IfElement where
     generateD a (IfFunctionDefinition b) = generateD a b
     generateD a (IfParameter b) = generateD a b
     generateD a (IfProgram b) = generateD a b
+    generateD a (IfPreProgram b) = generateD a b
     generateD a (IfProgramStmt b) = generateD a b
     generateD a (IfStatement b) = generateD a b
     generateD a (IfVariableDeclaration b) = generateD a b

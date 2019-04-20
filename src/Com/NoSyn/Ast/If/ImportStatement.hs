@@ -1,6 +1,8 @@
 module Com.NoSyn.Ast.If.ImportStatement where
 
 import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
+import Com.NoSyn.Ast.Traits.EnvironmentUpdater
+import Com.NoSyn.Ast.If.Block
 import Data.List
 import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Data.Types
@@ -11,6 +13,10 @@ data ImportStatement =
     | NSImport [Ident]
     deriving Show
 
+instance EnvironmentUpdater ImportStatement where
+    updateEnvironment programEnvironment (NativeImport _) = return programEnvironment
+    updateEnvironment programEnvironment (NSImport _) = Error "NoSyn imports are currently unsupported"
+
 instance TargetCodeGeneratable ImportStatement where
     generateD _ (NativeImport moduleName) =
       let dModuleString = concat $ intersperse "." moduleName in
@@ -18,4 +24,4 @@ instance TargetCodeGeneratable ImportStatement where
     generateD _ (NSImport _) = Error "NoSyn imports are not supported yet"
 
 instance Blockable ImportStatement where
-    blockSeparator = ";\n"
+    blockSeparator _ = ";\n"

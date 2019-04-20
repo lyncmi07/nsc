@@ -39,6 +39,8 @@ import Com.NoSyn.Parser.Token
 
 %%
 
+PreProgram : ImportStatements Program       { PreProgram $1 $2 }
+
 Program : empty                             { CProgramEnd }
 	| ProgramStatement ';' Program      { CProgram $1 $3 }
 
@@ -82,10 +84,10 @@ Parameters : empty               { CPEmpty }
 
 -- Removing from use
 FilledBlock : Statement ';' FilledBlock         { CMultiStatement $1 $3 }
-      | Statement ';'                   { CFinalStatement $1 }
+            | Statement ';'                   { CFinalStatement $1 }
 
 BlockStatement : empty                           { CBlockEmpty }
-      | FilledBlock    { CFilledBlock $1 }
+               | FilledBlock    { CFilledBlock $1 }
 
 OperatorType : prefix        { Prefix }
 	     | postfix       { Postfix }
@@ -100,6 +102,9 @@ AliasDefinition : alias ident operator ident    { CAliasDef $3 $2 $4 }
 ProgramStatement : VariableDeclaration     { CPSVarDec $1 }
 		 | FunctionDefinition      { CPSFuncDef $1 }
                  | AliasDefinition         { CPSAliasDef $1 }
+
+ImportStatements : empty                                { CImportEmpty }
+		 | ImportStatement ImportStatements     { CImport $1 $2 }
 
 ImportStatement : import ModuleName            { CNSImport $2 }
                 | native import ModuleName     { CNativeImport $3 }

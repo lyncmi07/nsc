@@ -166,6 +166,14 @@ convertProgram (CProgram x xs) = do
     let mList = toList m in
         return $ StandardBlock $ n:mList
 
+convertImportStatements :: CImportStatements -> CompilerStatus Ifm1ImportStatement.ImportStatements
+convertImportStatements CImportEmpty = return $ StandardBlock []
+convertImportStatements (CImport x xs) = do
+    n <- convertImportStatement x
+    m <- convertImportStatements xs
+    let mList = toList m in
+        return $ StandardBlock $ n:mList
+
 convertImportStatement :: CImportStatement -> CompilerStatus Ifm1ImportStatement.ImportStatement
 convertImportStatement (CNSImport a) = do
     n <- convertModuleName a
@@ -181,3 +189,4 @@ convertModuleName (CPackage parentPackage operator childPackage)
         rest <- convertModuleName childPackage
         return $ parentPackage:rest
     | otherwise = Error "package names are separated by '.' operator"
+

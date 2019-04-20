@@ -1,8 +1,12 @@
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module Com.NoSyn.Ast.Ifm1.ImportStatement where
 
 import qualified Com.NoSyn.Ast.If.IfElement as IfElement
 import qualified Com.NoSyn.Ast.If.ImportStatement as IfImportStatement
 import Com.NoSyn.Ast.Traits.IfElementGeneratable
+import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Ast.If.Block
+import Com.NoSyn.Ast.Traits.Listable
 
 type ImportStatements = Block ImportStatement
 data ImportStatement =
@@ -24,6 +28,6 @@ instance IfElementGeneratable ImportStatements where
 extractIfImportStatements :: [IfElement.IfElement] -> CompilerStatus [IfImportStatement.ImportStatement]
 extractIfImportStatements [] = return []
 extractIfImportStatements ((IfElement.IfImportStatement x):xs) = do
-    xsm <- extractIfImportsStatements xs
+    xsm <- extractIfImportStatements xs
     return $ x:xsm
 extractIfImportStatements _ = Error "Unexpected non-import statement"

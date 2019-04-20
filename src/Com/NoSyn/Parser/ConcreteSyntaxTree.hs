@@ -87,6 +87,10 @@ data CImportBlock =
     CFinalImport CImportStatement
     | CMultiImport CImportStatement CImportBlock
 
+data CImportStatements =
+    CImportEmpty
+    | CImport CImportStatement CImportStatements
+
 data CImportStatement =
     CNSImport CModuleName
     | CNativeImport CModuleName
@@ -95,4 +99,4 @@ data CModuleName =
     CModuleIdent String
     | CPackage String String CModuleName
 
-data CPreProgram = CPreProgram CImportBlock CProgram
+data CPreProgram = CPreProgram CImportStatements CProgram
