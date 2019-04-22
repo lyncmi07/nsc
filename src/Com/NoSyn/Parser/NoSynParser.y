@@ -38,8 +38,8 @@ import Com.NoSyn.Parser.Token
     ident      { TokenIdent $$ }
 
 %%
-
-PreProgram : ImportStatements Program       { PreProgram $1 $2 }
+PreProgram : ImportStatements Program       { CPreProgram $1 $2 }
+           | Program                            { CPreProgram CImportEmpty $1 }
 
 Program : empty                             { CProgramEnd }
 	| ProgramStatement ';' Program      { CProgram $1 $3 }
@@ -103,8 +103,8 @@ ProgramStatement : VariableDeclaration     { CPSVarDec $1 }
 		 | FunctionDefinition      { CPSFuncDef $1 }
                  | AliasDefinition         { CPSAliasDef $1 }
 
-ImportStatements : empty                                { CImportEmpty }
-		 | ImportStatement ImportStatements     { CImport $1 $2 }
+ImportStatements : ImportStatement ';' ImportStatements     { CImport $1 $3 }
+                 | ImportStatement ';'                         { CImport $1 CImportEmpty }
 
 ImportStatement : import ModuleName            { CNSImport $2 }
                 | native import ModuleName     { CNativeImport $3 }

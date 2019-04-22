@@ -1,30 +1,6 @@
-Int foo(Int a, Int b) {
-    !a >> b >>< b //This is a comment. It shouldn't effect the code in any way
-};
+native import AnIm;
+native import Second.Import;
 
-alias Integer = Int;
-
-Int prefix_!_(Int a) {
-    Int b;
-    a = b
-};
-Int postfix_!_(Int a) {
+Int foo() {
 
 };
-
-Nothing infix_=_(Int a, Int b) {
-
-};
-
-Nothing infix_>><_(Int a, Int b) {
-
-};
-Int infix_>><_(Int a, Int b) {
-
-};
-
-Int infix_>>_(Int a, Int b) {
-    nativeFunction()
-};
-
-native Nothing nativeFunction();

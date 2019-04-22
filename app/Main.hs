@@ -15,8 +15,9 @@ import Com.NoSyn.Evaluation.Program.Program
 main = do
     (x:_) <- getArgs
     programText <- readFile x
-    cst <- return $ parse $ lexer programText
-    ifm1Ast <- toIO $ convertProgram cst
+    tokens <- return $ lexer programText
+    cst <- return $ parse tokens
+    ifm1Ast <- toIO $ convertPreProgram cst
     ifAst <- toIO $ generateIfElement defaultProgramEnvironment ifm1Ast
     initialProgramEnvironment <- toIO $ programEnvironmentEvaluateIfElement ifAst
     targetCode <- toIO $ generateD initialProgramEnvironment ifAst

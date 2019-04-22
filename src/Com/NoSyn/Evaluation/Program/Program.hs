@@ -6,6 +6,7 @@ import Com.NoSyn.Evaluation.Program.Internal.AliasEvaluation
 import Com.NoSyn.Evaluation.Program.Internal.FunctionEvaluation
 import Com.NoSyn.Evaluation.Program.Internal.VariableDeclarationEvaluation
 import Com.NoSyn.Ast.If.Program
+import Com.NoSyn.Ast.If.PreProgram
 import Com.NoSyn.Ast.If.IfElement
 import Data.Map
 
@@ -19,5 +20,7 @@ programEnvironmentEvaluate initialEnvironment@(initialAliasEnvironment, initialF
             return (aliasEnvironment, functionEnvironment, variableEnvironment)
 
 programEnvironmentEvaluateIfElement :: IfElement -> CompilerStatus ProgramEnvironment
+programEnvironmentEvaluateIfElement (IfPreProgram (PreProgram _ program)) =
+    programEnvironmentEvaluate defaultProgramEnvironment program
 programEnvironmentEvaluateIfElement (IfProgram program) =
     programEnvironmentEvaluate defaultProgramEnvironment program

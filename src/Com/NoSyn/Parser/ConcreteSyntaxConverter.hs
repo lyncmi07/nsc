@@ -14,6 +14,7 @@ import Com.NoSyn.Ast.Ifm1.VariableDeclaration as Ifm1VariableDeclaration
 import Com.NoSyn.Ast.Traits.Listable
 import Com.NoSyn.Ast.If.ImportStatement as IfImportStatement
 import Com.NoSyn.Ast.Ifm1.ImportStatement as Ifm1ImportStatement
+import Com.NoSyn.Ast.Ifm1.PreProgram
 
 import Com.NoSyn.Parser.ConcreteSyntaxTree
 
@@ -190,3 +191,9 @@ convertModuleName (CPackage parentPackage operator childPackage)
         return $ parentPackage:rest
     | otherwise = Error "package names are separated by '.' operator"
 
+
+convertPreProgram :: CPreProgram -> CompilerStatus PreProgram
+convertPreProgram (CPreProgram importStatements program) = do
+    n <- convertImportStatements importStatements
+    m <- convertProgram program
+    return $ PreProgram n m

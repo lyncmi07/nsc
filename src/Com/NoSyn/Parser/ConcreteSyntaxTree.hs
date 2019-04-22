@@ -83,10 +83,6 @@ data CProgram =
     | CProgram CProgramStatement CProgram
     deriving Show
 
-data CImportBlock =
-    CFinalImport CImportStatement
-    | CMultiImport CImportStatement CImportBlock
-
 data CImportStatements =
     CImportEmpty
     | CImport CImportStatement CImportStatements
