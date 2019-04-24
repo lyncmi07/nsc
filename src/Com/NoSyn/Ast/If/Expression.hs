@@ -40,7 +40,7 @@ parameterSetsFromPossibleFunctions' ((_, overloadParameterTypes):xs) initialPara
     parameterSetsFromPossibleFunctions' xs updatedParameterTypes
 
 possibleFunctionsFromReturnTypes::ProgramEnvironment -> Set Ident -> Ident -> Int -> CompilerStatus [(Ident, OMap Ident Variable)]
-possibleFunctionsFromReturnTypes (PG { functions = functionEnvironment }) possibleReturnTypes funcName noOfParams = do
+possibleFunctionsFromReturnTypes (PE { functions = functionEnvironment }) possibleReturnTypes funcName noOfParams = do
     allFunctions <- lookupFunction funcName functionEnvironment
     let possibleFunctions = Prelude.filter (\(x,y) -> (x `Set.member` possibleReturnTypes) && ((OrderMap.size y) == noOfParams)) allFunctions in
         if (length possibleFunctions) == 0
@@ -157,7 +157,7 @@ generateDFunctionCall programEnvironment funcName (returnType, paramTypesAndName
         addressWrapper _ x = x
 
 generateDFunctionCall'::ProgramEnvironment -> Ident -> Ident -> [Ident] -> [String] -> CompilerStatus String
-generateDFunctionCall' programEnvironment@(PG { aliases = aliasEnvironment }) funcName returnType parameterTypes parameterExpressions =
+generateDFunctionCall' programEnvironment@(PE { aliases = aliasEnvironment }) funcName returnType parameterTypes parameterExpressions =
     let joinedParameterExpressions = concat $ intersperse "," parameterExpressions in
     return $ fullDName ++ "(" ++ joinedParameterExpressions ++ ")"
     where
@@ -169,7 +169,7 @@ generateDFunctionCall' programEnvironment@(PG { aliases = aliasEnvironment }) fu
 dropPostfix postfix = (reverse.(Prelude.drop $ length postfix).reverse)
 
 functionIsNative:: ProgramEnvironment -> Ident -> Maybe String
-functionIsNative (PG { functions = funcEnvironment }) funcName
+functionIsNative (PE { functions = funcEnvironment }) funcName
     | ((dropPostfix "_function" funcName) `Map.member` funcEnvironment) = return "_function"
     | ((dropPostfix "_operator" funcName) `Map.member` funcEnvironment) = return "_operator"
     | otherwise = Nothing

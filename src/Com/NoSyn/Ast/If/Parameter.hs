@@ -21,10 +21,10 @@ data Parameter =
     deriving Show
 
 instance EnvironmentUpdater Parameter where
-    updateEnvironment programEnvironment@(PG {variables = variableEnvironment}) param@(PConst paramType paramName) = do
+    updateEnvironment programEnvironment@(PE {variables = variableEnvironment}) param@(PConst paramType paramName) = do
         verifiedType <- getNoSynType programEnvironment param
         return (programEnvironment { variables = Data.Map.insert paramName (VConst verifiedType paramName) variableEnvironment})
-    updateEnvironment programEnvironment@(PG { variables = variableEnvironment}) param@(PPointer paramType paramName) = do
+    updateEnvironment programEnvironment@(PE { variables = variableEnvironment}) param@(PPointer paramType paramName) = do
         verifiedType <- getNoSynType programEnvironment param
         return (programEnvironment { variables = Data.Map.insert paramName (VPointer verifiedType paramName) variableEnvironment})
 

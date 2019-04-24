@@ -15,32 +15,32 @@ import Com.Data.Map.Ordered
 import Data.Map.Ordered as OrderMap
 import Data.Map as Map
 
-emptyProgramEnvironment = PG {
+emptyProgramEnvironment = PE {
     aliases = emptyAliasEnvironment,
     functions = emptyFunctionEnvironment,
     variables = emptyVariableEnvironment }
-defaultProgramEnvironment = PG {
+defaultProgramEnvironment = PE {
     aliases = defaultAliasEnvironment,
     functions = defaultFunctionEnvironment,
     variables = defaultVariableEnvironment }
 
-data ProgramEnvironment = PG { aliases :: AliasEnvironment,
+data ProgramEnvironment = PE { aliases :: AliasEnvironment,
                                                functions :: FunctionEnvironment,
                                                variables :: VariableEnvironment
                                              } deriving Show
 
 instance SetSatisfiable ProgramEnvironment where
-    union (PG {aliases = ae1, functions = fe1, variables = ve1}) (PG {aliases = ae2, functions = fe2, variables = ve2}) =
+    union (PE {aliases = ae1, functions = fe1, variables = ve1}) (PE {aliases = ae2, functions = fe2, variables = ve2}) =
         let aeu = SetTH.union ae1 ae2 in
         let feu = SetTH.union fe1 fe2 in
         let veu = SetTH.union ve1 ve2 in
-        PG {aliases = aeu, functions = feu, variables = veu}
-    difference (PG {aliases = ae1, functions = fe1, variables = ve1}) (PG {aliases = ae2, functions = fe2, variables = ve2}) =
+        PE {aliases = aeu, functions = feu, variables = veu}
+    difference (PE {aliases = ae1, functions = fe1, variables = ve1}) (PE {aliases = ae2, functions = fe2, variables = ve2}) =
         let aeu = SetTH.difference ae1 ae2 in
         let feu = SetTH.difference fe1 fe2 in
         let veu = SetTH.difference ve1 ve2 in
-        (PG {aliases = aeu, functions = feu, variables = veu})
-    size (PG {aliases = ae, functions = fe, variables = ve}) =
+        (PE {aliases = aeu, functions = feu, variables = veu})
+    size (PE {aliases = ae, functions = fe, variables = ve}) =
         let aeu = SetTH.size ae in
         let feu = SetTH.size fe in
         let veu = SetTH.size ve in
@@ -72,5 +72,5 @@ lookupAtomicNoSynType' previousType noSynType aliasEnvironment
 
 
 lookupVariableType :: ProgramEnvironment -> Ident -> CompilerStatus Variable
-lookupVariableType (PG { variables = variableEnvironment }) varName =
+lookupVariableType (PE { variables = variableEnvironment }) varName =
     compilerStatusFromMaybe ("There is no variable '" ++ varName ++ "' in scope") (Map.lookup varName variableEnvironment)

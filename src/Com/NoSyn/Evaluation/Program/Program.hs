@@ -11,13 +11,13 @@ import Com.NoSyn.Ast.If.IfElement
 import Data.Map
 
 programEnvironmentEvaluate::ProgramEnvironment -> Program -> CompilerStatus ProgramEnvironment
-programEnvironmentEvaluate initialEnvironment@(PG { aliases = initialAliasEnvironment, functions = initialFunctionEnvironment, variables = initialVariableEnvironment }) program = do
+programEnvironmentEvaluate initialEnvironment@(PE { aliases = initialAliasEnvironment, functions = initialFunctionEnvironment, variables = initialVariableEnvironment }) program = do
     aliasEnvironment <- programAliasEvaluate initialAliasEnvironment program
     currentProgramFunctionEnvironment <- programFunctionDefinitionEvaluate aliasEnvironment program
     currentProgramVariableEnvironment <- programVariableDeclarationEvaluate aliasEnvironment program
     let functionEnvironment = union currentProgramFunctionEnvironment initialFunctionEnvironment in
         let variableEnvironment = union currentProgramVariableEnvironment initialVariableEnvironment in
-            return (PG { aliases = aliasEnvironment, 
+            return (PE { aliases = aliasEnvironment, 
                 functions = functionEnvironment, 
                 variables = variableEnvironment })
 

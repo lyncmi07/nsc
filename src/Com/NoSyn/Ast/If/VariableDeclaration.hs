@@ -22,7 +22,7 @@ instance TargetCodeGeneratable VariableDeclaration where
 instance DIdentifiable VariableDeclaration where
     getDIdentifier _ (VDec _ varName) = return varName
 instance EnvironmentUpdater VariableDeclaration where
-    updateEnvironment programEnvironment@(PG {variables = variableEnvironment}) varDec@(VDec _ varName) = do
+    updateEnvironment programEnvironment@(PE {variables = variableEnvironment}) varDec@(VDec _ varName) = do
         varType <- getNoSynType programEnvironment varDec
         let updatedVariableEnvironment = insert varName (VConst varType varName) variableEnvironment in
             return (programEnvironment { variables = updatedVariableEnvironment })
