@@ -15,10 +15,14 @@ import Com.Data.Map.Ordered
 import Data.Map.Ordered as OrderMap
 import Data.Map as Map
 
-emptyProgramEnvironment =
-    (emptyAliasEnvironment, emptyFunctionEnvironment, emptyVariableEnvironment)
-defaultProgramEnvironment =
-    (defaultAliasEnvironment, defaultFunctionEnvironment, defaultVariableEnvironment)
+emptyProgramEnvironment = PG {
+    aliases = emptyAliasEnvironment,
+    functions = emptyFunctionEnvironment,
+    variables = emptyVariableEnvironment }
+defaultProgramEnvironment = PG {
+    aliases = defaultAliasEnvironment,
+    functions = defaultFunctionEnvironment,
+    variables = defaultVariableEnvironment }
 
 data ProgramEnvironment = PG { aliases :: AliasEnvironment,
                                                functions :: FunctionEnvironment,

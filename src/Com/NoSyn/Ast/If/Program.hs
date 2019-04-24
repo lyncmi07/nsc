@@ -22,9 +22,9 @@ instance TargetCodeGeneratable ProgramStmt where
     generateD programEnvironment (PSVarDec variableDeclaration) = generateD programEnvironment variableDeclaration
 
 instance EnvironmentUpdater ProgramStmt where
-    updateEnvironment programEnvironment@(aliasEnvironment, fe, ve) (PSAliasDef aliasName aliasType) = do
+    updateEnvironment programEnvironment@(PG { aliases = aliasEnvironment }) (PSAliasDef aliasName aliasType) = do
         _ <- lookupDType aliasType aliasEnvironment
         let updatedAliasEnvironment = (aliasName, aliasType) |< aliasEnvironment in
-            return (updatedAliasEnvironment, fe, ve)
+            return (programEnvironment { aliases = updatedAliasEnvironment })
 instance Blockable ProgramStmt where
     blockSeparator _ = ";\n"
