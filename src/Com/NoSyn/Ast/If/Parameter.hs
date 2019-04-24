@@ -21,12 +21,12 @@ data Parameter =
     deriving Show
 
 instance EnvironmentUpdater Parameter where
-    updateEnvironment programEnvironment@(ae, fe, variableEnvironment) param@(PConst paramType paramName) = do
+    updateEnvironment programEnvironment@(PG {variables = variableEnvironment}) param@(PConst paramType paramName) = do
         verifiedType <- getNoSynType programEnvironment param
-        return (ae, fe, Data.Map.insert paramName (VConst verifiedType paramName) variableEnvironment)
-    updateEnvironment programEnvironment@(ae, fe, variableEnvironment) param@(PPointer paramType paramName) = do
+        return (programEnvironment { variables = Data.Map.insert paramName (VConst verifiedType paramName) variableEnvironment})
+    updateEnvironment programEnvironment@(PG { variables = variableEnvironment}) param@(PPointer paramType paramName) = do
         verifiedType <- getNoSynType programEnvironment param
-        return (ae, fe, Data.Map.insert paramName (VPointer verifiedType paramName) variableEnvironment)
+        return (programEnvironment { variables = Data.Map.insert paramName (VPointer verifiedType paramName) variableEnvironment})
 
 instance TargetCodeGeneratable Parameter where
     generateD programEnvironment parameter@(PConst paramType paramName) = do

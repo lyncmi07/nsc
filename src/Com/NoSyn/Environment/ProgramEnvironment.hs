@@ -20,21 +20,23 @@ emptyProgramEnvironment =
 defaultProgramEnvironment =
     (defaultAliasEnvironment, defaultFunctionEnvironment, defaultVariableEnvironment)
 
-type ProgramEnvironment =
-    (AliasEnvironment, FunctionEnvironment, VariableEnvironment)
+data ProgramEnvironment = PG { aliases :: AliasEnvironment,
+                                               functions :: FunctionEnvironment,
+                                               variables :: VariableEnvironment
+                                             } deriving Show
 
 instance SetSatisfiable ProgramEnvironment where
-    union (ae1, fe1, ve1) (ae2, fe2, ve2) =
+    union (PG {aliases = ae1, functions = fe1, variables = ve1}) (PG {aliases = ae2, functions = fe2, variables = ve2}) =
         let aeu = SetTH.union ae1 ae2 in
         let feu = SetTH.union fe1 fe2 in
         let veu = SetTH.union ve1 ve2 in
-        (aeu, feu, veu)
-    difference (ae1, fe1, ve1) (ae2, fe2, ve2) =
+        PG {aliases = aeu, functions = feu, variables = veu}
+    difference (PG {aliases = ae1, functions = fe1, variables = ve1}) (PG {aliases = ae2, functions = fe2, variables = ve2}) =
         let aeu = SetTH.difference ae1 ae2 in
         let feu = SetTH.difference fe1 fe2 in
         let veu = SetTH.difference ve1 ve2 in
-        (aeu, feu, veu)
-    size (ae, fe, ve) =
+        (PG {aliases = aeu, functions = feu, variables = veu})
+    size (PG {aliases = ae, functions = fe, variables = ve}) =
         let aeu = SetTH.size ae in
         let feu = SetTH.size fe in
         let veu = SetTH.size ve in
@@ -66,5 +68,5 @@ lookupAtomicNoSynType' previousType noSynType aliasEnvironment
 
 
 lookupVariableType :: ProgramEnvironment -> Ident -> CompilerStatus Variable
-lookupVariableType (_, _, variableEnvironment) varName =
+lookupVariableType (PG { variables = variableEnvironment }) varName =
     compilerStatusFromMaybe ("There is no variable '" ++ varName ++ "' in scope") (Map.lookup varName variableEnvironment)
