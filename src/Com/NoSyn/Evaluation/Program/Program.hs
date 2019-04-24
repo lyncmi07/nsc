@@ -17,7 +17,7 @@ programEnvironmentEvaluate initialEnvironment@(PE { aliases = initialAliasEnviro
     currentProgramVariableEnvironment <- programVariableDeclarationEvaluate aliasEnvironment program
     let functionEnvironment = union currentProgramFunctionEnvironment initialFunctionEnvironment in
         let variableEnvironment = union currentProgramVariableEnvironment initialVariableEnvironment in
-            return (PE { aliases = aliasEnvironment, 
+            return (initialEnvironment { aliases = aliasEnvironment, 
                 functions = functionEnvironment, 
                 variables = variableEnvironment })
 

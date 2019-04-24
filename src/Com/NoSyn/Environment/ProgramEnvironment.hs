@@ -18,28 +18,31 @@ import Data.Map as Map
 emptyProgramEnvironment = PE {
     aliases = emptyAliasEnvironment,
     functions = emptyFunctionEnvironment,
-    variables = emptyVariableEnvironment }
+    variables = emptyVariableEnvironment,
+    scopeReturnType = "Nothing" }
 defaultProgramEnvironment = PE {
     aliases = defaultAliasEnvironment,
     functions = defaultFunctionEnvironment,
-    variables = defaultVariableEnvironment }
+    variables = defaultVariableEnvironment,
+    scopeReturnType = "Nothing" }
 
 data ProgramEnvironment = PE { aliases :: AliasEnvironment,
-                                               functions :: FunctionEnvironment,
-                                               variables :: VariableEnvironment
+                               functions :: FunctionEnvironment,
+                               variables :: VariableEnvironment,
+                               scopeReturnType :: Ident
                                              } deriving Show
 
 instance SetSatisfiable ProgramEnvironment where
-    union (PE {aliases = ae1, functions = fe1, variables = ve1}) (PE {aliases = ae2, functions = fe2, variables = ve2}) =
+    union pe1@(PE {aliases = ae1, functions = fe1, variables = ve1}) (PE {aliases = ae2, functions = fe2, variables = ve2}) =
         let aeu = SetTH.union ae1 ae2 in
         let feu = SetTH.union fe1 fe2 in
         let veu = SetTH.union ve1 ve2 in
-        PE {aliases = aeu, functions = feu, variables = veu}
-    difference (PE {aliases = ae1, functions = fe1, variables = ve1}) (PE {aliases = ae2, functions = fe2, variables = ve2}) =
+        pe1 {aliases = aeu, functions = feu, variables = veu}
+    difference pe1@(PE {aliases = ae1, functions = fe1, variables = ve1}) (PE {aliases = ae2, functions = fe2, variables = ve2}) =
         let aeu = SetTH.difference ae1 ae2 in
         let feu = SetTH.difference fe1 fe2 in
         let veu = SetTH.difference ve1 ve2 in
-        (PE {aliases = aeu, functions = feu, variables = veu})
+        (pe1 {aliases = aeu, functions = feu, variables = veu})
     size (PE {aliases = ae, functions = fe, variables = ve}) =
         let aeu = SetTH.size ae in
         let feu = SetTH.size fe in

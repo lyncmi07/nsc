@@ -20,8 +20,8 @@ data FunctionDefinition =
     deriving Show
 
 instance EnvironmentUpdater FunctionDefinition where
-    updateEnvironment programEnvironment (FDNoSyn funcName _ parameters _) =
-        updateEnvironment programEnvironment parameters
+    updateEnvironment programEnvironment (FDNoSyn funcName funcReturnType parameters _) =
+        updateEnvironment (programEnvironment { scopeReturnType = funcReturnType }) parameters
     updateEnvironment programEnvironment _ = return programEnvironment
 
 instance TargetCodeGeneratable FunctionDefinition where
