@@ -26,3 +26,7 @@ instance EnvironmentUpdater Statement where
     updateEnvironment programEnvironment (SExpression _) = return programEnvironment
 instance Blockable Statement where
     blockSeparator _ = ";\n"
+
+instance TargetCodeGeneratable BlockStatement where
+    generateD programEnvironment (SequentialBlock (x:xs)) = do
+        

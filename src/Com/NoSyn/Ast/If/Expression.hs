@@ -89,6 +89,11 @@ generateExpression programEnvironment functionCall@(EFuncCall _ _) = do
 generateExpression _ (EConst _) = Error "Constant expressions cannot be used in this context"
 generateExpression _ (EIdent _) = Error "Identifier expressions cannot be used in this context"
 
+generateExpressionWithReturnType::ProgramEnvironment -> Ident -> Expression -> CompilerStatus String
+generateExpressionWithReturnType programEnvironment returnType expression = do
+    generatedExpression <- validateAndGenerateD programEnvironment (Set.singleton returnType) expression
+    either (\_ -> Error $ "Expression " ++ (show expression) ++ "is ambiguous") (\(_,x) -> return x) generatedExpression
+
 validateAndGenerateD::ProgramEnvironment -> Set Ident -> Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
 validateAndGenerateD programEnvironment returnTypes functionCall@(EFuncCall funcName paramExprs) = do
     possibleFunctions <- possibleFunctionsFromReturnTypes programEnvironment returnTypes funcName (length paramExprs)
