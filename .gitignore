@@ -6,3 +6,6 @@ no-syn.cabal
 *.tex
 _minted*
 #*
+test/*
+!test/*.hs
+!test/*.ns

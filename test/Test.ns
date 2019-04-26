@@ -2,5 +2,14 @@ native import AnIm;
 native import Second.Import;
 
 Int foo() {
+    bar();
+};
 
+
+Double bar() {
+    24.63;
+};
+
+Int bar() {
+    149;
 };

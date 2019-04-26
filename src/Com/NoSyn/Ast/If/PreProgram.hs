@@ -12,7 +12,7 @@ instance TargetCodeGeneratable PreProgram where
     generateD programEnvironment (PreProgram imports program) = do
         importTargetCode <- generateD programEnvironment imports
         programTargetCode <- generateD programEnvironment program
-        return $ importTargetCode ++ "\n" ++ programTargetCode
+        return $ importTargetCode ++ ";\n" ++ programTargetCode
 
 instance EnvironmentUpdater PreProgram where
     updateEnvironment programEnvironment (PreProgram _ program)= do

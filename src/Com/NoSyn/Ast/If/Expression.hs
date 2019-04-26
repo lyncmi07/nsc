@@ -94,6 +94,22 @@ generateExpressionWithReturnType programEnvironment returnType expression = do
     generatedExpression <- validateAndGenerateD programEnvironment (Set.singleton returnType) expression
     either (\_ -> Error $ "Expression " ++ (show expression) ++ "is ambiguous") (\(_,x) -> return x) generatedExpression
 
+generateExpressionForPointerParameter::ProgramEnvironment -> String -> Expression -> CompilerStatus String
+generateExpressionForPointerParameter programEnvironment generatedExpression (EIdent varName) = do
+    variable <- lookupVariableType programEnvironment varName
+    case variable of
+        (VPointer _ _) -> return generatedExpression
+        (VConst _ _) -> return $ "&" ++ generatedExpression
+generateExpressionForPointerParameter _ _ expr = Error $ (show expr) ++ " cannot be referenced in a pointer context"
+
+generateExpressionForConstParameter::ProgramEnvironment -> String -> Expression -> CompilerStatus String
+generateExpressionForConstParameter programEnvironment generatedExpression (EIdent varName) = do
+    variable <- lookupVariableType programEnvironment varName
+    case variable of
+        (VPointer _ _) -> return $ "*" ++ generatedExpression
+        (VConst _ _) -> return generatedExpression
+generateExpressionForConstParameter _ generatedExpression _ = return generatedExpression
+
 validateAndGenerateD::ProgramEnvironment -> Set Ident -> Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
 validateAndGenerateD programEnvironment returnTypes functionCall@(EFuncCall funcName paramExprs) = do
     possibleFunctions <- possibleFunctionsFromReturnTypes programEnvironment returnTypes funcName (length paramExprs)
@@ -124,7 +140,7 @@ validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTy
                 let finalReducedParameterTypes = parameterSetsFromPossibleFunctions possibleFunctions (length paramExpressions) in
                 reduceParameterTypes programEnvironment finalReducedParameterTypes paramExpressions >>= 
                     (\finalReducedParameterTypeEithers ->
-                        generateDFunctionCall programEnvironment funcName funcToGenerate finalReducedParameterTypeEithers >>=
+                        generateDFunctionCall programEnvironment funcName funcToGenerate finalReducedParameterTypeEithers paramExpressions >>=
                             (\x -> return $ Right (funcReturnType, x)))
             else let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
                 if reductionWasMade possibleReturnTypes reducedReturnTypes possibleParameterTypes reducedParameterTypes
@@ -151,15 +167,15 @@ parameterTypesFromEithers::[Either (Set Ident) (Ident, String)] -> [Set Ident]
 parameterTypesFromEithers parameterTypeEithers =
     Prelude.map (either id (\(x,_) -> Set.singleton x)) parameterTypeEithers
 
-generateDFunctionCall::ProgramEnvironment -> Ident -> (Ident, OMap Ident Variable) -> [Either (Set Ident) (Ident, String)] -> CompilerStatus String
-generateDFunctionCall programEnvironment funcName (returnType, paramTypesAndNames) paramTypeEithers = do
+generateDFunctionCall::ProgramEnvironment -> Ident -> (Ident, OMap Ident Variable) -> [Either (Set Ident) (Ident, String)] -> [Expression] -> CompilerStatus String
+generateDFunctionCall programEnvironment funcName (returnType, paramTypesAndNames) paramTypeEithers parameterExpressions= do
     generatedParameters <- sequence $ Prelude.map (either (\_ -> Error "Parameter expression could not be generated") (\(_,x) -> return x)) paramTypeEithers
-    let addressWrappedParameters = Prelude.map (\((_,x),y) -> addressWrapper x y) (zip (OrderMap.assocs paramTypesAndNames) generatedParameters) in
-        let paramTypes = Prelude.map (\(_, x) -> getTypeNoCheck x) $ OrderMap.assocs paramTypesAndNames in
+    addressWrappedParameters <- sequence $ Prelude.map (\((_,x),y, z) -> addressWrapper x y z) (zip3 (OrderMap.assocs paramTypesAndNames) generatedParameters parameterExpressions)
+    let paramTypes = Prelude.map (\(_, x) -> getTypeNoCheck x) $ OrderMap.assocs paramTypesAndNames in
             generateDFunctionCall' programEnvironment funcName returnType paramTypes addressWrappedParameters
     where
-        addressWrapper (VPointer _ _) x = "&(" ++ x ++ ")"
-        addressWrapper _ x = x
+        addressWrapper (VPointer _ _) x y = generateExpressionForPointerParameter programEnvironment x y
+        addressWrapper (VConst _ _) x y = generateExpressionForConstParameter programEnvironment x y
 
 generateDFunctionCall'::ProgramEnvironment -> Ident -> Ident -> [Ident] -> [String] -> CompilerStatus String
 generateDFunctionCall' programEnvironment@(PE { aliases = aliasEnvironment }) funcName returnType parameterTypes parameterExpressions =
