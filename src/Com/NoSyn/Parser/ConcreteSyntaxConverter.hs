@@ -46,6 +46,7 @@ convertExpression (CEIdent a) = return $ EIdent a
 convertExpression (CEFuncCall a b) = do
     n <- convertExpressionList b
     return $ EFuncCall a n
+convertExpression (CEBracketed a) = convertExpression a
 convertExpression prefixOp@(CEPrefixOp a b) =
     case b of
         (CEInfixOp _ _ _) -> convertExpression $ reorderPrefixOperator prefixOp

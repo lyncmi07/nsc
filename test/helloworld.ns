@@ -1,34 +1,23 @@
 native import std.stdio;
 
 Int main() {
-  (10+20)!;
-  Int a;
-  Int b;
-  assignInt(a, 10);
-  a!;
-  a := 20;
-  a!;
-  b := 100;
-  a := b++;
-  a!;
-
-  0;
+    (10+20)!;
+    Int a;
+    a := (10+20);
+    a!;
+    0;
 };
 
 Int infix_+_(Int a, Int b) {
-  add(a,b);
+    add(a,b);
 };
 
 Nothing postfix_!_(Int a) {
-  writeln(a);
+    writeln(a);
 };
 Nothing infix_:=_(Int* a, Int b) {
-  assignInt(a,b);
+    assignInt(a,b);
 };
-Int postfix_++_(Int a) {
-  a+1;
-};
-
 
 native Nothing writeln(Int a);
 native Int add(Int a, Int b);

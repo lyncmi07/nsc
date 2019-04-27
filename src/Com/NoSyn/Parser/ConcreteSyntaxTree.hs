@@ -26,6 +26,7 @@ data CExpression =
     | CEPrefixOp String CExpression
     | CEPostfixOp String CExpression
     | CEInfixOp String CExpression CExpression
+    | CEBracketed CExpression
     deriving Show
 
 data CVariableDeclaration = CVarDec String String
@@ -86,13 +87,17 @@ data CProgram =
 data CImportStatements =
     CImportEmpty
     | CImport CImportStatement CImportStatements
+    deriving Show
 
 data CImportStatement =
     CNSImport CModuleName
     | CNativeImport CModuleName
+    deriving Show
 
 data CModuleName =
     CModuleIdent String
     | CPackage String String CModuleName
+    deriving Show
 
 data CPreProgram = CPreProgram CImportStatements CProgram
+    deriving Show
