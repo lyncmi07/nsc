@@ -77,16 +77,12 @@ data CProgramStatement =
     CPSVarDec CVariableDeclaration
     | CPSFuncDef CFunctionDefinition
     | CPSAliasDef CAliasDefinition
+    | CPSImportStatement CImportStatement
     deriving Show
 
 data CProgram =
     CProgramEnd
     | CProgram CProgramStatement CProgram
-    deriving Show
-
-data CImportStatements =
-    CImportEmpty
-    | CImport CImportStatement CImportStatements
     deriving Show
 
 data CImportStatement =
@@ -97,7 +93,4 @@ data CImportStatement =
 data CModuleName =
     CModuleIdent String
     | CPackage String String CModuleName
-    deriving Show
-
-data CPreProgram = CPreProgram CImportStatements CProgram
     deriving Show

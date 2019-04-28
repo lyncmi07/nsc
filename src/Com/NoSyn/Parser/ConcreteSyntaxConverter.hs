@@ -159,28 +159,42 @@ convertProgramStatement (CPSFuncDef a) = do
     return $ PSFuncDef n
 convertProgramStatement (CPSAliasDef a) = do
     convertAliasDefinition a
+convertProgramStatement (CPSImportStatement _) = 
+    Error "COMPILER ERROR: Import statements should not be present in this context"
 
-convertProgram :: CProgram -> CompilerStatus Program
-convertProgram CProgramEnd = return $ StandardBlock []
-convertProgram (CProgram x xs) = do
-    n <- convertProgramStatement x
-    m <- convertProgram xs
-    let mList = toList m in
-        return $ StandardBlock $ n:mList
+convertProgram :: CProgram -> CompilerStatus PreProgram
+convertProgram program = do
+    convertedImportStatements <- convertImportStatements importStatements
+    convertedProgramStatements <- convertProgramStatements programStatements
+    return $ PreProgram convertedImportStatements convertedProgramStatements
+    where
+        flattenProgramStatements CProgramEnd = []
+        flattenProgramStatements (CProgram x xs) = x:(flattenProgramStatements xs)
+        flattenedStatements = flattenProgramStatements program
+        importStatements = filter importStatementPredicate flattenedStatements
+        programStatements = filter (not.importStatementPredicate) flattenedStatements
+        importStatementPredicate x = case x of
+            (CPSImportStatement _) -> True
+            _ -> False
 
-convertImportStatements :: CImportStatements -> CompilerStatus Ifm1ImportStatement.ImportStatements
-convertImportStatements CImportEmpty = return $ StandardBlock []
-convertImportStatements (CImport x xs) = do
-    n <- convertImportStatement x
-    m <- convertImportStatements xs
-    let mList = toList m in
-        return $ StandardBlock $ n:mList
+convertImportStatements :: [CProgramStatement] -> CompilerStatus Ifm1ImportStatement.ImportStatements
+convertImportStatements importStatements = do
+    ifm1ImportStatements <- sequence $ map convertImportStatement importStatements
+    return $ StandardBlock ifm1ImportStatements
 
-convertImportStatement :: CImportStatement -> CompilerStatus Ifm1ImportStatement.ImportStatement
-convertImportStatement (CNSImport a) = do
+convertProgramStatements :: [CProgramStatement] -> CompilerStatus Program
+convertProgramStatements programStatements = do
+    ifm1ProgramStatements <- sequence $ map convertProgramStatement programStatements
+    return $ StandardBlock ifm1ProgramStatements
+
+convertImportStatement :: CProgramStatement -> CompilerStatus Ifm1ImportStatement.ImportStatement
+convertImportStatement (CPSImportStatement a) = convertImportStatement' a
+convertImportStatement _ = Error "COMPILER ERROR: Only import statements should be present in this context"
+
+convertImportStatement' (CNSImport a) = do
     n <- convertModuleName a
     return $ Ifm1ImportStatement.IfImportStatement $ NSImport n
-convertImportStatement (CNativeImport a) = do
+convertImportStatement' (CNativeImport a) = do
     n <- convertModuleName a
     return $ Ifm1ImportStatement.IfImportStatement $ NativeImport n
 
@@ -191,10 +205,3 @@ convertModuleName (CPackage parentPackage operator childPackage)
         rest <- convertModuleName childPackage
         return $ parentPackage:rest
     | otherwise = Error "package names are separated by '.' operator"
-
-
-convertPreProgram :: CPreProgram -> CompilerStatus PreProgram
-convertPreProgram (CPreProgram importStatements program) = do
-    n <- convertImportStatements importStatements
-    m <- convertProgram program
-    return $ PreProgram n m

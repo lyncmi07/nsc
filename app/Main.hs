@@ -17,7 +17,7 @@ main = do
     programText <- readFile x
     tokens <- return $ lexer programText
     cst <- return $ parse tokens
-    ifm1Ast <- toIO $ convertPreProgram cst
+    ifm1Ast <- toIO $ convertProgram cst
     ifAst <- toIO $ generateIfElement defaultProgramEnvironment ifm1Ast
     initialProgramEnvironment <- toIO $ programEnvironmentEvaluateIfElement ifAst
     targetCode <- toIO $ generateD initialProgramEnvironment ifAst

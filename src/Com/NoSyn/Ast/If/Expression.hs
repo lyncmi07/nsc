@@ -85,7 +85,7 @@ validFunctionPredicate' ((_, (VPointer x _)):xs) (y:ys)
 generateExpression::ProgramEnvironment -> Expression -> CompilerStatus String
 generateExpression programEnvironment functionCall@(EFuncCall _ _) = do
     generatedExpression <- validateAndGenerateD programEnvironment (Set.singleton "Nothing") functionCall
-    either (\_ -> Error "Expression is ambiguous") (\(_,x) -> return x) generatedExpression
+    either (\_ -> Error $ "Expression '" ++ (show functionCall) ++ "' is ambiguous") (\(_,x) -> return x) generatedExpression
 generateExpression _ (EConst _) = Error "Constant expressions cannot be used in this context"
 generateExpression _ (EIdent _) = Error "Identifier expressions cannot be used in this context"
 
