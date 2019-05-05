@@ -1,16 +1,24 @@
 #+STARTUP: showall
-#+TITLE: Function Inference
+#+TITLE: Practical Function Inference within the /NoSyn/ Programming Language
 #+AUTHOR: Michael Lynch
 
 #+LATEX: \usepackage{minted}
 #+LATEX: \usepackage{amsmath}
 
+**** /NoSyn/ is under active development
+     This document features many examples of /NoSyn/ code which cannot currently be compiled during the
+     development stages of the /NoSyn/ language. The syntax of the language features presented are subject to 
+     change as they begin to be implemented.
+
+     Function inference, is however, a core part of the /NoSyn/ language and as such has already been implemented as
+     a language feature.
+
 * Motivation
   Function inference allows for a function to have multiple overloads for the 
   same parameters types, but return values of different types depending on the context in which the 
   function was used.
-  Function inference forms an integral part of NoSyn's extention framework, allowing the user of the language
-  to create a DSL or general purpose language within NoSyn with great capability to customize it's syntax.
+  Function inference forms an integral part of /NoSyn/'s extention framework, allowing the user of the language
+  to create a DSL or general purpose language within /NoSyn/ with great capability to customize it's syntax.
 
 ** Usage Example
  Consider the following expression:
@@ -25,42 +33,64 @@
  //GO CODE
  a[2:6]
  #+END_SRC
+ Within /Go/, the =3:6= expression is explicitly handled within the compiler's parser, forming part of the language syntax.
+ In /NoSyn/ however this is treated like any ordinary expression. The rules for what is a valid expression within square
+ brackets is in fact specified by the user of the language using a combination of operator overloads and special type 
+ aliases called /closed aliases/.
 
- NoSyn provides the user with the ability to overload all operators, infact by default no operators are defined.
- Assuming that an overload function has been created for the square brackets on an array to perform array access,
- the user could set up the language as follows:
+ /NoSyn/ provides the user with the ability to overload all operators and create their own operators from a specified
+ list of possible symbols. Within freestanding /NoSyn/ (The /NoSyn/ language without any of its standard library) no 
+ operators are defined by default, including basic maths operators, boolean operators and even variable assignment.
+ 
+ In this example I will be adding functionality to a /NoSyn/ program to make the colon operator act as both a shorthand for
+ creating arrays (=1:2:3= becomes =[1,2,3]=) as well as the slicing capability featured in /Go/ when used within square bracket
+ array accessors. As previously stated, by default, /NoSyn/ does not assign any meaning to any operators. This includes using
+ square brackets, so the first thing that must be done is to give functionality to the square brackets to make them useful as
+ array accessors:
+ #+BEGIN_SRC c++
+ T bracketop_[]_<T>([T] array, Int index) {
+   //A native function (written in the compiler target language) which returns the value present at the position `index` on `array`
+   native_indexAccess(array, index);
+ };
+ [T] bracketop_[]_<T>([T] array, [Int] index) {
+   //A native function which returns a sub-array of `array` defined by the first and second values of the `index` array
+   native_sliceArray(array, index);
+ };
+ #+END_SRC
+ This creates the basic capability of the language to access an array as well as make array slices.
+ Now functionality must be provided for the colon operator:
+
  #+BEGIN_SRC c++
  //NO SYN code
- [T] operator_:_<T>(T a, T b) {
-   native_formArray(a,b)
- }
- [T] operator_:_<T>(T x, [T] xs) {
-   native_formArray(x,xs)
- }
-
- T operator_[]_<T>([T] array, Int index) {
-   native_indexAccess(array, index)
- }
- [T] operator_[]_<T>([T] array, [Int] index) {
-   native_sliceArray(array, index)
- }
-
- //Assuming 'a' is an Integer array.
- [Int] slicedArray = a[2:6] 
+ [T] infix_:_<T>(T a, T b) {
+   native_formArray(a,b); //Forms an array of [a,b]
+ };
+ [T] infix_:_<T>(T x, [T] xs) {
+   native_formArray(x,xs); //Forms an array of [x, xs...] where `x` is prefixed onto `xs`
+ };
  #+END_SRC
 
- This system will work providing the user with the capability to use the colon symbol as both an array contatentation operator
- as well as an array slice operator.
- But this way comes with a serious flaw:
+ This now creates the entire capability that we set out to create making the colon operator work both as a short hand for array creation,
+ and as an array slicing operator:
+ #+BEGIN_SRC c++
+ // For the purposes of these examples as well as all following examples. An assumption is being made that 
+ // the equals sign has been overloaded to act as the assignment operator.
+ [Int] createdArray = 1:2:3:4; // : used for array creation
+ [Int] slicedArray = createdArray[1:3]; // : used for array slicing
+ #+END_SRC
+
+ This implementation of colon operator functionality comes with a serious flaw however:
  #+BEGIN_SRC c++
  [Int] slicedArray = a[2:4:5:6]
  #+END_SRC
 
  This should be considered a syntax error. But it's not. 
+
  As the operator overload for [] is expecting to see an 
  array, =2:4:5:6= is a perfectly plausible expression to put inside the square brackets.
  Of course the error could be picked up in the =native_sliceArray= expression but this would mean that 
- the check would only be made at runtime.
+ the check would only be made at runtime, not compile time.
+
  This is where function inference can become very useful.
 
 *** Function Inference Example
@@ -106,7 +136,7 @@ In order to prevent this usage of the colon operator, a closed alias can be used
     (l,r)
   }
 
-  operator_[]_<T>([T] array, ArraySlicer arraySlicer)_{
+  operator_[]_<T>([T] array, ArraySlicer arraySlicer) {
     native_sliceArray(array, arraySlicer)
   }
 #+END_SRC
@@ -118,7 +148,7 @@ of the type =ArraySlicer= and not simply =(Int, Int)=.
    
 Function inference uses a type inference algorithm to work out which function overload to use. Where as type inference is often used to save the programmer time by
 not requiring the user to specify what the type of a variable or function is, function inference expects a certain amount of information about the context it is being
-used in. As such, *NoSyn* does not allow the user to specify a variable without also specifying the type of that variable. Functions similarly must indicate what the return type
+used in. As such, /NoSyn/ does not allow the user to specify a variable without also specifying the type of that variable. Functions similarly must indicate what the return type
 is, although template types are still valid.
 This constraint employed in using function inference is used to reduce the ambiguity which can arise using such a type system. Later I will explore ways in which type inference of variables
 may be possible alongside function inference, and why such a feature may not be wanted.
@@ -195,7 +225,7 @@ $\Lambda(\Phi \Omega(x \cap (\ast, p))[y'], p)[y]$
  return types, expressions already raise an issue of ambiguity. /C/ and /Java/ would in this situation go for the function overload for =foo= which took a single integer as a parameter and then
  ignore the return type. This is not possible in /NoSyn/ due to the potential for there to be multiple overloads with the same parameter types causing ambiguity.
  Instead there is a special datatype which a function can return if the programmer wants to use a call to the function at the statement level. This is the =Nothing= datatype, which as it's name
- suggests, does not return anything. An expression of the type =Nothing= is never a subexpression of another expression as =Nothing=. This is because =Nothing= does not have any value and as such cannot
+ suggests, does not return anything. An expression of the type =Nothing= is never a subexpression of another expression. This is because =Nothing= does not have any value and as such cannot
  be passed into any other function. With this knowledge, we always know that the base type of any expression within the language is of type =Nothing=, and all subexpressions in that expression are 
  of some non =Nothing= type.
 
@@ -311,7 +341,7 @@ This gives the \lambda function:
   - $\Rightarrow \Lambda(\{Nothing\}, \ast)[foo(bar(),cello())] = \{foo\_IntDoubleNothing\}$
 
 
-***** Explaination
+***** Explanation
 
    As with before, each expression within expression /B/ cannot on its own have it's function infered. 
    Again as before, as the main expression /B/ is being used as a statement,
