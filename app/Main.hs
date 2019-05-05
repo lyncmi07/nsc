@@ -13,8 +13,7 @@ import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 import Com.NoSyn.Evaluation.Program.Program
 
 main = do
-    (x:_) <- getArgs
-    programText <- readFile x
+    programText <- getContents
     tokens <- return $ lexer programText
     cst <- return $ parse tokens
     ifm1Ast <- toIO $ convertProgram cst
