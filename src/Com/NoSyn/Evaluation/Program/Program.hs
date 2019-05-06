@@ -1,7 +1,8 @@
-module Com.NoSyn.Evaluation.Program.Program (programEnvironmentEvaluate, programEnvironmentEvaluateIfElement) where
+module Com.NoSyn.Evaluation.Program.Program (programEnvironmentEvaluate, programEnvironmentEvaluateIfElement, functionEnvironmentEvaluateIfElement) where
 
 import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Environment.ProgramEnvironment
+import Com.NoSyn.Environment.FunctionEnvironment
 import Com.NoSyn.Evaluation.Program.Internal.AliasEvaluation
 import Com.NoSyn.Evaluation.Program.Internal.FunctionEvaluation
 import Com.NoSyn.Evaluation.Program.Internal.VariableDeclarationEvaluation
@@ -26,3 +27,11 @@ programEnvironmentEvaluateIfElement (IfPreProgram (PreProgram _ program)) =
     programEnvironmentEvaluate defaultProgramEnvironment program
 programEnvironmentEvaluateIfElement (IfProgram program) =
     programEnvironmentEvaluate defaultProgramEnvironment program
+
+functionEnvironmentEvaluateIfElement :: IfElement -> CompilerStatus FunctionEnvironment
+functionEnvironmentEvaluateIfElement (IfPreProgram (PreProgram _ program)) = do
+    aliasEnvironment <- programAliasEvaluate initialAliasEnvironment program
+    programFunctionDefinitionEvaluate aliasEnvironment program
+    where
+        PE { aliases = initialAliasEnvironment } = defaultProgramEnvironment
+    
