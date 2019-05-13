@@ -9,9 +9,14 @@ import Data.List
 
 serializeFunctionEnvironment :: FunctionEnvironment -> String
 serializeFunctionEnvironment functionEnvironment =
-    concat $ intersperse "\n" $ concat $ Prelude.map serializeNamedFunction namedFunctions
+    concat $ intersperse "\n" $ concat $ Prelude.map serializeNamedFunction $ Prelude.filter nosynFunctionPredicate namedFunctions
     where
         namedFunctions = toDescList functionEnvironment
+        backTake x = (reverse.(Prelude.take x).reverse)
+        nosynFunctionPredicate (functionName, _)
+            | (backTake (length "_function") functionName) == "_function" = True
+            | (backTake (length "_operator") functionName) == "_operator" = True
+            | otherwise = False
 
 serializeNamedFunction a = serializeNamedFunction' a []
 serializeNamedFunction' :: (Ident, [(Ident, (OMap Ident Variable))]) -> [String] -> [String]
