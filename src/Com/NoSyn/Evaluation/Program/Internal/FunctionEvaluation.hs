@@ -31,17 +31,17 @@ programFunctionDefinitionEvaluate' aliasEnvironment ((PSFuncDef funcDef):xs) cur
 programFunctionDefinitionEvaluate' aliasEnvironment (_:xs) currentFunctionEnvironment =
     programFunctionDefinitionEvaluate' aliasEnvironment xs currentFunctionEnvironment
 
-createFunctionEntry::AliasEnvironment -> FunctionDefinition -> CompilerStatus (Ident, (Ident, OMap Ident Variable))
+createFunctionEntry::AliasEnvironment -> FunctionDefinition -> CompilerStatus (Ident, FunctionOverload)
 createFunctionEntry aliasEnvironment (FDNative functionName returnType parameters)= do
     _ <- lookupDType returnType aliasEnvironment
     _ <- sequence $ Prelude.map (\(_, x) -> lookupDType (getTypeNoCheck x) aliasEnvironment) (parametersToTuples parameters)
-    return (functionName, (returnType, parameterOMap))
+    return (functionName, FO { returnType = returnType, parameters = parameterOMap, parentModule = Nothing })
     where
         parameterOMap = (Data.Map.Ordered.fromList (parametersToTuples parameters))
 createFunctionEntry aliasEnvironment (FDNoSyn functionName returnType parameters _)= do
     _ <- lookupDType returnType aliasEnvironment
     _ <- sequence $ Prelude.map (\(_, x) -> lookupDType (getTypeNoCheck x) aliasEnvironment) (parametersToTuples parameters)
-    return (functionName, (returnType, parameterOMap))
+    return (functionName, FO { returnType = returnType, parameters = parameterOMap, parentModule = Nothing})
     where
         parameterOMap = (Data.Map.Ordered.fromList (parametersToTuples parameters))
 

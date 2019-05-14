@@ -19,12 +19,12 @@ serializeFunctionEnvironment functionEnvironment =
             | otherwise = False
 
 serializeNamedFunction a = serializeNamedFunction' a []
-serializeNamedFunction' :: (Ident, [(Ident, (OMap Ident Variable))]) -> [String] -> [String]
+serializeNamedFunction' :: (Ident, [FunctionOverload]) -> [String] -> [String]
 serializeNamedFunction' (_, []) serializedFunctions = reverse serializedFunctions
-serializeNamedFunction' (functionName, ((returnType, parameters):xs)) serializedFunctions =
-    serializeNamedFunction' (functionName, xs) ((functionName ++ ":" ++ returnType ++ ":" ++ serializedParameters):serializedFunctions)
+serializeNamedFunction' (functionName, (x:xs)) serializedFunctions =
+    serializeNamedFunction' (functionName, xs) ((functionName ++ ":" ++ (returnType x) ++ ":" ++ serializedParameters):serializedFunctions)
     where
-        parameterList = Data.Map.Ordered.assocs parameters
+        parameterList = Data.Map.Ordered.assocs (parameters x)
         parameterVariables = Prelude.map (\(_, y) -> y) parameterList
         variableSerializer (VConst typ name) = typ ++ ";" ++ name
         variableSerializer (VPointer typ name) = typ ++ "*;" ++ name

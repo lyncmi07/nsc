@@ -8,4 +8,10 @@ import Com.NoSyn.Data.Variable
 emptyFunctionEnvironment = Data.Map.empty
 defaultFunctionEnvironment = Data.Map.empty
 
-type FunctionEnvironment = Map Ident [(Ident, (OMap Ident Variable))]
+data FunctionOverload = FO {
+    returnType :: Ident,
+    parameters :: (OMap Ident Variable),
+    parentModule :: Maybe String
+} deriving Show
+
+type FunctionEnvironment = Map Ident [FunctionOverload]
