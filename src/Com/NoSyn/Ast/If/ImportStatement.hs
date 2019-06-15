@@ -21,7 +21,7 @@ instance TargetCodeGeneratable ImportStatement where
     generateD _ (NativeImport moduleName) =
       let dModuleString = concat $ intersperse "." moduleName in
       return $ "import " ++ dModuleString
-    generateD _ (NSImport _) = Error "NoSyn imports are not supported yet"
+    generateD _ (NSImport _) = return ""
 
 instance Blockable ImportStatement where
     blockSeparator _ = ";\n"

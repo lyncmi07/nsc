@@ -1,3 +1,4 @@
+%SOURCE%
 native import std.stdio;
 
 //std.stdio

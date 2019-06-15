@@ -9,7 +9,7 @@ import Com.NoSyn.Environment.VariableEnvironment
 import Com.NoSyn.Data.Types
 import Com.NoSyn.Data.Variable
 import Com.NoSyn.Error.CompilerStatus
-import Com.SetTheory.SetSatisfiable as SetTH
+import Data.Set.SetTheory as SetTH
 import Com.Data.Map
 import Com.Data.Map.Ordered
 import Data.Map.Ordered as OrderMap
@@ -43,11 +43,10 @@ instance SetSatisfiable ProgramEnvironment where
         let feu = SetTH.difference fe1 fe2 in
         let veu = SetTH.difference ve1 ve2 in
         (pe1 {aliases = aeu, functions = feu, variables = veu})
-    size (PE {aliases = ae, functions = fe, variables = ve}) =
-        let aeu = SetTH.size ae in
-        let feu = SetTH.size fe in
-        let veu = SetTH.size ve in
-        aeu + feu + veu
+
+instance MutuallyExcludable ProgramEnvironment where
+    isEmpty pe =
+        (SetTH.isEmpty (aliases pe)) && (SetTH.isEmpty (functions pe)) && (SetTH.isEmpty (variables pe))
 
 lookupDType::Ident->AliasEnvironment->CompilerStatus Ident
 lookupDType noSynType aliasEnvironment

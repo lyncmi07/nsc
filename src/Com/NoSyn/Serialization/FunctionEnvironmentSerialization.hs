@@ -53,7 +53,9 @@ deserializeFunction serializedFunction
 
 deserializeParameters :: String -> CompilerStatus (OMap Ident Variable)
 deserializeParameters serializedParameters = do
-    parameterVariables <- sequence $ Prelude.map deserializeParameter splitParameters
+    parameterVariables <- case splitParameters of
+        "":[] -> return []
+        _ -> sequence $ Prelude.map deserializeParameter splitParameters
     let parameters = Prelude.map (\x -> ((getName x), x)) parameterVariables
     return $ Data.Map.Ordered.fromList parameters
     where

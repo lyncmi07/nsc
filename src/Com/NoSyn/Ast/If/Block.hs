@@ -4,7 +4,7 @@ import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 import Com.NoSyn.Ast.Traits.Listable
 import Com.NoSyn.Ast.Traits.EnvironmentUpdater
 import Data.List
-import Com.SetTheory.SetSatisfiable
+import Data.Set.SetTheory
 import Control.Monad
 import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Environment.ProgramEnvironment

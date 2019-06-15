@@ -137,16 +137,20 @@ validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTy
             possibleFunctionsFromReturnAndParamTypes programEnvironment possibleReturnTypes funcName reducedParameterTypes
     let reducedReturnTypes = Prelude.foldl (\typeSet (FO { returnType = nextType }) -> nextType `Set.insert` typeSet) Set.empty possibleFunctions in
         if (length possibleFunctions) == 1 
-            then let funcToGenerate@(FO { returnType = funcReturnType }) = head possibleFunctions in
+            then let funcToGenerate = head possibleFunctions in
                 let finalReducedParameterTypes = parameterSetsFromPossibleFunctions possibleFunctions (length paramExpressions) in
                 reduceParameterTypes programEnvironment finalReducedParameterTypes paramExpressions >>= 
                     (\finalReducedParameterTypeEithers ->
                         generateDFunctionCall programEnvironment funcName funcToGenerate finalReducedParameterTypeEithers paramExpressions >>=
-                            (\x -> return $ Right (funcReturnType, x)))
+                            (foundFunctionReturn funcToGenerate))
             else let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
                 if reductionWasMade possibleReturnTypes reducedReturnTypes possibleParameterTypes reducedParameterTypes
                     then validateAndGenerateD' programEnvironment reducedReturnTypes reducedParameterTypes functionCall 
                     else return $ Left reducedReturnTypes
+    where
+        foundFunctionReturn functionOverload compileString = case (parentModule functionOverload) of
+            (Just dependency) -> dependencyRequired dependency $ Right ((returnType functionOverload), compileString)
+            Nothing -> return $ Right ((returnType functionOverload), compileString)
 
 reduceParameterTypes::ProgramEnvironment -> [Set Ident] -> [Expression] -> CompilerStatus [(Either (Set Ident) (Ident, String))]
 reduceParameterTypes programEnvironment possibleParameterTypes parameterExpressions =

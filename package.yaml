@@ -31,6 +31,7 @@ library:
   - array
   - text-latin1
   - split
+  - set-theory
 
 executables:
   no-syn-exe:
@@ -47,6 +48,7 @@ executables:
     - template-haskell
     - array
     - split
+    - set-theory
 
 tests:
   no-syn-test:
