@@ -15,13 +15,13 @@ data ImportStatement =
 
 instance EnvironmentUpdater ImportStatement where
     updateEnvironment programEnvironment (NativeImport _) = return programEnvironment
-    updateEnvironment programEnvironment (NSImport _) = Error "NoSyn imports are currently unsupported"
+    updateEnvironment programEnvironment (NSImport _) = Error "NoSyn imports are currently unsupported in this context"
 
 instance TargetCodeGeneratable ImportStatement where
     generateD _ (NativeImport moduleName) =
       let dModuleString = concat $ intersperse "." moduleName in
       return $ "import " ++ dModuleString
-    generateD _ (NSImport _) = return ""
+    generateD _ (NSImport moduleIdentifiers) = return $ "import " ++ (concat $ intersperse "." moduleIdentifiers)
 
 instance Blockable ImportStatement where
     blockSeparator _ = ";\n"
