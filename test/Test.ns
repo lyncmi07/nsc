@@ -1,6 +1,9 @@
 %%SOURCE%%
 native import AnIm;
 native import Second.Import;
+native import std.stdio;
+
+native Nothing writeln(Int a);
 
 Int foo() {
     bar();
@@ -13,4 +16,14 @@ Double bar() {
 
 Int bar() {
     149;
+};
+
+Nothing bar(Int a) {
+    writeln(a);
+};
+Nothing bar(Int* a) {
+    writeln(10);
+};
+Nothing bar(Double* a, Double* b) {
+    writeln(10);
 };

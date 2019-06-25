@@ -51,7 +51,11 @@ instance MutuallyExcludable ProgramEnvironment where
 lookupDType::Ident->AliasEnvironment->CompilerStatus Ident
 lookupDType noSynType aliasEnvironment
     | noSynType `OrderMap.member` aliasEnvironment = lookupDType' noSynType aliasEnvironment
+    | lastChar noSynType == "*" && (dropLastChar noSynType) `OrderMap.member` aliasEnvironment = (lookupDType' noSynType aliasEnvironment) >>= \x -> return (x++"*")
     | otherwise = Error $ "There is no type '" ++ noSynType ++ "' in scope"
+    where
+        lastChar = (Prelude.take 1).reverse
+        dropLastChar = reverse.(Prelude.drop 1).reverse
 
 lookupDType' noSynType aliasEnvironment
     | noSynType `OrderMap.member` aliasEnvironment = do

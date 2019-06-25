@@ -11,7 +11,7 @@ data Variable =
 
 instance Typeable Variable where
     getTypeNoCheck (VConst varType _) = varType
-    getTypeNoCheck (VPointer varType _) = varType
+    getTypeNoCheck (VPointer varType _) = varType ++ "*"
 
 instance Nameable Variable where
     getName (VConst _ name) = name
