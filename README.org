@@ -12,7 +12,7 @@ Nothing infix_:=_(Int a*, Int b) {
 #+END_SRC
 Unlike other languages however. There are almost no operators defined by default within the language compiler allowing for
 great flexibility in the workings and syntax of the language based on the source code itself.
-** Minimalist Extremeism
+** Minimalist Extremism
    NoSyn seeks to reduce the compiler to its most basic form without compromising on capability or readbility of language source
    code. The syntax of the language gas been reduced to the absolute minimum in order to allow the language user to create their
    own syntax in whatever way they would like using the operator overloading features.
@@ -22,11 +22,11 @@ great flexibility in the workings and syntax of the language based on the source
    Unlike functions in most other languages. The return value of a function in /NopSyn/ is dependent on the context in which it is being
    used. This allows overloaded operators to work differently in different parts of the source code making it east to create syntactic 
    changed to the language without changing the lexer of parser of the compiler, while maintaining compile time checks on operator validity.
-   A detailed description on how the Function Inference algorithm works can be found [[www.supermarinesoftware.com/nsc/FunctionInference.html][here]]
+   A detailed description on how the Function Inference algorithm works can be found [[http://www.supermarinesoftware.com/nsc/FunctionInference.html][here]]
 * Getting Started
 ** Prerequisites
    - The NoSyn compiler is written in Haskell and requires the Haskell build tool, [[https://docs.haskellstack.org/en/stable/README][Stack]]. Please find instructions on how to install Stack [[https://docs.haskellstack.org/en/stable/README/#how-to-install][here]].
-   - It is also recommended that you install the NoSyn Build Tool, [[github.com/lyncmi07/nsp][nsp]]. The NoSyn compiler's dependency system is designed to be used with this build tool.
+   - It is also recommended that you install the NoSyn Build Tool, [[http://github.com/lyncmi07/nsp][nsp]]. The NoSyn compiler's dependency system is designed to be used with this build tool.
 ** Installation
 *** Linux
 * Examples
