@@ -25,8 +25,7 @@ great flexibility in the workings and syntax of the language based on the source
    A detailed description on how the Function Inference algorithm works can be found [[www.supermarinesoftware.com/nsc/FunctionInference.html][here]]
 * Getting Started
 ** Prerequisites
-   - The NoSyn compiler is written in Haskell and requires the Haskell build tool, [[https://docs.haskellstack.org/en/stable/README][Stack]]. Please find instructions on how to install Stack
-   [[https://docs.haskellstack.org/en/stable/README/#how-to-install][here]].
+   - The NoSyn compiler is written in Haskell and requires the Haskell build tool, [[https://docs.haskellstack.org/en/stable/README][Stack]]. Please find instructions on how to install Stack [[https://docs.haskellstack.org/en/stable/README/#how-to-install][here]].
    - It is also recommended that you install the NoSyn Build Tool, [[github.com/lyncmi07/nsp][nsp]]. The NoSyn compiler's dependency system is designed to be used with this build tool.
 ** Installation
 *** Linux
