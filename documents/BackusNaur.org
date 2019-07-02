@@ -1,0 +1,76 @@
+#+TITLE: NoSyn Backus Naur Form
+#+AUTHOR: Michael Lynch
+
+**** Terminals
+#+BEGIN_SRC
+     string ::= `"`[.]*`"`
+     integer ::= [0-9]+
+     double ::= [0-9]+\.[0-9]+
+     char `'`[.]`'`
+#+END_SRC
+     
+**** NonTerminals
+#+BEGIN_SRC
+<Program> ::= Ø
+  | <ProgramStatament> ';' <Program>
+
+<FunctionDefinition> ::= ident ident '(' <Parameters ')' '{' <BlockStatement> '}'
+  | ident <OperatorType> '_' operator '_' '(' <Parameters> ')' '{' <BlockStatement> '}'
+  | native ident ident '(' <Parameters ')'
+  | ident backetop '_' <BracketType '_' '(' <Parameters> ')' '{' <BlockStatement> '}'
+  
+<ExpressionList> ::= Ø
+  | <FilledExpressionList>
+
+<Expression> ::= <Constant>
+  | '(' <Expression> ')'
+  | ident '(' <ExpressionList ')'
+  | operator <Expression>
+  | <Expression> operator
+  | <Expression> operator <Expression
+
+<Constant> ::= string
+  | intenger
+  | double
+  | char
+
+<FilledExpressionList> ::= <Expression> ',' <FilledExpressionList>
+  | <Expression>
+
+<VariableDeclaration> ::= ident ident
+
+<Statement> ::= <Expression>
+  | <VariableDeclaration>
+
+<Parameter> ::= ident ident
+  | ident operator ident
+
+<FilledParameters> ::= <Parameters> ',' <FilledParameters>
+
+<Parameters> ::= Ø
+  | <FilledParameters>
+  
+<FilledBlock> ::= <Statement> ';' <FilledBlock>
+  | Statement ';'
+
+<BlockStatement> ::= Ø
+  | <FilledBlock>
+  
+<OperatorType> ::= prefix | postfix | infix
+<BacketType> ::= '(' Ø ')'
+  | '[' Ø ']'
+  | '{' Ø '}'
+  
+<AliasDefinition> ::= alias ident operator ident
+
+<ProgramStatement> ::= <VariableDeclaration>
+  | <FunctionDefinition>
+  | <AliasDefinition>
+  | <ImportStatement>
+
+<ImportStatement> ::= import <ModuleName>
+  | native import <ModuleName>
+  
+<ModuleName> ::= ident
+  | ident operator <ModuleName>
+#+END_SRC
