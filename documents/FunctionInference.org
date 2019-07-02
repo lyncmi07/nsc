@@ -4,6 +4,7 @@
 
 #+LATEX: \usepackage{minted}
 #+LATEX: \usepackage{amsmath}
+#+LATEX_HEADER: \usepackage[margin=1.0in]{geometry}
 
 **** /NoSyn/ is under active development
      This document features many examples of /NoSyn/ code which cannot currently be compiled during the
