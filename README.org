@@ -30,5 +30,5 @@ great flexibility in the workings and syntax of the language based on the source
 ** Installation
 *** Linux
 There is currently no installer for linux so nsc must be built from source by cloning this repo.
-Once stack has been installed simply run the `install_nsc.linux.sh` script from the main directory.
-This will build the project and create an executable at `/usr/bin/nsc`.
+Once stack has been installed simply run the =install_nsc.linux.sh= script from the main directory.
+This will build the project and create an executable at =/usr/bin/nsc=.
