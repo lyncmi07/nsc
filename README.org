@@ -33,6 +33,6 @@ There is currently no installer for linux so nsc must be built from source by cl
 Once stack has been installed simply run the =install_nsc.linux.sh= script from the main directory.
 This will build the project and create an executable at =/usr/bin/nsc=.
 *** Mac
-There is currently no installer for linux so nsc must be built from source by cloning this repo.
+There is currently no binary installer for mac so nsc must be built from source by cloning this repo.
 Once stack has been installed simply run the =install_nsc.mac.sh= script from the main directory.
 This will build the project and create an executable at =/usr/local/bin/nsc=.
