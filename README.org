@@ -28,11 +28,13 @@ great flexibility in the workings and syntax of the language based on the source
    - The NoSyn compiler is written in Haskell and requires the Haskell build tool, [[https://docs.haskellstack.org/en/stable/README][Stack]]. Please find instructions on how to install Stack [[https://docs.haskellstack.org/en/stable/README/#how-to-install][here]].
    - It is also recommended that you install the NoSyn Build Tool, [[http://github.com/lyncmi07/nsp][nsp]]. The NoSyn compiler's dependency system is designed to be used with this build tool.
 ** Installation
+There are currently no installers for any systems so nsc must be built from source by cloning this repo.
 *** Linux
-There is currently no installer for linux so nsc must be built from source by cloning this repo.
-Once stack has been installed simply run the =install_nsc.linux.sh= script from the main directory.
+Once stack has been installed run the =install_nsc.linux.sh= script from the main directory.
 This will build the project and create an executable at =/usr/bin/nsc=.
 *** Mac
-There is currently no binary installer for mac so nsc must be built from source by cloning this repo.
-Once stack has been installed simply run the =install_nsc.mac.sh= script from the main directory.
+Once stack has been installed run the =install_nsc.mac.sh= script from the main directory.
 This will build the project and create an executable at =/usr/local/bin/nsc=.
+*** Winwods
+Once stack has been installed simply run the =install_nsc_windows.bat= script from the main directory using the Command Prompt.
+This will build the project and create an executable at =C:\Users\<user>\AppData\Roaming\local\bin\nsc.exe
