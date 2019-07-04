@@ -27,7 +27,7 @@ lexer (']':xs) = TokenSquareClose : lexer xs
 lexer (';':xs) = TokenSemicolon : lexer xs
 lexer ('_':xs) = TokenUnderscore : lexer xs
 
-lexVar xs = case span isAlpha xs of
+lexVar xs = case span (\x -> isAlpha x || x == '_') xs of
     ("alias", rest)         -> TokenAliasKeyword : lexer rest
     ("prefix", rest)        -> TokenPrefixKeyword : lexer rest
     ("postfix", rest)       -> TokenPostfixKeyword : lexer rest
