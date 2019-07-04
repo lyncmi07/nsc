@@ -41,6 +41,7 @@ import Com.NoSyn.Parser.Token
 
 Program : empty                             { CProgramEnd }
 	| ProgramStatement ';' Program      { CProgram $1 $3 }
+    | FunctionDefinition Program { CProgram (CPSFuncDef $1) $2 }
 
 FunctionDefinition : ident ident '(' Parameters ')' '{' BlockStatement '}'                             { CFuncDef $1 $2 $4 $7 }
 		   | ident OperatorType '_' operator '_' '(' Parameters ')' '{' BlockStatement '}'     { COpOverloadDef $1 $2 $4 $7 $10 }
