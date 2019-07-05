@@ -7,6 +7,8 @@ string ::= `"`[.]*`"`
 integer ::= [0-9]+
 double ::= [0-9]+\.[0-9]+
 char ::= `'`[.]`'`
+ident ::= [a-zA-Z][a-zA-Z0-9_]* | _[a-zA-Z0-9_]*[a-zA-Z][a-zA-Z0-9_]*
+operator ::= [+-/*?^#@:£$%&|!\.<>]+
 #+END_SRC
 
 **** Keywords
