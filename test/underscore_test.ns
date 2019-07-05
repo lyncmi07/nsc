@@ -1,0 +1,34 @@
+%%SOURCE%%
+native import AnIm;
+native import Second.Import;
+native import std.stdio;
+native import std.this_had_underscores;
+
+native Nothing writeln(Int a);
+
+Int foo_Int() {
+    bar();
+}
+
+
+Double bar() {
+    24.63;
+};
+
+Int bar() {
+    149;
+};
+
+Nothing bar(Int a__DDSA) {
+    writeln(a__DDSA);
+}
+Nothing bar(Int* a_) {
+    writeln(10);
+}
+Nothing bar(Double* a_fel_s, Double* b_c) {
+    writeln(10);
+};
+
+Nothing bracketop_()_(Int a, Int b) {
+    writeln(10);
+}
