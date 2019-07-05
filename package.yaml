@@ -1,14 +1,11 @@
 name:                no-syn
 version:             0.1.0.0
-github:              "githubuser/no-syn"
-license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2019 Author name here"
+github:              "lyncmi07/no-syn"
+license:             GPL-3
+author:              "Michael Lynch"
 
 extra-source-files:
 - README.org
-- ChangeLog.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
