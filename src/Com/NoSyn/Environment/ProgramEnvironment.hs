@@ -48,14 +48,14 @@ instance MutuallyExcludable ProgramEnvironment where
     isEmpty pe =
         (SetTH.isEmpty (aliases pe)) && (SetTH.isEmpty (functions pe)) && (SetTH.isEmpty (variables pe))
 
+lastChar = (Prelude.take 1).reverse
+dropLastChar = reverse.(Prelude.drop 1).reverse
+
 lookupDType::Ident->AliasEnvironment->CompilerStatus Ident
 lookupDType noSynType aliasEnvironment
     | noSynType `OrderMap.member` aliasEnvironment = lookupDType' noSynType aliasEnvironment
-    | lastChar noSynType == "*" && (dropLastChar noSynType) `OrderMap.member` aliasEnvironment = (lookupDType' noSynType aliasEnvironment) >>= \x -> return (x++"*")
-    | otherwise = Error $ "There is no type '" ++ noSynType ++ "' in scope"
-    where
-        lastChar = (Prelude.take 1).reverse
-        dropLastChar = reverse.(Prelude.drop 1).reverse
+    | lastChar noSynType == "*" && (dropLastChar noSynType) `OrderMap.member` aliasEnvironment = (lookupDType' (dropLastChar noSynType) aliasEnvironment)
+    | otherwise = Error ("There is no type '" ++ noSynType ++ "' in scope") noSynType
 
 lookupDType' noSynType aliasEnvironment
     | noSynType `OrderMap.member` aliasEnvironment = do
@@ -68,7 +68,10 @@ lookupAtomicNoSynType noSynType aliasEnvironment
     | noSynType `OrderMap.member` aliasEnvironment = do
       nextAlias <- compilerStatusFromMaybe ("COMPILER ERROR: imported library incorrect") (OrderMap.lookup noSynType aliasEnvironment)
       lookupAtomicNoSynType' noSynType nextAlias aliasEnvironment
-    | otherwise = Error $ "There is no type '" ++ noSynType ++ "' in scope"
+    | lastChar noSynType == "*" && (dropLastChar noSynType) `OrderMap.member` aliasEnvironment = do
+      nextAlias <- compilerStatusFromMaybe ("COMPILER ERROR: imported library incorrect") (OrderMap.lookup (dropLastChar noSynType) aliasEnvironment)
+      lookupAtomicNoSynType' (dropLastChar noSynType) nextAlias aliasEnvironment >>= \x -> return (x++"PTR")
+    | otherwise = (Error ("There is no type '" ++ noSynType ++ "' in scope") noSynType)
 
 lookupAtomicNoSynType' previousType noSynType aliasEnvironment
     | noSynType `OrderMap.member` aliasEnvironment = do

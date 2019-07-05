@@ -30,4 +30,4 @@ extractIfParameters [] = return []
 extractIfParameters ((IfElement.IfParameter x):xs) = do
     xsm <- extractIfParameters xs
     return $ x:xsm
-extractIfParameters _ = Error "Unexpected non-parameter"
+extractIfParameters a = Error "Unexpected non-parameter" (show a)

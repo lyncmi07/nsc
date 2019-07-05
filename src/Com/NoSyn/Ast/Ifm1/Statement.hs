@@ -37,4 +37,4 @@ extractIfStatements [] = return []
 extractIfStatements ((IfElement.IfStatement x):xs) = do
     xsm <- extractIfStatements xs
     return $ x:xsm
-extractIfStatements _ = Error "Unexpected non-statement"
+extractIfStatements a = Error "Unexpected non-statement" (show a)

@@ -38,7 +38,7 @@ instance TargetCodeGeneratable Parameter where
 
 instance Typeable Parameter where
     getTypeNoCheck (PConst paramType _) = paramType
-    getTypeNoCheck (PPointer paramType _) = paramType
+    getTypeNoCheck (PPointer paramType _) = paramType ++ "*"
 
 instance Blockable Parameter where
     blockSeparator _ = ", "

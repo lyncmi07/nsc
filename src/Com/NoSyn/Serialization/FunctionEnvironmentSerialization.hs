@@ -36,7 +36,7 @@ serializeNamedFunction' (functionName, (x:xs)) serializedFunctions =
 
 deserializeFunction :: String -> CompilerStatus (Ident, FunctionOverload)
 deserializeFunction serializedFunction 
-    | rEmpty /= [] = Error $ "Invalid serialization: " ++ serializedFunction
+    | rEmpty /= [] = Error ("Invalid serialization: " ++ serializedFunction) serializedFunction
     | otherwise = do
         parameters <- deserializeParameters serializedParameters
         return (functionName, FO {
@@ -64,6 +64,6 @@ deserializeParameters serializedParameters = do
         backDrop x = reverse.(Prelude.drop x).reverse
         deserializeParameter serializedParameter = 
             let paramType:paramName:empty = splitOn ";" serializedParameter in
-                if (empty /= []) then Error $ "Invalid serialization: " ++ serializedParameter
+                if (empty /= []) then Error ("Invalid serialization: " ++ serializedParameter) (serializedParameters)
                 else if (backTake 1 paramType) == "*" then return $ VPointer (backDrop 1 paramType) paramName
                 else return $ VConst paramType paramName

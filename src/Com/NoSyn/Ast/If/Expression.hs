@@ -45,7 +45,7 @@ possibleFunctionsFromReturnTypes (PE { functions = functionEnvironment }) possib
     allFunctions <- lookupFunction funcName functionEnvironment
     let possibleFunctions = Prelude.filter (\fo -> ((returnType fo) `Set.member` possibleReturnTypes) && ((OrderMap.size (parameters fo)) == noOfParams)) allFunctions in
         if (length possibleFunctions) == 0
-            then Error $ "There are no function overloads for '" ++ funcName ++ "' that satisfy the return types " ++ (show possibleReturnTypes)
+            then Error ("There are no function overloads for '" ++ funcName ++ "' that satisfy the return types " ++ (show possibleReturnTypes)) "Context given"
             else return $ possibleFunctions
 
 lookupFunction :: String -> Map Ident [FunctionOverload] -> CompilerStatus [FunctionOverload]
@@ -59,12 +59,12 @@ possibleFunctionsFromReturnAndParamTypes programEnvironment possibleReturnTypes 
     possibleFunctionsByReturnType <- possibleFunctionsFromReturnTypes programEnvironment possibleReturnTypes funcName (length possibleParameterTypes)
     let filteredPossibleFunctions = Prelude.map (\(x,_) -> x) $ Prelude.filter validFunctionPredicate $ zip possibleFunctionsByReturnType (repeat possibleParameterTypes) in
         if (length filteredPossibleFunctions) == 0
-            then Error $ "there are no function overloads for '"
+            then Error ("there are no function overloads for '"
                 ++ funcName
                 ++ "' that satisfy the return types "
                 ++ show possibleReturnTypes
                 ++ " and parameter types "
-                ++ show possibleParameterTypes
+                ++ show possibleParameterTypes) "Context given"
             else return $ filteredPossibleFunctions
 
 
@@ -86,14 +86,14 @@ validFunctionPredicate' ((_, (VPointer x _)):xs) (y:ys)
 generateExpression::ProgramEnvironment -> Expression -> CompilerStatus String
 generateExpression programEnvironment functionCall@(EFuncCall _ _) = do
     generatedExpression <- validateAndGenerateD programEnvironment (Set.singleton "Nothing") functionCall
-    either (\_ -> Error $ "Expression '" ++ (show functionCall) ++ "' is ambiguous") (\(_,x) -> return x) generatedExpression
-generateExpression _ (EConst _) = Error "Constant expressions cannot be used in this context"
-generateExpression _ (EIdent _) = Error "Identifier expressions cannot be used in this context"
+    either (\_ -> Error ("Expression '" ++ (show functionCall) ++ "' is ambiguous") (show functionCall)) (\(_,x) -> return x) generatedExpression
+generateExpression _ (EConst a) = Error "Constant expressions cannot be used in this context" (show a)
+generateExpression _ (EIdent a) = Error "Identifier expressions cannot be used in this context" (show a)
 
 generateExpressionWithReturnType::ProgramEnvironment -> Ident -> Expression -> CompilerStatus String
 generateExpressionWithReturnType programEnvironment returnType expression = do
     generatedExpression <- validateAndGenerateD programEnvironment (Set.singleton returnType) expression
-    either (\_ -> Error $ "Expression " ++ (show expression) ++ "is ambiguous") (\(_,x) -> return x) generatedExpression
+    either (\_ -> Error ("Expression " ++ (show expression) ++ "is ambiguous") (show expression)) (\(_,x) -> return x) generatedExpression
 
 generateExpressionForPointerParameter::ProgramEnvironment -> String -> Expression -> CompilerStatus String
 generateExpressionForPointerParameter programEnvironment generatedExpression (EIdent varName) = do
@@ -101,7 +101,7 @@ generateExpressionForPointerParameter programEnvironment generatedExpression (EI
     case variable of
         (VPointer _ _) -> return generatedExpression
         (VConst _ _) -> return $ "&" ++ generatedExpression
-generateExpressionForPointerParameter _ _ expr = Error $ (show expr) ++ " cannot be referenced in a pointer context"
+generateExpressionForPointerParameter _ _ expr = Error ((show expr) ++ " cannot be referenced in a pointer context") (show expr)
 
 generateExpressionForConstParameter::ProgramEnvironment -> String -> Expression -> CompilerStatus String
 generateExpressionForConstParameter programEnvironment generatedExpression (EIdent varName) = do
@@ -121,13 +121,13 @@ validateAndGenerateD programEnvironment returnTypes (EConst const) = do
     generatedConstant <- generateD programEnvironment const
     if constantType `Set.member` returnTypes
         then return $ Right (constantType, generatedConstant)
-        else Error $ "Constant '" ++ generatedConstant ++ "' given cannot be used in context '" ++ (show returnTypes) ++ "'"
+        else Error ("Constant '" ++ generatedConstant ++ "' given cannot be used in context") (show returnTypes)
 validateAndGenerateD programEnvironment returnTypes (EIdent varName) = do
     variable <- lookupVariableType programEnvironment varName
     variableType <- getNoSynType programEnvironment variable
     if variableType `Set.member` returnTypes
         then return $ Right (variableType, varName)
-        else Error $ "Identifier '" ++ varName ++ "' given cannot be used in context '" ++ (show returnTypes) ++ "'"
+        else Error ("Identifier '" ++ varName ++ "' given cannot be used in context.") (show returnTypes)
 
 validateAndGenerateD'::ProgramEnvironment -> Set Ident -> [Set Ident] -> Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
 validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTypes functionCall@(EFuncCall funcName paramExpressions) = do
@@ -174,7 +174,7 @@ parameterTypesFromEithers parameterTypeEithers =
 
 generateDFunctionCall::ProgramEnvironment -> Ident -> FunctionOverload -> [Either (Set Ident) (Ident, String)] -> [Expression] -> CompilerStatus String
 generateDFunctionCall programEnvironment funcName functionOverload paramTypeEithers parameterExpressions = do
-    generatedParameters <- sequence $ Prelude.map (either (\_ -> Error "Parameter expression could not be generated") (\(_,x) -> return x)) paramTypeEithers
+    generatedParameters <- sequence $ Prelude.map (either (\x -> Error "Parameter expression could not be generated" (show x)) (\(_,x) -> return x)) paramTypeEithers
     addressWrappedParameters <- sequence $ Prelude.map (\((_,x),y, z) -> addressWrapper x y z) (zip3 (OrderMap.assocs (parameters functionOverload)) generatedParameters parameterExpressions)
     let paramTypes = Prelude.map (\(_, x) -> getTypeNoCheck x) $ OrderMap.assocs (parameters functionOverload) in
             generateDFunctionCall' programEnvironment funcName (returnType functionOverload) paramTypes addressWrappedParameters

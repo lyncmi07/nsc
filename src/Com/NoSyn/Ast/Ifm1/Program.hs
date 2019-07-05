@@ -42,4 +42,4 @@ extractIfProgramStatements [] = return []
 extractIfProgramStatements ((IfElement.IfProgramStmt x):xs) = do
     xsm <- extractIfProgramStatements xs
     return $ x:xsm
-extractIfProgramStatements _ = Error "Unexpected non-ProgramStatement"
+extractIfProgramStatements a = Error "Unexpected non-ProgramStatement" (show a)

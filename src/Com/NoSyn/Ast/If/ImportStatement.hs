@@ -15,7 +15,7 @@ data ImportStatement =
 
 instance EnvironmentUpdater ImportStatement where
     updateEnvironment programEnvironment (NativeImport _) = return programEnvironment
-    updateEnvironment programEnvironment (NSImport _) = Error "NoSyn imports are currently unsupported in this context"
+    updateEnvironment programEnvironment (NSImport a) = Error "NoSyn imports are currently unsupported in this context" (show a)
 
 instance TargetCodeGeneratable ImportStatement where
     generateD _ (NativeImport moduleName) =

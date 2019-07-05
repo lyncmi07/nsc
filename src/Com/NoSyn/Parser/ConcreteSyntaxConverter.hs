@@ -22,7 +22,7 @@ import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Data.Operators
 
 convertConstant :: CConstant -> CompilerStatus Ifm1Constant.Constant
-convertConstant (CCString a) = Error "Currently unsupported language syntax"
+convertConstant (CCString a) = Error "Currently unsupported language syntax" (show (CCString a))
 convertConstant (CCInt a) = return $ Ifm1Constant.IfConstant $ CInt a
 convertConstant (CCDouble a) = return $ Ifm1Constant.IfConstant $ CDouble a
 convertConstant (CCChar a) = return $ Ifm1Constant.IfConstant $ CChar a
@@ -104,7 +104,7 @@ convertParameter :: CParameter -> CompilerStatus Ifm1Parameter.Parameter
 convertParameter (CParam a b) = return $ Ifm1Parameter.IfParameter $ PConst a b
 convertParameter (CPointerParam a op b)
     | op == "*" = return $ Ifm1Parameter.IfParameter $ PPointer a b
-    | otherwise = Error "Only '*' can be used on a type to denote an operator"
+    | otherwise = Error "Only '*' can be used on a type to denote an operator" (show (CPointerParam a op b))
 
 convertFilledParameters :: CFilledParameters -> CompilerStatus [Ifm1Parameter.Parameter]
 convertFilledParameters (CMultiParam x xs) = do
@@ -148,7 +148,7 @@ convertFunctionDefinition (COpOverloadDef a b c d e) = do
 convertAliasDefinition :: CAliasDefinition -> CompilerStatus ProgramStmt
 convertAliasDefinition (CAliasDef o a b)
   | o == "=" = return $ PSAliasDef a b
-  | otherwise = Error "alias statement must assign using '=' symbol"
+  | otherwise = Error "alias statement must assign using '=' symbol" (show (CAliasDef o a b))
 
 convertProgramStatement :: CProgramStatement -> CompilerStatus ProgramStmt
 convertProgramStatement (CPSVarDec a) = do
@@ -159,8 +159,8 @@ convertProgramStatement (CPSFuncDef a) = do
     return $ PSFuncDef n
 convertProgramStatement (CPSAliasDef a) = do
     convertAliasDefinition a
-convertProgramStatement (CPSImportStatement _) = 
-    Error "COMPILER ERROR: Import statements should not be present in this context"
+convertProgramStatement (CPSImportStatement a) = 
+    Error "COMPILER ERROR: Import statements should not be present in this context" (show (CPSImportStatement a))
 
 convertProgram :: CProgram -> CompilerStatus PreProgram
 convertProgram program = do
@@ -189,7 +189,7 @@ convertProgramStatements programStatements = do
 
 convertImportStatement :: CProgramStatement -> CompilerStatus Ifm1ImportStatement.ImportStatement
 convertImportStatement (CPSImportStatement a) = convertImportStatement' a
-convertImportStatement _ = Error "COMPILER ERROR: Only import statements should be present in this context"
+convertImportStatement a = Error "COMPILER ERROR: Only import statements should be present in this context" (show a)
 
 convertImportStatement' (CNSImport a) = do
     n <- convertModuleName a
@@ -204,4 +204,4 @@ convertModuleName (CPackage parentPackage operator childPackage)
     | (operator == ".") = do
         rest <- convertModuleName childPackage
         return $ parentPackage:rest
-    | otherwise = Error "package names are separated by '.' operator"
+    | otherwise = Error "package names are separated by '.' operator" (show (CPackage parentPackage operator childPackage))

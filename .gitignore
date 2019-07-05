@@ -11,3 +11,7 @@ test/*
 !test/*.ns
 documents/*.pdf
 documents/*.html
+*.aux
+*.log
+*.out
+*.toc

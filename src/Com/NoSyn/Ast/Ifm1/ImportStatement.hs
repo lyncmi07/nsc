@@ -30,4 +30,4 @@ extractIfImportStatements [] = return []
 extractIfImportStatements ((IfElement.IfImportStatement x):xs) = do
     xsm <- extractIfImportStatements xs
     return $ x:xsm
-extractIfImportStatements _ = Error "Unexpected non-import statement"
+extractIfImportStatements a = Error "Unexpected non-import statement" (show a)

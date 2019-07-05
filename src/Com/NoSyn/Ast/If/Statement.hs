@@ -33,7 +33,7 @@ instance Blockable Statement where
 instance {-# OVERLAPS #-} TargetCodeGeneratable BlockStatement where
     generateD programEnvironment (SequentialBlock xs) = generateDForStatements programEnvironment xs
 
-generateDForStatements _ ((SVarDec _):[]) = Error "The last statement in a block statement must be an expression"
+generateDForStatements _ ((SVarDec a):[]) = Error "The last statement in a block statement must be an expression" (show a)
 generateDForStatements programEnvironment@(PE { scopeReturnType = returnType }) (SExpression x:[]) = do
     generatedExpression <- generateExpressionWithReturnType programEnvironment returnType x
     return $ "return " ++ generatedExpression ++ ";"

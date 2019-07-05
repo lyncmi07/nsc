@@ -41,6 +41,6 @@ addFunction :: Ident -> FunctionOverload -> FunctionEnvironment -> CompilerStatu
 addFunction functionName functionOverload functionEnvironment = case (Data.Map.lookup functionName functionEnvironment) of
     Just otherOverloads -> let overloadSet = (Data.Set.fromList otherOverloads) in
         if functionOverload `Data.Set.member` overloadSet
-        then Error $ "Function overloads cannot be overwritten in this context. For function: " ++ functionName ++ " " ++ (show functionOverload)
+        then (Error "Function overloads cannot be overwritten in this context."  ("function: " ++ functionName ++ " " ++ (show functionOverload)))
         else return $ Data.Map.insert functionName (functionOverload:otherOverloads) functionEnvironment
     Nothing -> return $ Data.Map.insert functionName [functionOverload] functionEnvironment
