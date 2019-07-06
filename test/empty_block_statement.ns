@@ -1,0 +1,12 @@
+%%SOURCE%%
+native import standard.internal.mathd;
+
+native Int factorial(Int a);
+
+Int postfix_!_(Int a) {
+    factorial(a);
+};
+
+Nothing infix_!!!_(Int a, Int b) {
+
+}

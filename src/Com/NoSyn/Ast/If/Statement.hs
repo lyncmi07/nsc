@@ -42,3 +42,6 @@ generateDForStatements programEnvironment (x:xs) = do
     updatedProgramEnvironment <- updateEnvironment programEnvironment x
     rest <- generateDForStatements updatedProgramEnvironment xs
     return $ generatedStatement ++ ";\n" ++ rest
+generateDForStatements (PE { scopeReturnType = returnType }) [] =
+    if returnType == "Nothing" then return "return;"
+    else Error "Cannot use an empty block statment when return a value" ("Return type:" ++ returnType)
