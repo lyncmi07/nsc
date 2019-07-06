@@ -27,7 +27,7 @@ lexer (']':xs) = TokenSquareClose : lexer xs
 lexer (';':xs) = TokenSemicolon : lexer xs
 lexer ('_':xs) = TokenUnderscore : lexer xs
 
-lexVar xs = case span (\x -> isAlpha x || x == '_') xs of
+lexVar xs = case span isAlpha xs of
     ("alias", rest)         -> TokenAliasKeyword : lexer rest
     ("prefix", rest)        -> TokenPrefixKeyword : lexer rest
     ("postfix", rest)       -> TokenPostfixKeyword : lexer rest
@@ -35,8 +35,10 @@ lexVar xs = case span (\x -> isAlpha x || x == '_') xs of
     ("bracketop", rest)     -> TokenBracketOpKeyword : lexer rest
     ("native", rest)        -> TokenNativeKeyword : lexer rest
     ("import", rest)        -> TokenImportKeyword : lexer rest
-    (ident, rest)           -> TokenIdent ident : lexer rest
-
+    (identPrefix, restOfIdent) ->
+        let (ident, rest) = span (\x -> isAlpha x || x == '_') (identPrefix ++ restOfIdent) in
+            TokenIdent ident : lexer rest
+            
 lexString x = let (stringToken, rest) = lexString' x "" in stringToken : lexer rest
 lexString' :: String -> String -> (Token, String)
 lexString' ('"':xs) finalString = (TokenString finalString, xs)

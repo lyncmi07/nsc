@@ -144,6 +144,8 @@ convertFunctionDefinition (COpOverloadDef a b c d e) = do
     n <- convertParameters d
     m <- convertBlockStatement e
     return $ FDOperatorOverload b c a n m
+convertFunctionDefinition a@(CBracketOpOverloadDef _ _ _ _) =
+    Error "Bracked operator overloading is currently unsupported" (show a)
 
 convertAliasDefinition :: CAliasDefinition -> CompilerStatus ProgramStmt
 convertAliasDefinition (CAliasDef o a b)
