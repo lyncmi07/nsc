@@ -52,7 +52,7 @@ createHeaders ifAst = do
     putStrLn $ serializeFunctionEnvironment functionEnvironment
 
 splitInputs standardInput = 
-    (headerArray, concat sourceArray)
+    (headerArray, concat $ intersperse "\n" sourceArray)
     where
         splitInputs' ("%%SOURCE%%":xs) (headerInput, _) = (headerInput, xs)
         splitInputs' (x:xs) (headerInput, _) = splitInputs' xs (headerInput ++ [x], [])

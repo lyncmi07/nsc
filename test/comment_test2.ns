@@ -1,0 +1,14 @@
+%%SOURCE%%
+native import AnIm;
+native import Second.Import;
+native import std.stdio;
+native import std.this_had_underscores;
+
+native Nothing writeln(Int a);
+native Nothing bar();
+native Int bar();
+
+Int foo_Int() {
+    bar(); //This is a comment on its own line
+    bar();
+}

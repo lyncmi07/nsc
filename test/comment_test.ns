@@ -1,0 +1,7 @@
+%%SOURCE%%
+native Int bar();
+
+Int foo_Int() {
+    //This is a comment on its own line
+    bar();
+}
