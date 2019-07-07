@@ -37,4 +37,4 @@ Once stack has been installed run the =install_nsc.mac.sh= script from the main 
 This will build the project and create an executable at =/usr/local/bin/nsc=.
 *** Windows
 Once stack has been installed simply run the =install_nsc_windows.bat= script from the main directory using the Command Prompt.
-This will build the project and create an executable at =C:\Users\<user>\AppData\Roaming\local\bin\nsc.exe
+This will build the project and create an executable at =C:\Users\<user>\AppData\Roaming\local\bin\nsc.exe=
