@@ -72,6 +72,7 @@ lexMaybeComment xs = lexOperator ('/':xs)
 
 lexComment ('\n':xs) = lexer xs
 lexComment (_:xs) = lexComment xs
+lexComment [] = lexer []
 
 
 closingBracket '{' = '}'
