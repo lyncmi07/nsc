@@ -18,8 +18,8 @@
   Function inference allows for a function to have multiple overloads for the 
   same parameter types, but return values of different types depending on the context in which the 
   function was used.
-  Function inference forms an integral part of /NoSyn/'s extention framework, allowing the user of the language
-  to create a DSL or general purpose language within /NoSyn/ with great capability to customize it's syntax.
+  Function inference forms an integral part of /NoSyn/'s extension framework, allowing the user of the language
+  to create a DSL or general purpose language within /NoSyn/ with great capability to customise its syntax.
 
 ** Usage Example
  Consider the following expression:
@@ -27,24 +27,24 @@
  2:6
  #+END_SRC
 
- The user may with wish this to mean concatenating the two numbers into a list of integers.
- But there are also languages in which this symbol is used to denote to the start and the end of an 
+ The user may wish this to mean concatenating the two numbers into a list of integers.
+ But there are also languages in which this symbol is used to denote the start and the end of an 
  array slice:
  #+BEGIN_SRC go
  //GO CODE
  a[2:6]
  #+END_SRC
  Within /Go/, the =2:6= expression is explicitly handled within the compiler's parser, forming part of the language syntax.
- In /NoSyn/ however this is treated like any ordinary expression. The rules for what is a valid expression within square
- brackets is in fact specified by the user of the language using a combination of operator overloads and special type 
- aliases called /closed aliases/.
+ In /NoSyn/ however, this is treated like any ordinary expression. The rules for what is a valid expression within square
+ brackets is specified by the user of the language using a combination of operator overloads and special type 
+ aliases, called /closed aliases/.
 
  /NoSyn/ provides the user with the ability to overload all operators and create their own operators from a specified
- list of possible symbols. Within freestanding /NoSyn/ (The /NoSyn/ language without any of its standard library) no 
+ list of possible symbols. Within freestanding /NoSyn/ (the /NoSyn/ language without any of its standard library) no 
  operators are defined by default, including basic maths operators, boolean operators and even variable assignment.
  
- In this example I will be adding functionality to a /NoSyn/ program to make the colon operator act as both a shorthand for
- creating arrays (=1:2:3= becomes =[1,2,3]=) as well as a slicing operator similar to that featured within /Go/ when used within square brathe neverending story trailercket
+ In this example I am adding functionality to a /NoSyn/ program to make the colon operator act as both a shorthand for
+ creating arrays (=1:2:3= becomes =[1,2,3]=) as well as a slicing operator, similar to that featured within /Go/, when used within square bracket
  array accessors. As previously stated, by default, /NoSyn/ does not assign any meaning to any operators. This includes using
  square brackets. So to create array accessors:
  #+BEGIN_SRC c++
@@ -67,10 +67,10 @@
  };
  [T] infix_:_<T>(T x, [T] xs) {
    native_formArray(x,xs); //Forms an array of [x, xs...] where `x` is prefixed onto `xs`
- };
+ };http://www.supermarinesoftware.com/nsc/FunctionInference.html
  #+END_SRC
 
- This now creates the entire capability that we set out to create making the colon operator work both as a short hand for array creation,
+ This now creates the entire capability that we set out to create, making the colon operator work both as a short hand for array creation,
  and as an array slicing operator:
  #+BEGIN_SRC c++
  // For the purposes of these examples as well as all following examples. An assumption is being made that 
@@ -84,12 +84,12 @@
  [Int] slicedArray = a[2:4:5:6]
  #+END_SRC
 
- This should be considered a syntax error. But it's not. 
+ This should be considered a syntax error. But it is not. 
 
- As the operator overload for [] is expecting to see an 
+ Since the operator overload for [] is expecting to see an 
  array, =2:4:5:6= is a perfectly plausible expression to put inside the square brackets.
  Of course the error could be picked up in the =native_sliceArray= expression but this would mean that 
- the check would only be made at runtime, not compile time.
+ the check would only be made at run-time, not compile time.
 
  This is where function inference can become very useful.
 
@@ -117,10 +117,10 @@ T operator_[]_<T>([T] array, Int index) {
 [Int] slicedArray = a[2:6] 
 #+END_SRC
 
-This new implementation allows for both element concatenation and array slicing while maintaining the ability to throw an
+This new implementation allows for both element concatenation and array slicing,while maintaining the ability to throw an
 error at compile time when =a[1:2:3]= is provided.
-This code still has a problem however. The operator overload that has been created returns a tuple of two ints.
-This is not ideal as the syntax that was specifically designed for generating an array slice would also be used in other contexts:
+This code still has a problem however, the operator overload that has been created returns a tuple of two integers.
+This is not ideal, since the syntax that was specifically designed for generating an array slice would also be used in other contexts:
 #+BEGIN_SRC c++
 //Unwanted ability to create regular tuples
 (Int, Int) vector = 20:30 
@@ -151,7 +151,7 @@ Type inference is typically used to save the programmer time by not requiring ty
 Function inference, by contrast, expects a certain amount of information about the context it is being used in.
 As such, /NoSyn/ does not allow the user to specify a variable without also specifying the type of that variable. Functions similarly must indicate what the return type
 is, although template types are still valid.
-This constraint employed in using function inference is used to reduce the ambiguity which can arise using such a type system. Later I will explore ways in which type inference of variables
+This constraint employed in using function inference is used to reduce the ambiguity which can arise while using such a type system. Later I will explore ways in which type inference of variables
 may be possible alongside function inference, and why such a feature may not be wanted.
 
 ** Formal Definition of Function Inference Algorithm
@@ -176,7 +176,7 @@ $y^\dagger$
 
 - where $y$ is a function call
 - $y^\dagger$ is a list of parameter expressions for the function call $y$. 
-  All parameters can be assumed to be function calls as literals can be expressed as function calls to functions with single overloads and no parameters
+  All parameters can be assumed to be function calls since literals can be expressed as function calls to functions with single overloads and no parameters
   
 $y'$
 - where $y$ is a function call
@@ -206,7 +206,7 @@ $\textit{let } p := [\forall (\alpha, \beta).\Theta \Lambda (\alpha, \ast) [\bet
 $\Lambda(\Phi \Omega(x \cap (\ast, p))[y'], p)[y]$
 
  The function $\Lambda x[y]$ calls recursively until $\Omega(x,p)[y']$ reduces to only a single possible function overload.
- If $\Omega(x,p)[y']$ never reduces to a single function overload, the function call is ambigiuous and a compile error should occur.
+ If $\Omega(x,p)[y']$ never reduces to a single function overload, the function call is ambiguous and a compile error should occur.
 ** Example Inferences
 *** Context Deduction
  Function inference works on the basis of deducing the context in which a function is being used. 
@@ -219,15 +219,15 @@ $\Lambda(\Phi \Omega(x \cap (\ast, p))[y'], p)[y]$
  #+BEGIN_SRC c++
  foo(10)
  #+END_SRC
- + The type of the expression =foo(10)= must be =Nothing= as it is being used as a statement
+ + The type of the expression =foo(10)= must be =Nothing= since it is being used as a statement
  + The function overload of =foo= is =Int->Nothing= as the literal =10= has the concrete type of =Int=
 
  As the /NoSyn/ language, unlike similar languages like /C/, allows for functions with the same name and parameter types to have multiple different 
  return types, expressions already raise an issue of ambiguity. /C/ and /Java/ would in this situation go for the function overload for =foo= which took a single integer as a parameter and then
- ignore the return type. This is not possible in /NoSyn/ due to the potential for there to be multiple overloads with the same parameter types causing ambiguity.
- Instead there is a special datatype which a function can return if the programmer wants to use a call to the function at the statement level. This is the =Nothing= datatype, which as it's name
- suggests, does not return anything. An expression of the type =Nothing= is never a subexpression of another expression. This is because =Nothing= does not have any value and as such cannot
- be passed into any other function. With this knowledge, we always know that the base type of any expression within the language is of type =Nothing=, and all subexpressions in that expression are 
+ ignore the return type. This is not possible in /NoSyn/ due to the potential for there to be multiple overloads with the same parameter types, causing ambiguity.
+ Instead there is a special datatype which a function can return if the programmer wants to use a call to the function at the statement level. This is the =Nothing= datatype, which as its name
+ suggests, does not return anything. An expression of the type =Nothing= is never a sub-expression of another expression. This is because =Nothing= does not have any value and as such cannot
+ be passed into any other function. With this knowledge, we always know that the base type of any expression within the language is of type =Nothing=, and all sub-expressions in that expression are 
  of some non =Nothing= type.
 
 *** A slightly less simple program
@@ -243,26 +243,26 @@ $\Lambda(\Phi \Omega(x \cap (\ast, p))[y'], p)[y]$
 
  foo(foo(bar())) //Expression A
  #+END_SRC
- Expression A is an example of where function inference is required to find the correct function to be used. If you take the subexpressions of expression /A/ out of context, the functions they 
+ Expression A is an example of where function inference is required to find the correct function to be used. If you take the sub-expressions of expression /A/ out of context, the functions they 
  refer to cannot be known:
  - =bar()= may refer to =bar_Int= or =bar_Float=
  - =foo(bar())= may refer to =foo_IntNothing= or =foo_IntInt=
   
- In order to deduce the type of each subexpression, we must work from the information that we know concretely.
- The base expression =foo(foo(bar())= must return =Nothing= as it is being used as a statement. From this we can gather all the function overloads for foo which return =Nothing=. In this 
- simple program there is only one function which this could be, =foo_IntNothing=. Given this information, we can now deduce that the subexpression =foo(bar())= must be of type =Int= if
- it is to satisfy the base expression. Again, as a simple program, there is in this case only one function which =foo= could be refering to: =foo_IntInt=.
- This then gives us the knowledge to work out what our final subexpression refers to. There is one function overload for =bar= which returns an =Int= which is 
+ In order to deduce the type of each sub-expression, we must work from the information that we know concretely.
+ The base expression =foo(foo(bar())= must return =Nothing= since it is being used as a statement. From this we can gather all the function overloads for =foo= which return =Nothing=. In this 
+ simple program there is only one function which this could be, =foo_IntNothing=. Given this information, we can now deduce that the sub-expression =foo(bar())= must be of type =Int= if
+ it is to satisfy the base expression. Again, as a simple program, there is in this case only one function which =foo= could be referring to: =foo_IntInt=.
+ This then gives us the knowledge to work out what our final sub-expression refers to. There is one function overload for =bar= which returns an =Int= which is 
  =bar_Int=. This completes the deduction of all functions in the expression giving us:
  #+BEGIN_SRC c++
    foo_IntNothing(foo_IntInt(bar_Int()))
  #+END_SRC
 
 *** Horizontal Inference
- With the previous example, the correct function overloads could be inferred by working in a top down fashion from the parent expression =foo(foo(bar()))= down to the leaf subexpression =bar()=.
- This can be refered to as vertical inference in the sense that by looking at the context of an expression or it's subexpressions it is possible to infer the type of the expression.
+ With the previous example, the correct function overloads could be inferred by working in a top down fashion from the parent expression =foo(foo(bar()))= down to the leaf sub-expression =bar()=.
+ This can be referred to as vertical inference in the sense that by looking at the context of an expression or its sub-expressions it is possible to infer the type of the expression.
  
-Horizontal Inference means that the type of a subexpression on the same level as the current one has an effect on the type which this subexpression could be. Such inference is achieved by 
+Horizontal Inference means that the type of a sub-expression on the same level as the current one has an effect on the type which this sub-expression could be. Such inference is achieved by 
  working up and down the expression tree gradually eliminating the possible types of expressions until all are resolved down to a single type.
  #+BEGIN_SRC c++
  Nothing foo(Int a, Double a) {..} //foo_IntDoubleNothing
@@ -344,8 +344,8 @@ This gives the \lambda function:
 
 ***** Explanation
 
-   As with before, each expression within expression /B/ cannot on its own have it's function inferred. 
-   Again as before, as the main expression /B/ is being used as a statement,
+   As with before, each expression within expression /B/ cannot on its own have its function inferred. 
+   Again as before, since the main expression /B/ is being used as a statement,
    the type can be inferred to be =Nothing=. As such, the set of possible =foo= functions expression /B/ could refer to is:
 
    $\Omega (\{Nothing\}.\ast)[foo] = \{ foo\_IntDoubleNothing, foo\_IntCharNothing, foo\_DoubleIntNothing \}$
@@ -367,7 +367,7 @@ This gives the \lambda function:
    foo_IntDoubleNothing(bar_Int(), cello_Double())
    #+END_SRC
 
-   This can be considered horizontal inference as the type of =bar= has a direct effect on the type of =cello=. Had the possible function overloads for =bar= have been:
+   This can be considered horizontal inference since the type of =bar= has a direct effect on the type of =cello=. Had the possible function overloads for =bar= have been:
    #+BEGIN_SRC c++
    Double bar() {..}
    Char bar() {..}
@@ -380,42 +380,42 @@ This gives the \lambda function:
 * Supporting Type Inference with Function Inference
 
 ** Local Inference
-   Local inference is a feasture that is now ubiquitous across almost every modern programming language including Java, C+, Go as well as functional languages.
-   Local type inference is common across all languages because it is very easy to implement. Compil time type checking needs to be performed anyway 
+   Local inference is a feature that is now ubiquitous across almost every modern programming language including /Java/, /C++/, /Go/ as well as functional languages.
+   Local type inference is common across all languages because it is very easy to implement. Compile time type checking needs to be performed anyway, 
    so the ability to perform local inference usually comes for free from the type checking implementation.
-   Unfortunetly local inference poses problems when used in /NoSyn/. Where as in other languages the return type of a function with 
-   a given set of parameters types is always the wame, this is not the case when using /NoSyn/.
+   Unfortunately local inference poses problems when used in /NoSyn/. Whereas in other languages the return type of a function with 
+   a given set of parameters types is always the same, this is not the case when using /NoSyn/.
    As such, the type of a specified variable must be given in order to differentiate the type that is to be returned from the given function.
    It would of course be possible to have local inference in cases in which there is only one possible return type, but should the user wish to 
    add an additional function overload with a different return type, they would then need to go back and re-fix these assignments to prevent ambiguity.
-   he cost of such a feature would likely outweigh the benefits unless the programmer was very careful with how the write their code.
+   The cost of such a feature would likely outweigh the benefits, unless the programmer was very careful with how the write their code.
 
    An alternative way in which local inference could be obtained in a way which would cut down on ambiguity would be to use control flow analysis.
-   By seeing how a variable is used in the rest of the program, it is possible to deduce what the type actually is. Although this removes ambiguity
+   By seeing how a variable is used in the rest of the program, it is possible to deduce what the type actually is. Although this removes ambiguity,
    it also may make the code more difficult to read. Any programmer that wants to deduce the type of the variable would also have to perform a control 
    flow analysis, checking multiple areas of the code to work out the actual type of the variable rather than looking up one function definition.
    It is also may be the case that performing such a control flow analysis process on all the variables in the source code is quite computationally
-   intensive resulting in a slow compilation process.
+   intensive, resulting in a slow compilation process.
 
 ** Global Inference
-   Global inference refers to the ability to infer the parameter and return tyupes of a function without the programmer needing to specify any of them.
-   Thge abiolity to perform global inference is much more rare among languages with it tending to be reserved only for functional languages that do 
+   Global inference refers to the ability to infer the parameter and return types of a function without the programmer having to specify any of them.
+   The ability to perform global inference is much more rare among languages It tending to be reserved only for functional languages that do 
    not allow function overloading.
-   Function overloading cannot be present on such languages because the types of the parameters are computed by the context that they are used within
-   the function body. If a function within the body had overloading then attempting to deduce the parmeter types would not be possible as it may satisfy
+   Function overloading cannot be present in such languages because the types of the parameters are computed by the context that they are used within
+   the function body. If a function within the body has overloading, then attempting to deduce the parameter types would not be possible, since it may satisfy
    multiple overloads.
-   As /NoSyn/ does have function overloading, global inference is not possible within the language.
+   Since /NoSyn/ does have function overloading, global inference is not possible within the language.
 
 ** Template Types
-   Global inferenc is not possible meaning the type of parameters and return types cannot be deduced in advance for functions which down have type signatures
-   on their return values and parameters. However writing typeless functions can be done in /NoSyn/ by using templating.
+   Global inference is not possible meaning the type of parameters and return types cannot be deduced in advance for functions which down have type signatures
+   on their return values and parameters. However, writing typeless functions can be done in /NoSyn/ by using templating.
    Template functions are functions that do not get compiled into the program until they are actually used in the program. The types of a template function
-   do not need to be specified or known in advance. Instead, the comp[ile generates a version of the function based on the context that it is being used.
-   In other languages this is a relatively simple process. In C++, when a function gets used in context you are garunteed to know from the expression, the
-   types of every parameter being used on the template functgion. This is because expressions in C++ will always resolve to the same type regardless of the
-   context in which they are used. The same is not true for /NoSyn/.
-   Due to function inference, the param,eters to a function would ideally know the context in which they are being used in order to reduce the chance
-   of an ambiguity error. Examining the body of the template function can be done in order to minimize ambiguity errors. Functions used within the body
-   of the template function may have more restrictive tuype signatures allowing for the possible types on the parameters to be reduces. The
-   return context of the function can also be used to restrict possible interpretations of the function futher.
+   do not need to be specified or known in advance. Instead, the compile generates a version of the function based on the context that it is being used.
+   In other languages this is a relatively simple process. In C++, when a function gets used in context, the parameter types can be deduced by the 
+   parameter expressions alone. This is because an expression in C++ will always resolve to the same type regardless of the context in which it is being used.
+   The same is not true for /NoSyn/.
+   Due to function inference, the parameters to a function would ideally know the context in which they are being used in order to reduce the chance
+   of an ambiguity error. Examining the body of the template function can be done in order to minimise ambiguity errors. Functions used within the body
+   of the template function may have more restrictive type signatures allowing for the possible types on the parameters to be reduces. The
+   return context of the function can also be used to restrict possible interpretations of the function further.
 
