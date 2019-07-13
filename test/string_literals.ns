@@ -1,0 +1,12 @@
+%%SOURCE%%
+native import std.stdio;
+
+native Nothing writeln(String a);
+
+Nothing aMethod(String a) {
+    writeln(a);
+}
+
+Nothing bMethod() {
+    writeln("HELLO WORLD!");
+}

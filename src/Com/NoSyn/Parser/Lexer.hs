@@ -42,7 +42,7 @@ lexVar xs = case span isAlpha xs of
 lexString x = let (stringToken, rest) = lexString' x "" in stringToken : lexer rest
 lexString' :: String -> String -> (Token, String)
 lexString' ('"':xs) finalString = (TokenString finalString, xs)
-lexString' (x:xs) currentString = lexString' xs (x:currentString)
+lexString' (x:xs) currentString = lexString' xs (currentString ++ [x])
 
 lexNum x = let (numToken, rest) = lexNum' x "" in numToken : lexer rest
 lexNum' :: String -> String -> (Token, String)

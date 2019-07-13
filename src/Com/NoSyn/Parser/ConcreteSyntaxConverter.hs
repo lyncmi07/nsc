@@ -22,7 +22,8 @@ import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Data.Operators
 
 convertConstant :: CConstant -> CompilerStatus Ifm1Constant.Constant
-convertConstant (CCString a) = Error "Currently unsupported language syntax" (show (CCString a))
+-- convertConstant (CCString a) = Error "Currently unsupported language syntax" (show (CCString a))
+convertConstant (CCString a) = return $ Ifm1Constant.IfConstant $ CString a
 convertConstant (CCInt a) = return $ Ifm1Constant.IfConstant $ CInt a
 convertConstant (CCDouble a) = return $ Ifm1Constant.IfConstant $ CDouble a
 convertConstant (CCChar a) = return $ Ifm1Constant.IfConstant $ CChar a
