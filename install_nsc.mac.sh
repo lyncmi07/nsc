@@ -12,6 +12,7 @@ fi
 
 stack install
 
+echo "root login required for copying procram to /usr/local/bin.nsc"
 mv "$(stack path --local-bin)/no-syn-exe" /usr/local/bin/nsc
 
 echo "Install complete"
