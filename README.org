@@ -12,7 +12,7 @@ Nothing infix_:=_(Int a*, Int b) {
 #+END_SRC
 Unlike other languages however. There are almost no operators defined by default within the language compiler allowing for
 great flexibility in the workings and syntax of the language based on the source code itself.
-** Minimalist Extremism
+** Minimalism
    NoSyn seeks to reduce the compiler to its most basic form without compromising on capability or readbility of language source
    code. The syntax of the language gas been reduced to the absolute minimum in order to allow the language user to create their
    own syntax in whatever way they would like using the operator overloading features.
