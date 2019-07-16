@@ -39,15 +39,16 @@ generateIfExpression programEnvironment expression = case expression of
             return $ IfExpression.EFuncCall ifFunctionName ifParameters
     EBrackets bracketType parameters -> do
         ifParameters <- generateIfParameters parameters
-        let ifFunctionName = (show bracketType) ++ "_" ++ "_operator" in
-            let returnVal = IfExpression.EFuncCall ifFunctionName ifParameters in
-                case bracketType of
-                    Parentheses -> return returnVal
-                    Square -> if (length ifParameters) /= 1
-                        then Error "There should only be one parameter to a square bracket operator overload" (show parameters)
-                        else return returnVal
-                    Curly -> if (length ifParameters) /= 1
-                        then Error "There should only be one parameter to a curly bracket operator overload" (show parameters)
-                        else return returnVal
+        let ifFunctionName = (show bracketType) ++ "_bracketop" in
+            return $ IfExpression.EFuncCall ifFunctionName ifParameters
+            --let returnVal = IfExpression.EFuncCall ifFunctionName ifParameters in
+                --case bracketType of
+                    --Parentheses -> return returnVal
+                    --Square -> if (length ifParameters) /= 1
+                        --then Error "There should only be one parameter to a square bracket operator overload" (show parameters)
+                        --else return returnVal
+                    --Curly -> if (length ifParameters) /= 1
+                        --then Error "There should only be one parameter to a curly bracket operator overload" (show parameters)
+                        --else return returnVal
     where
         generateIfParameters parameters = sequence $ map (generateIfExpression programEnvironment) parameters
