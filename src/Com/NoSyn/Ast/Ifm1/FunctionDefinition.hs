@@ -13,6 +13,7 @@ data FunctionDefinition =
     FDNative Ident Ident Parameters
     | FDNoSyn Ident Ident Parameters BlockStatement
     | FDOperatorOverload OperatorType String Ident Parameters BlockStatement
+    | FDBracketOverload BracketType Ident Parameters BlockStatement
     deriving Show
 
 instance IfElementGeneratable FunctionDefinition where
@@ -28,3 +29,7 @@ instance IfElementGeneratable FunctionDefinition where
         ~(IfElement.IfBlockStatement ifBlockStatement) <- generateIfElement programEnvironment blockStatement
         namedOperators <- operatorStringConverter operatorString
         return $ IfElement.IfFunctionDefinition (IfFunctionDefinition.FDNoSyn ((show operatorType)++"_"++(concat namedOperators)++"_operator") returnType ifParameters ifBlockStatement)
+    generateIfElement programEnvironment (FDBracketOverload bracketType returnType parameters blockStatement) = do
+        ~(IfElement.IfParameters ifParameters) <- generateIfElement programEnvironment parameters
+        ~(IfElement.IfBlockStatement ifBlockStatement) <- generateIfElement programEnvironment blockStatement
+        return $ IfElement.IfFunctionDefinition (IfFunctionDefinition.FDNoSyn ((show bracketType)++"_bracketop") returnType ifParameters ifBlockStatement)

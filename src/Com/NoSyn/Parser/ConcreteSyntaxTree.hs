@@ -26,6 +26,7 @@ data CExpression =
     | CEPrefixOp String CExpression
     | CEPostfixOp String CExpression
     | CEInfixOp String CExpression CExpression
+    | CEBracketOp BracketType CExpression CExpressionList
     | CEBracketed CExpression
     deriving Show
 
