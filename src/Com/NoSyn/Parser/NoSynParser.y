@@ -54,7 +54,8 @@ ExpressionList : empty                  { CListEmpty }
 Expression : Constant                          { CEConst $1 }
 	   | ident                                 { CEIdent $1 }
            | '(' Expression ')'                { CEBracketed $2 }
-           | ident '(' ExpressionList ')'      { CEFuncCall $1 $3 }
+           -- | ident '(' ExpressionList ')'      { CEFuncCall $1 $3 }
+           | Expression '(' ExpressionList ')' { CEBracketOp Parentheses $1 $3 }
            | Expression '[' ExpressionList ']' { CEBracketOp Square $1 $3 }
            | Expression '{' ExpressionList '}' { CEBracketOp Curly $1 $3 }
            | operator Expression               { CEPrefixOp $1 $2 }

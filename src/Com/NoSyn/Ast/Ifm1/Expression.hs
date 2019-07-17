@@ -8,6 +8,7 @@ import Com.NoSyn.Data.Operators
 import Com.NoSyn.Ast.Ifm1.Constant
 import Com.NoSyn.Environment.ProgramEnvironment
 import Com.NoSyn.Error.CompilerStatus
+import qualified Data.Map as Map
 
 data Expression =
     EFuncCall Ident [Expression]
@@ -23,7 +24,7 @@ instance IfElementGeneratable Expression where
         return $ IfElement.IfExpression ifExpression
 
 generateIfExpression :: ProgramEnvironment -> Expression -> CompilerStatus IfExpression.Expression
-generateIfExpression programEnvironment expression = case expression of
+generateIfExpression programEnvironment@(PE { functions = functions }) expression = case expression of
     EFuncCall funcName parameters -> do
         ifParameters <- generateIfParameters parameters
         return $ IfExpression.EFuncCall (funcName ++ "_function") ifParameters
@@ -37,9 +38,13 @@ generateIfExpression programEnvironment expression = case expression of
         ifParameters <- generateIfParameters parameters
         let ifFunctionName = (show operatorType) ++ "_" ++ (concat namedOperators) ++ "_operator" in
             return $ IfExpression.EFuncCall ifFunctionName ifParameters
-    EBrackets bracketType parameters -> do
-        ifParameters <- generateIfParameters parameters
-        let ifFunctionName = (show bracketType) ++ "_bracketop" in
-            return $ IfExpression.EFuncCall ifFunctionName ifParameters
+    EBrackets bracketType parameters@(x:xs) ->
+        case x of
+            (EIdent a) 
+                | a `Map.member` functions -> generateIfExpression programEnvironment (EFuncCall a xs)
+            _ -> do 
+                    ifParameters <- generateIfParameters parameters
+                    let ifFunctionName = (show bracketType) ++ "_bracketop" in
+                        return $ IfExpression.EFuncCall ifFunctionName ifParameters
     where
         generateIfParameters parameters = sequence $ map (generateIfExpression programEnvironment) parameters
