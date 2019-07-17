@@ -32,17 +32,18 @@ main = do
     cst <- return $ parse tokens
     (_, ifm1Ast@(Ifm1PreProgram.PreProgram importStatments _)) <- convertToIO $ convertProgram cst
     (_, ifAst) <- convertToIO $ generateIfElement defaultProgramEnvironment ifm1Ast
-    if args == [] then compileProgram headerText ifAst
+    if args == [] then compileProgram headerText ifAst ifm1Ast
     else let (x:_) = args in
         if x == "--headers" then createHeaders ifAst
         else putStrLn $ "Invalid argument: " ++ x
 
-compileProgram headerText ifAst@(IfPreProgram (IfPreProgram.PreProgram allImports _)) = do
-    (_, initialProgramEnvironment) <- convertToIO $ programEnvironmentEvaluateIfElement ifAst
+compileProgram headerText initialIfAst@(IfPreProgram (IfPreProgram.PreProgram allImports _)) ifm1Ast = do
+    (_, initialProgramEnvironment) <- convertToIO $ programEnvironmentEvaluateIfElement initialIfAst
+    -- Now that the program environment has been populated the ifAst is generated again to correct any missing function calls from expressions
+    (_, ifAst) <- convertToIO $ generateIfElement initialProgramEnvironment ifm1Ast
     selectedImports <- return $ filteredHeaders headerText (Listable.toList allImports)
     (_, programEnvironmentWithImports) <- convertToIO $ addImportedFunctionsToEnvironment selectedImports initialProgramEnvironment
     (dependencies, targetCode) <- convertToIO $ generateD programEnvironmentWithImports ifAst
-    --putStrLn (concat $ intersperse "\n" dependencies)
     putStrLn (concat dependencies)
     putStrLn "%%SOURCE%%"
     putStrLn targetCode
