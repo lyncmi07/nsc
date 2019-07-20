@@ -26,6 +26,7 @@ instance TargetCodeGeneratable Expression where
     generateD = generateExpression
 instance Typeable Expression where
     getTypeNoCheck (EConst constant) = getTypeNoCheck constant
+    getAlphaTypeName (EConst constant) = getAlphaTypeName constant
 
 parameterSetsFromPossibleFunctions::[FunctionOverload] -> Int -> [Set Ident]
 parameterSetsFromPossibleFunctions [] numberOfParameters = Prelude.take numberOfParameters $ repeat Set.empty

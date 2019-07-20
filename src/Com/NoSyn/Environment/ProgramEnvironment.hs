@@ -70,7 +70,7 @@ lookupAtomicNoSynType noSynType aliasEnvironment
       lookupAtomicNoSynType' noSynType nextAlias aliasEnvironment
     | lastChar noSynType == "*" && (dropLastChar noSynType) `OrderMap.member` aliasEnvironment = do
       nextAlias <- compilerStatusFromMaybe ("COMPILER ERROR: imported library incorrect") (OrderMap.lookup (dropLastChar noSynType) aliasEnvironment)
-      lookupAtomicNoSynType' (dropLastChar noSynType) nextAlias aliasEnvironment >>= \x -> return (x++"PTR")
+      lookupAtomicNoSynType' (dropLastChar noSynType) nextAlias aliasEnvironment >>= return
     | otherwise = (Error ("There is no type '" ++ noSynType ++ "' in scope") noSynType)
 
 lookupAtomicNoSynType' previousType noSynType aliasEnvironment
