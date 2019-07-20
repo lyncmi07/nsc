@@ -29,6 +29,6 @@ Nothing bar(Double* a_fel_s, Double* b_c) {
     writeln(10);
 };
 
-Nothing bracketop_()_(Int a) {
+Nothing bracketop_()_(Int a, Int b) {
     writeln(10);
 }

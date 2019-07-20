@@ -46,7 +46,7 @@ possibleFunctionsFromReturnTypes (PE { functions = functionEnvironment }) possib
     allFunctions <- lookupFunction funcName functionEnvironment
     let possibleFunctions = Prelude.filter (\fo -> ((returnType fo) `Set.member` possibleReturnTypes) && ((OrderMap.size (parameters fo)) == noOfParams)) allFunctions in
         if (length possibleFunctions) == 0
-            then Error ("There are no function overloads for '" ++ funcName ++ "' that satisfy the return types " ++ (show possibleReturnTypes)) "Context given"
+            then Error ("There are no function overloads for '" ++ funcName ++ "' that satisfy the return types " ++ (show possibleReturnTypes)) (show functionEnvironment)
             else return $ possibleFunctions
 
 lookupFunction :: String -> Map Ident [FunctionOverload] -> CompilerStatus [FunctionOverload]
@@ -83,6 +83,9 @@ validFunctionPredicate' ((_, (VConst x _)):xs) (y:ys)
 validFunctionPredicate' ((_, (VPointer x _)):xs) (y:ys)
     | x `Set.member` y = validFunctionPredicate' xs ys
     | otherwise = False
+validFunctionPredicate' ((_, (VVariadic x _)): xs) (y:ys)
+    | x `Set.member` y = validFunctionPredicate' xs ys
+    | otherwise = False
 
 generateExpression::ProgramEnvironment -> Expression -> CompilerStatus String
 generateExpression programEnvironment functionCall@(EFuncCall _ _) = do
@@ -110,6 +113,7 @@ generateExpressionForConstParameter programEnvironment generatedExpression (EIde
     case variable of
         (VPointer _ _) -> return $ "*" ++ generatedExpression
         (VConst _ _) -> return generatedExpression
+        (VVariadic _ _) -> return generatedExpression
 generateExpressionForConstParameter _ generatedExpression _ = return generatedExpression
 
 validateAndGenerateD::ProgramEnvironment -> Set Ident -> Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
@@ -182,6 +186,7 @@ generateDFunctionCall programEnvironment funcName functionOverload paramTypeEith
     where
         addressWrapper (VPointer _ _) x y = generateExpressionForPointerParameter programEnvironment x y
         addressWrapper (VConst _ _) x y = generateExpressionForConstParameter programEnvironment x y
+        addressWrapper (VVariadic _ _) x y = generateExpressionForConstParameter programEnvironment x y
 
 generateDFunctionCall'::ProgramEnvironment -> Ident -> Ident -> [Ident] -> [String] -> CompilerStatus String
 generateDFunctionCall' programEnvironment@(PE { aliases = aliasEnvironment }) funcName returnType parameterTypes parameterExpressions =
