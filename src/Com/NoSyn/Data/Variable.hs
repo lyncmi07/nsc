@@ -17,6 +17,9 @@ instance Typeable Variable where
     getAlphaTypeName (VConst varType _) = varType
     getAlphaTypeName (VPointer varType _) = varType ++ "PTR"
     getAlphaTypeName (VVariadic varType _) = varType ++ "VARAD"
+    -- Stashed changes
+    -- getTypeNoCheck (VPointer varType _) = varType ++ "*"
+    -- getTypeNoCheck (VVariadic varType _) = varType ++ "..."
 
 instance Nameable Variable where
     getName (VConst _ name) = name

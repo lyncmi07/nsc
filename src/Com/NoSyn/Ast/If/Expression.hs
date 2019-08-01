@@ -34,20 +34,33 @@ parameterSetsFromPossibleFunctions possibleFunctions@(FO { parameters = paramMap
     let initialParameterTypeSets = Prelude.take numberOfParameters $ repeat Set.empty in
     parameterSetsFromPossibleFunctions' possibleFunctions initialParameterTypeSets
 
-parameterSetsFromPossibleFunctions'::[FunctionOverload] -> [Set Ident] -> [Set Ident]
-parameterSetsFromPossibleFunctions' [] finalParameterTypes = finalParameterTypes
-parameterSetsFromPossibleFunctions' (FO { parameters = overloadParameterTypes }:xs) initialParameterTypes =
-    let listedOverloadParameterTypes = OrderMap.assocs overloadParameterTypes in
-    let updatedParameterTypes = Prelude.map (\((_, newParam), allParams) -> (getTypeNoCheck newParam) `Set.insert` allParams) $ zip listedOverloadParameterTypes initialParameterTypes in
-    parameterSetsFromPossibleFunctions' xs updatedParameterTypes
+parameterSetsFromPossibleFunctions'::[FunctionOverload]->[Set Ident]->[Set Ident]
+parameterSetsFromPossibleFunctions' [] finalParameterSets = finalParameterSets
+parameterSetsFromPossibleFunctions' (functionOverload:xs) currentParameterSets =
+    let overloadParameters = OrderMap.assocs (parameters functionOverload) in
+    let updatedParameterSets = addOverloadTypesToTypeSets' overloadParameters currentParameterSets in
+    parameterSetsFromPossibleFunctions' xs updatedParameterSets
+    
+addOverloadTypesToTypeSets'::[(Ident, Variable)]->[Set Ident]->[Set Ident]
+addOverloadTypesToTypeSets' _ [] = []
+addOverloadTypesToTypeSets' (x@(_, newParam@(VVariadic _ _)):[]) (y:ys) = 
+    ((getTypeNoCheck newParam) `Set.insert` y):(addOverloadTypesToTypeSets' [x] ys)
+addOverloadTypesToTypeSets' ((_, newParam):xs) (y:ys) =
+    ((getTypeNoCheck newParam) `Set.insert` y):(addOverloadTypesToTypeSets' xs ys)
 
 possibleFunctionsFromReturnTypes::ProgramEnvironment -> Set Ident -> Ident -> Int -> CompilerStatus [FunctionOverload]
 possibleFunctionsFromReturnTypes (PE { functions = functionEnvironment }) possibleReturnTypes funcName noOfParams = do
     allFunctions <- lookupFunction funcName functionEnvironment
-    let possibleFunctions = Prelude.filter (\fo -> ((returnType fo) `Set.member` possibleReturnTypes) && ((OrderMap.size (parameters fo)) == noOfParams)) allFunctions in
+    let possibleFunctions = Prelude.filter (\fo -> ((returnType fo) `Set.member` possibleReturnTypes) && (parameterNumberCheckFunction fo noOfParams (OrderMap.size (parameters fo)))) allFunctions in
         if (length possibleFunctions) == 0
             then Error ("There are no function overloads for '" ++ funcName ++ "' that satisfy the return types " ++ (show possibleReturnTypes)) (show functionEnvironment)
             else return $ possibleFunctions
+    where
+        reverseTake x = (Prelude.take x).reverse
+        parameterNumberCheckFunction functionOverload = case (reverseTake 1 $ OrderMap.assocs (parameters functionOverload)) of
+            [(_, (VVariadic _ _))] -> (>=)
+            otherwise -> (==)
+
 
 lookupFunction :: String -> Map Ident [FunctionOverload] -> CompilerStatus [FunctionOverload]
 lookupFunction funcName funcEnvironment =
@@ -60,12 +73,12 @@ possibleFunctionsFromReturnAndParamTypes programEnvironment possibleReturnTypes 
     possibleFunctionsByReturnType <- possibleFunctionsFromReturnTypes programEnvironment possibleReturnTypes funcName (length possibleParameterTypes)
     let filteredPossibleFunctions = Prelude.map (\(x,_) -> x) $ Prelude.filter validFunctionPredicate $ zip possibleFunctionsByReturnType (repeat possibleParameterTypes) in
         if (length filteredPossibleFunctions) == 0
-            then Error ("there are no function overloads for '"
+                then Error ("there are no function overloads for '"
                 ++ funcName
                 ++ "' that satisfy the return types "
                 ++ show possibleReturnTypes
                 ++ " and parameter types "
-                ++ show possibleParameterTypes) "Context given"
+                ++ show possibleParameterTypes) (show possibleFunctionsByReturnType)
             else return $ filteredPossibleFunctions
 
 
@@ -75,6 +88,7 @@ validFunctionPredicate (FO { parameters = parameterMap }, parameterTypeSets) =
 
 validFunctionPredicate'::[(Ident, Variable)] -> [Set Ident] -> Bool
 validFunctionPredicate' [] [] = True
+validFunctionPredicate' ((_, (VVariadic paramType _)):[]) [] = True
 validFunctionPredicate' _ [] = False
 validFunctionPredicate' [] _ = False
 validFunctionPredicate' ((_, (VConst x _)):xs) (y:ys)
@@ -83,8 +97,8 @@ validFunctionPredicate' ((_, (VConst x _)):xs) (y:ys)
 validFunctionPredicate' ((_, (VPointer x _)):xs) (y:ys)
     | x `Set.member` y = validFunctionPredicate' xs ys
     | otherwise = False
-validFunctionPredicate' ((_, (VVariadic x _)): xs) (y:ys)
-    | x `Set.member` y = validFunctionPredicate' xs ys
+validFunctionPredicate' (x@(_, (VVariadic paramType _)):[]) (y:ys)
+    | paramType `Set.member` y = validFunctionPredicate' [x] ys
     | otherwise = False
 
 generateExpression::ProgramEnvironment -> Expression -> CompilerStatus String
@@ -98,14 +112,6 @@ generateExpressionWithReturnType::ProgramEnvironment -> Ident -> Expression -> C
 generateExpressionWithReturnType programEnvironment returnType expression = do
     generatedExpression <- validateAndGenerateD programEnvironment (Set.singleton returnType) expression
     either (\_ -> Error ("Expression " ++ (show expression) ++ "is ambiguous") (show expression)) (\(_,x) -> return x) generatedExpression
-
-generateExpressionForPointerParameter::ProgramEnvironment -> String -> Expression -> CompilerStatus String
-generateExpressionForPointerParameter programEnvironment generatedExpression (EIdent varName) = do
-    variable <- lookupVariableType programEnvironment varName
-    case variable of
-        (VPointer _ _) -> return generatedExpression
-        (VConst _ _) -> return $ "&" ++ generatedExpression
-generateExpressionForPointerParameter _ _ expr = Error ((show expr) ++ " cannot be referenced in a pointer context") (show expr)
 
 generateExpressionForConstParameter::ProgramEnvironment -> String -> Expression -> CompilerStatus String
 generateExpressionForConstParameter programEnvironment generatedExpression (EIdent varName) = do
@@ -158,10 +164,10 @@ validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTy
             Nothing -> return $ Right ((returnType functionOverload), compileString)
 
 reduceParameterTypes::ProgramEnvironment -> [Set Ident] -> [Expression] -> CompilerStatus [(Either (Set Ident) (Ident, String))]
-reduceParameterTypes programEnvironment possibleParameterTypes parameterExpressions =
+reduceParameterTypes programEnvironment possibleParameterTypes parameterExpressions = do
     let typesAndExprs = zip possibleParameterTypes parameterExpressions in
-    let typeReducer = \(paramTypes, paramExpr) -> validateAndGenerateD programEnvironment paramTypes paramExpr in
-        sequence $ Prelude.map typeReducer typesAndExprs
+        let typeReducer = \(paramTypes, paramExpr) -> validateAndGenerateD programEnvironment paramTypes paramExpr in
+            sequence $ Prelude.map typeReducer typesAndExprs
 
 reductionWasMade::Set Ident -> Set Ident -> [Set Ident] -> [Set Ident] -> Bool
 reductionWasMade originalReturnTypes updatedReturnTypes originalParameterTypes updatedParameterTypes
@@ -177,26 +183,52 @@ parameterTypesFromEithers::[Either (Set Ident) (Ident, String)] -> [Set Ident]
 parameterTypesFromEithers parameterTypeEithers =
     Prelude.map (either id (\(x,_) -> Set.singleton x)) parameterTypeEithers
 
+
+zipParameterTypesToExpressions::[Set Ident]->[Expression]->CompilerStatus [(Set Ident, Expression)]
+zipParameterTypesToExpressions a b = Error "The sets are" (show (a, b))
+
+zipVariablesToParameterTypesAndExpressions::[(Ident, Variable)]->[String]->[Expression]->CompilerStatus [((Ident, Variable), String, Expression)]
+zipVariablesToParameterTypesAndExpressions [] [] [] = return []
+zipVariablesToParameterTypesAndExpressions ((_, (VVariadic _ _)):[]) [] [] = return []
+zipVariablesToParameterTypesAndExpressions (x@(_, paramVar@(VVariadic _ _)):[]) (y:ys) (z:zs) = do
+    rest <- zipVariablesToParameterTypesAndExpressions (x:[]) ys zs
+    return $ (x, y, z):rest
+zipVariablesToParameterTypesAndExpressions xs@((x@(_, (VVariadic _ _)):_)) ys zs = 
+    Error "Variadic parameters must only be placed at the end of a parameter list" (show (xs, ys, zs))
+zipVariablesToParameterTypesAndExpressions (x:xs) (y:ys) (z:zs) = do
+    rest <- zipVariablesToParameterTypesAndExpressions xs ys zs
+    return $ (x, y, z):rest
+    
+generateExpressionForPointerParameter::ProgramEnvironment -> String -> Expression -> CompilerStatus String
+generateExpressionForPointerParameter programEnvironment generatedExpression (EIdent varName) = do
+    variable <- lookupVariableType programEnvironment varName
+    case variable of
+        (VPointer _ _) -> return generatedExpression
+        (VConst _ _) -> return $ "&" ++ generatedExpression
+generateExpressionForPointerParameter _ _ expr = Error ((show expr) ++ " cannot be referenced in a pointer context") (show expr)
+
 generateDFunctionCall::ProgramEnvironment -> Ident -> FunctionOverload -> [Either (Set Ident) (Ident, String)] -> [Expression] -> CompilerStatus String
 generateDFunctionCall programEnvironment funcName functionOverload paramTypeEithers parameterExpressions = do
     generatedParameters <- sequence $ Prelude.map (either (\x -> Error "Parameter expression could not be generated" (show x)) (\(_,x) -> return x)) paramTypeEithers
-    addressWrappedParameters <- sequence $ Prelude.map (\((_,x),y, z) -> addressWrapper x y z) (zip3 (OrderMap.assocs (parameters functionOverload)) generatedParameters parameterExpressions)
-    let paramTypes = Prelude.map (\(_, x) -> getTypeNoCheck x) $ OrderMap.assocs (parameters functionOverload) in
-            generateDFunctionCall' programEnvironment funcName (returnType functionOverload) paramTypes addressWrappedParameters
+    zippedParameters <- (zipVariablesToParameterTypesAndExpressions (OrderMap.assocs (parameters functionOverload)) generatedParameters parameterExpressions)
+    addressWrappedParameters <- sequence $ Prelude.map (\((_,x),y, z) -> addressWrapper x y z) zippedParameters
+    generateDFunctionCall' programEnvironment funcName functionOverload addressWrappedParameters
     where
         addressWrapper (VPointer _ _) x y = generateExpressionForPointerParameter programEnvironment x y
         addressWrapper (VConst _ _) x y = generateExpressionForConstParameter programEnvironment x y
         addressWrapper (VVariadic _ _) x y = generateExpressionForConstParameter programEnvironment x y
 
-generateDFunctionCall'::ProgramEnvironment -> Ident -> Ident -> [Ident] -> [String] -> CompilerStatus String
-generateDFunctionCall' programEnvironment@(PE { aliases = aliasEnvironment }) funcName returnType parameterTypes parameterExpressions =
+generateDFunctionCall'::ProgramEnvironment->Ident->FunctionOverload->[String]->CompilerStatus String
+generateDFunctionCall' programEnvironment funcName (FO { returnType=returnType, parameters=parameters }) parameterExpressions =
     let joinedParameterExpressions = concat $ intersperse "," parameterExpressions in
     return $ fullDName ++ "(" ++ joinedParameterExpressions ++ ")"
     where
+        parameterTypes = [ getAlphaTypeName x | (_, x) <- OrderMap.assocs parameters ]
         fullDName = case functionIsNative programEnvironment funcName of
-          (Just postfix) -> dropPostfix postfix funcName
-          Nothing -> let dFuncSuffix = returnType ++ (concat $ Prelude.map id parameterTypes) in
+            (Just postfix) -> dropPostfix postfix funcName
+            Nothing -> let dFuncSuffix = returnType ++ (concat parameterTypes) in
                 funcName ++ "_" ++ dFuncSuffix
+    
 
 dropPostfix postfix = (reverse.(Prelude.drop $ length postfix).reverse)
 
