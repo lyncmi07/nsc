@@ -47,6 +47,10 @@ convertExpression (CEFuncCall a b) = do
     n <- convertExpressionList b
     return $ EFuncCall a n
 convertExpression (CEBracketed a) = convertExpression a
+convertExpression (CEBracketOp bracketType a b) = do
+    n <- convertExpression a
+    m <- convertExpressionList b
+    return $ EBrackets bracketType (n:m)
 convertExpression prefixOp@(CEPrefixOp a b) =
     case b of
         (CEInfixOp _ _ _) -> convertExpression $ reorderPrefixOperator prefixOp
@@ -145,8 +149,10 @@ convertFunctionDefinition (COpOverloadDef a b c d e) = do
     n <- convertParameters d
     m <- convertBlockStatement e
     return $ FDOperatorOverload b c a n m
-convertFunctionDefinition a@(CBracketOpOverloadDef _ _ _ _) =
-    Error "Bracked operator overloading is currently unsupported" (show a)
+convertFunctionDefinition (CBracketOpOverloadDef a b c d) = do
+    n <- convertParameters c
+    m <- convertBlockStatement d
+    return $ FDBracketOverload b a n m
 
 convertAliasDefinition :: CAliasDefinition -> CompilerStatus ProgramStmt
 convertAliasDefinition (CAliasDef o a b)

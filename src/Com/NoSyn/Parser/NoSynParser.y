@@ -51,13 +51,15 @@ FunctionDefinition : ident ident '(' Parameters ')' '{' BlockStatement '}'      
 ExpressionList : empty                  { CListEmpty }
 	       | FilledExpressionList   { CListNonEmpty $1 }
 
-Expression : Constant                         { CEConst $1 }
-	   | ident                            { CEIdent $1 }
-           | '(' Expression ')'               { CEBracketed $2 }
-           | ident '(' ExpressionList ')'     { CEFuncCall $1 $3 }
-           | operator Expression              { CEPrefixOp $1 $2 }
-           | Expression operator              { CEPostfixOp $2 $1 }
-           | Expression operator Expression   { CEInfixOp $2 $1 $3 }
+Expression : Constant                          { CEConst $1 }
+	   | ident                                 { CEIdent $1 }
+           | '(' Expression ')'                { CEBracketed $2 }
+           | Expression '(' ExpressionList ')' { CEBracketOp Parentheses $1 $3 }
+           | Expression '[' ExpressionList ']' { CEBracketOp Square $1 $3 }
+           | Expression '{' ExpressionList '}' { CEBracketOp Curly $1 $3 }
+           | operator Expression               { CEPrefixOp $1 $2 }
+           | Expression operator               { CEPostfixOp $2 $1 }
+           | Expression operator Expression    { CEInfixOp $2 $1 $3 }
 
 Constant : string    { CCString $1 }
 	 | integer   { CCInt $1 }
@@ -93,8 +95,8 @@ OperatorType : prefix        { Prefix }
              | tinfix        { Infix }
 
 BracketType : '(' empty ')' { Parentheses }
-	   | '[' empty ']' { Square }
-           | '{' empty '}' { Curly }
+	        | '[' empty ']' { Square }
+            | '{' empty '}' { Curly }
 
 AliasDefinition : alias ident operator ident    { CAliasDef $3 $2 $4 }
 
