@@ -1,0 +1,15 @@
+%%SOURCE%%
+native import std.stdio;
+
+native Nothing variad(String... a);
+
+Nothing aMethod(String a) {
+    variad(a);
+}
+Nothing aMethod(String a) {
+    variad(a);
+}
+
+Nothing bMethod() {
+    aMethod("HELLO");
+}
