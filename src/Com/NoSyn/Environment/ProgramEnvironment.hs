@@ -48,13 +48,16 @@ instance MutuallyExcludable ProgramEnvironment where
     isEmpty pe =
         (SetTH.isEmpty (aliases pe)) && (SetTH.isEmpty (functions pe)) && (SetTH.isEmpty (variables pe))
 
-lastChar = (Prelude.take 1).reverse
-dropLastChar = reverse.(Prelude.drop 1).reverse
+reverseTake x = (Prelude.take x).reverse
+reverseDrop x = reverse.(Prelude.drop x).reverse
+lastChar = reverseTake 1
+dropLastChar = reverseDrop 1
 
 lookupDType::Ident->AliasEnvironment->CompilerStatus Ident
 lookupDType noSynType aliasEnvironment
     | noSynType `OrderMap.member` aliasEnvironment = lookupDType' noSynType aliasEnvironment
     | lastChar noSynType == "*" && (dropLastChar noSynType) `OrderMap.member` aliasEnvironment = (lookupDType' (dropLastChar noSynType) aliasEnvironment)
+    | reverseTake 3 noSynType == "..." && (reverseDrop 3 noSynType) `OrderMap.member` aliasEnvironment = (lookupDType' (reverseDrop 3 noSynType) aliasEnvironment)
     | otherwise = Error ("There is no type '" ++ noSynType ++ "' in scope") noSynType
 
 lookupDType' noSynType aliasEnvironment
@@ -66,11 +69,14 @@ lookupDType' noSynType aliasEnvironment
 lookupAtomicNoSynType::Ident->AliasEnvironment->CompilerStatus Ident
 lookupAtomicNoSynType noSynType aliasEnvironment
     | noSynType `OrderMap.member` aliasEnvironment = do
-      nextAlias <- compilerStatusFromMaybe ("COMPILER ERROR: imported library incorrect") (OrderMap.lookup noSynType aliasEnvironment)
-      lookupAtomicNoSynType' noSynType nextAlias aliasEnvironment
+        nextAlias <- compilerStatusFromMaybe ("COMPILER ERROR: imported library incorrect") (OrderMap.lookup noSynType aliasEnvironment)
+        lookupAtomicNoSynType' noSynType nextAlias aliasEnvironment
     | lastChar noSynType == "*" && (dropLastChar noSynType) `OrderMap.member` aliasEnvironment = do
-      nextAlias <- compilerStatusFromMaybe ("COMPILER ERROR: imported library incorrect") (OrderMap.lookup (dropLastChar noSynType) aliasEnvironment)
-      lookupAtomicNoSynType' (dropLastChar noSynType) nextAlias aliasEnvironment >>= \x -> return (x++"PTR")
+        nextAlias <- compilerStatusFromMaybe ("COMPILER ERROR: imported library incorrect") (OrderMap.lookup (dropLastChar noSynType) aliasEnvironment)
+        lookupAtomicNoSynType' (dropLastChar noSynType) nextAlias aliasEnvironment >>= return
+    | reverseTake 3 noSynType == "..." && (reverseDrop 3 noSynType) `OrderMap.member` aliasEnvironment = do
+        nextAlias <- compilerStatusFromMaybe ("COMPILER ERROR: imported library incorrect") (OrderMap.lookup (reverseDrop 3 noSynType) aliasEnvironment)
+        lookupAtomicNoSynType' (reverseDrop 3 noSynType) nextAlias aliasEnvironment >>= return
     | otherwise = (Error ("There is no type '" ++ noSynType ++ "' in scope") noSynType)
 
 lookupAtomicNoSynType' previousType noSynType aliasEnvironment

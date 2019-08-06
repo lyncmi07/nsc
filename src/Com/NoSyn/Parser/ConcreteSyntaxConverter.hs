@@ -22,7 +22,6 @@ import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Data.Operators
 
 convertConstant :: CConstant -> CompilerStatus Ifm1Constant.Constant
--- convertConstant (CCString a) = Error "Currently unsupported language syntax" (show (CCString a))
 convertConstant (CCString a) = return $ Ifm1Constant.IfConstant $ CString a
 convertConstant (CCInt a) = return $ Ifm1Constant.IfConstant $ CInt a
 convertConstant (CCDouble a) = return $ Ifm1Constant.IfConstant $ CDouble a
@@ -109,7 +108,8 @@ convertParameter :: CParameter -> CompilerStatus Ifm1Parameter.Parameter
 convertParameter (CParam a b) = return $ Ifm1Parameter.IfParameter $ PConst a b
 convertParameter (CPointerParam a op b)
     | op == "*" = return $ Ifm1Parameter.IfParameter $ PPointer a b
-    | otherwise = Error "Only '*' can be used on a type to denote an operator" (show (CPointerParam a op b))
+    | op == "..." = return $ Ifm1Parameter.IfParameter $ PVariadic a b
+    | otherwise = Error "Only '*' or '...' can be used on a type to denote an operator" (show (CPointerParam a op b))
 
 convertFilledParameters :: CFilledParameters -> CompilerStatus [Ifm1Parameter.Parameter]
 convertFilledParameters (CMultiParam x xs) = do

@@ -11,6 +11,7 @@ import Com.NoSyn.Ast.Traits.Listable as Listable
 import Data.List
 import Data.Map
 import Com.NoSyn.Environment.ProgramEnvironment
+import Com.NoSyn.Error.CompilerStatus
 
 type Parameters = Block Parameter
 
@@ -18,6 +19,7 @@ type Parameters = Block Parameter
 data Parameter = 
     PConst Ident Ident
     | PPointer Ident Ident
+    | PVariadic Ident Ident
     deriving Show
 
 instance EnvironmentUpdater Parameter where
@@ -27,6 +29,9 @@ instance EnvironmentUpdater Parameter where
     updateEnvironment programEnvironment@(PE { variables = variableEnvironment}) param@(PPointer paramType paramName) = do
         verifiedType <- getNoSynType programEnvironment param
         return (programEnvironment { variables = Data.Map.insert paramName (VPointer verifiedType paramName) variableEnvironment})
+    updateEnvironment programEnvironment@(PE { variables = variableEnvironment}) param@(PVariadic paramType paramName) = do
+        verifiedType <- getNoSynType programEnvironment param
+        return (programEnvironment { variables = Data.Map.insert paramName (VVariadic verifiedType paramName) variableEnvironment})
 
 instance TargetCodeGeneratable Parameter where
     generateD programEnvironment parameter@(PConst paramType paramName) = do
@@ -35,10 +40,17 @@ instance TargetCodeGeneratable Parameter where
     generateD programEnvironment parameter@(PPointer paramType paramName) = do
         parameterDType <- getRealType programEnvironment parameter
         return $ parameterDType ++ "* " ++ paramName
+    generateD programEnvironment parameter@(PVariadic paramType paramName) = do
+        parameterDType <- getRealType programEnvironment parameter
+        return $ parameterDType ++ "... " ++ paramName
 
 instance Typeable Parameter where
     getTypeNoCheck (PConst paramType _) = paramType
     getTypeNoCheck (PPointer paramType _) = paramType ++ "*"
+    getTypeNoCheck (PVariadic paramType _) = paramType ++ "..."
+    getAlphaTypeName (PConst paramType _) = paramType
+    getAlphaTypeName (PPointer paramType _) = paramType ++ "PTR"
+    getAlphaTypeName (PVariadic paramType _) = paramType ++ "VARAD"
 
 instance Blockable Parameter where
     blockSeparator _ = ", "
@@ -48,6 +60,8 @@ parameterToTuple (PConst paramType paramName) =
     (paramName , (VConst paramType paramName))
 parameterToTuple (PPointer paramType paramName) = 
     (paramName , (VPointer paramType paramName))
+parameterToTuple (PVariadic paramType paramName) =
+    (paramName, (VVariadic paramType paramName))
 
 parametersToTuples::Parameters -> [(Ident, Variable)]
 parametersToTuples parameters =

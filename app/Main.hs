@@ -63,7 +63,6 @@ addImportedFunctionsToEnvironment :: [String] -> ProgramEnvironment -> CompilerS
 addImportedFunctionsToEnvironment headers programEnvironment@(PE {functions=functionEnvironment}) = do
     deserializedFunctionList <- sequence $ Prelude.map deserializeFunction headers
     deserializedFunctionEnvironment <- foldrM (\(x,y) n -> addFunction x y n) functionEnvironment deserializedFunctionList
-    --deserializedFunctionEnvironment <- return $ Data.Map.fromList $ Prelude.map (\(x,y) -> (x, [y])) deserializedFunctionList
     return $ programEnvironment {functions=(unifyFunctionEnvironments functionEnvironment deserializedFunctionEnvironment)}
 
 filteredHeaders headers importStatements =
@@ -86,4 +85,3 @@ importedNSModulesList importStatements =
         nsImportPredicate (NSImport _) = True
         importNameProvider (NativeImport a) = concat $ intersperse "." a
         importNameProvider (NSImport a) = concat $ intersperse "." a
-        --nsImportStatements = Prelude.filter nsImportPredicate (Prelude.map (\(Ifm1ImportStatement.IfImportStatement x) -> x) $ Listable.toList importStatements)

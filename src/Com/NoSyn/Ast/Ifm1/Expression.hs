@@ -42,6 +42,7 @@ generateIfExpression programEnvironment@(PE { functions = functions }) expressio
         case x of
             (EIdent a) 
                 | a `Map.member` functions -> generateIfExpression programEnvironment (EFuncCall a xs)
+                | (a ++ "_function") `Map.member` functions -> generateIfExpression programEnvironment (EFuncCall a xs)
             _ -> do 
                     ifParameters <- generateIfParameters parameters
                     let ifFunctionName = (show bracketType) ++ "_bracketop" in

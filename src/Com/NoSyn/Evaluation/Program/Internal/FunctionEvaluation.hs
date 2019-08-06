@@ -26,7 +26,9 @@ programFunctionDefinitionEvaluate' _ [] functionLookup = return functionLookup
 programFunctionDefinitionEvaluate' aliasEnvironment ((PSFuncDef funcDef):xs) currentFunctionEnvironment = do
     (functionName, newFunction) <- createFunctionEntry aliasEnvironment funcDef
     let currentFunctionOverloads = fromMaybe [] $ Data.Map.lookup functionName currentFunctionEnvironment in
-        let newFunctionEnvironment = insert functionName (newFunction:currentFunctionOverloads) currentFunctionEnvironment in
+        if any (==newFunction) currentFunctionOverloads then
+            Error ("There is already an equivalent function to " ++ (show newFunction)) (show currentFunctionOverloads)
+        else let newFunctionEnvironment = insert functionName (newFunction:currentFunctionOverloads) currentFunctionEnvironment in
             programFunctionDefinitionEvaluate' aliasEnvironment xs newFunctionEnvironment
 programFunctionDefinitionEvaluate' aliasEnvironment (_:xs) currentFunctionEnvironment =
     programFunctionDefinitionEvaluate' aliasEnvironment xs currentFunctionEnvironment
@@ -44,4 +46,5 @@ createFunctionEntry aliasEnvironment (FDNoSyn functionName returnType parameters
     return (functionName, FO { returnType = returnType, parameters = parameterOMap, parentModule = Nothing})
     where
         parameterOMap = (Data.Map.Ordered.fromList (parametersToTuples parameters))
+
 

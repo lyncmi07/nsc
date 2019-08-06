@@ -43,11 +43,11 @@ instance DIdentifiable FunctionDefinition where
     getDIdentifier _ (FDNative funcName _ _) = return funcName
     getDIdentifier programEnvironment func@(FDNoSyn funcName returnType parameters _) = do
         noSynReturnType <- getNoSynType programEnvironment func
-        parameterNoSynTypes <- sequence $ Prelude.map (getNoSynType programEnvironment) (Listable.toList parameters)
-        return $ funcName 
-            ++ "_" 
-            ++ noSynReturnType
-            ++ concat parameterNoSynTypes
+        let parameterNoSynTypes = Prelude.map getAlphaTypeName (Listable.toList parameters) in
+            return $ funcName
+                ++ "_"
+                ++ noSynReturnType
+                ++ concat parameterNoSynTypes
 
 instance Nameable FunctionDefinition where
     getName (FDNative name _ _) = name
@@ -58,3 +58,4 @@ instance Nameable FunctionDefinition where
 instance Typeable FunctionDefinition where
     getTypeNoCheck (FDNative _ returnType _) = returnType
     getTypeNoCheck (FDNoSyn _ returnType _ _) = returnType
+    getAlphaTypeName = getTypeNoCheck
