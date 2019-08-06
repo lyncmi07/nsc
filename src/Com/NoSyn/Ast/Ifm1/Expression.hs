@@ -47,9 +47,5 @@ generateIfExpression programEnvironment@(PE { functions = functions }) expressio
                     ifParameters <- generateIfParameters parameters
                     let ifFunctionName = (show bracketType) ++ "_bracketop" in
                         return $ IfExpression.EFuncCall ifFunctionName ifParameters
-                        --if (length functions) == 0 then 
-                            --return $ IfExpression.EFuncCall ifFunctionName ifParameters
-                        --else
-                            --Error ("Attempted to create a " ++ (show bracketType) ++ " bracket op") (show (expression, functions))
     where
         generateIfParameters parameters = sequence $ map (generateIfExpression programEnvironment) parameters

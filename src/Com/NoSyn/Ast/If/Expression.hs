@@ -40,13 +40,13 @@ parameterSetsFromPossibleFunctions' (functionOverload:xs) currentParameterSets =
     let overloadParameters = OrderMap.assocs (parameters functionOverload) in
     let updatedParameterSets = addOverloadTypesToTypeSets' overloadParameters currentParameterSets in
     parameterSetsFromPossibleFunctions' xs updatedParameterSets
+    where
+        addOverloadTypesToTypeSets' _ [] = []
+        addOverloadTypesToTypeSets' (x@(_, newParam@(VVariadic _ _)):[]) (y:ys) = 
+            ((getTypeNoCheck newParam) `Set.insert` y):(addOverloadTypesToTypeSets' [x] ys)
+        addOverloadTypesToTypeSets' ((_, newParam):xs) (y:ys) =
+            ((getTypeNoCheck newParam) `Set.insert` y):(addOverloadTypesToTypeSets' xs ys)
     
-addOverloadTypesToTypeSets'::[(Ident, Variable)]->[Set Ident]->[Set Ident]
-addOverloadTypesToTypeSets' _ [] = []
-addOverloadTypesToTypeSets' (x@(_, newParam@(VVariadic _ _)):[]) (y:ys) = 
-    ((getTypeNoCheck newParam) `Set.insert` y):(addOverloadTypesToTypeSets' [x] ys)
-addOverloadTypesToTypeSets' ((_, newParam):xs) (y:ys) =
-    ((getTypeNoCheck newParam) `Set.insert` y):(addOverloadTypesToTypeSets' xs ys)
 
 possibleFunctionsFromReturnTypes::ProgramEnvironment -> Set Ident -> Ident -> Int -> CompilerStatus [FunctionOverload]
 possibleFunctionsFromReturnTypes (PE { functions = functionEnvironment }) possibleReturnTypes funcName noOfParams = do
@@ -72,8 +72,8 @@ possibleFunctionsFromReturnAndParamTypes::ProgramEnvironment -> Set Ident -> Ide
 possibleFunctionsFromReturnAndParamTypes programEnvironment possibleReturnTypes funcName possibleParameterTypes = do
     possibleFunctionsByReturnType <- possibleFunctionsFromReturnTypes programEnvironment possibleReturnTypes funcName (length possibleParameterTypes)
     let filteredPossibleFunctions = Prelude.map (\(x,_) -> x) $ Prelude.filter validFunctionPredicate $ zip possibleFunctionsByReturnType (repeat possibleParameterTypes) in
-        if (length filteredPossibleFunctions) == 0
-                then Error ("there are no function overloads for '"
+        if (length filteredPossibleFunctions) == 0 then 
+                Error ("there are no function overloads for '"
                 ++ funcName
                 ++ "' that satisfy the return types "
                 ++ show possibleReturnTypes
@@ -166,8 +166,6 @@ validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTy
                 _ -> let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
                     if reductionWasMade possibleReturnTypes reducedReturnTypes possibleParameterTypes reducedParameterTypes then 
                         validateAndGenerateD' programEnvironment reducedReturnTypes reducedParameterTypes functionCall 
-                    else if all (\x -> (length x) == 1) reducedParameterTypes then 
-                        Error "There was one parameter for each and it fucked up anyway" (show (possibleFunctions, reducedParameterTypes))
                     else 
                         return $ Left reducedReturnTypes
     where

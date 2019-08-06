@@ -24,10 +24,6 @@ functionType FO { returnType = returnType, parameters = parameters } =
         parameterType (_, x) = getTypeNoCheck x
         parameterTypes = Prelude.map parameterType (OrderMap.assocs parameters)
 
-functionallyEquivalent funcA funcB =
-    (returnType funcA) == (returnType funcB)
-    && parametersEquivalent (parameters funcA) (parameters funcB)
-
 parametersEquivalent funcAParameters funcBParameters =
     parametersEquivalent' (extractVariables funcAParameters) (extractVariables funcBParameters)
     where
@@ -54,7 +50,9 @@ parametersEquivalent' _ _ = False
     
 
 instance Eq FunctionOverload where
-    a == b = functionallyEquivalent a b
+    a == b = 
+        (returnType a) == (returnType b)
+        && parametersEquivalent (parameters a) (parameters b)
 instance Ord FunctionOverload where
     a <= b = (functionType a) <= (functionType b)
 
