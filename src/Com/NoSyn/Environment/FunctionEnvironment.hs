@@ -1,7 +1,7 @@
 module Com.NoSyn.Environment.FunctionEnvironment where
 
 import Data.Map
-import Data.Map.Ordered
+import Data.Map.Ordered as OrderMap
 import Com.NoSyn.Data.Types
 import Com.NoSyn.Data.Variable
 import Data.List
@@ -22,10 +22,39 @@ functionType FO { returnType = returnType, parameters = parameters } =
     returnType ++ "_" ++ (concat $ intersperse "_" parameterTypes)
     where
         parameterType (_, x) = getTypeNoCheck x
-        parameterTypes = Prelude.map parameterType (Data.Map.Ordered.assocs parameters)
+        parameterTypes = Prelude.map parameterType (OrderMap.assocs parameters)
+
+functionallyEquivalent funcA funcB =
+    (returnType funcA) == (returnType funcB)
+    && parametersEquivalent (parameters funcA) (parameters funcB)
+
+parametersEquivalent funcAParameters funcBParameters =
+    parametersEquivalent' (extractVariables funcAParameters) (extractVariables funcBParameters)
+    where
+        extractVariables parameters = [ x | (_, x) <- (OrderMap.assocs parameters)]
+
+parametersEquivalent' [] [] = True
+parametersEquivalent' [] ((VVariadic _ _):[]) = True
+parametersEquivalent' (x@(VConst _ _):xs) (y@(VVariadic _ _):[]) = 
+    (getTypeNoCheck x) == (getTypeNoCheck y)
+    && parametersEquivalent' xs [y]
+parametersEquivalent' ((VVariadic _ _):[]) [] = True
+parametersEquivalent' (x@(VVariadic _ _):[]) (y@(VConst _ _):ys) = 
+    (getTypeNoCheck x) == (getTypeNoCheck y)
+    && parametersEquivalent' [x] ys
+parametersEquivalent' (x@(VConst _ _):xs) (y@(VConst _ _):ys) =
+    (getTypeNoCheck x) == (getTypeNoCheck y)
+    && parametersEquivalent' xs ys
+parametersEquivalent' (x@(VPointer _ _):xs) (y@(VPointer _ _):ys) =
+    (getTypeNoCheck x) == (getTypeNoCheck y)
+    && parametersEquivalent' xs ys
+parametersEquivalent' (x@(VVariadic _ _):[]) (y@(VVariadic _ _):[]) =
+    (getTypeNoCheck x) == (getTypeNoCheck y)
+parametersEquivalent' _ _ = False
+    
 
 instance Eq FunctionOverload where
-    a == b = (functionType a) == (functionType b)
+    a == b = functionallyEquivalent a b
 instance Ord FunctionOverload where
     a <= b = (functionType a) <= (functionType b)
 

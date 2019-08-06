@@ -92,13 +92,16 @@ validFunctionPredicate' ((_, (VVariadic paramType _)):[]) [] = True
 validFunctionPredicate' _ [] = False
 validFunctionPredicate' [] _ = False
 validFunctionPredicate' ((_, (VConst x _)):xs) (y:ys)
-    | x `Set.member` y = validFunctionPredicate' xs ys
+    | (x `Set.member` y) || ((x ++ "PTR") `Set.member` y) = validFunctionPredicate' xs ys
+    -- | x `Set.member` y = validFunctionPredicate' xs ys
     | otherwise = False
 validFunctionPredicate' ((_, (VPointer x _)):xs) (y:ys)
-    | x `Set.member` y = validFunctionPredicate' xs ys
+    | (x `Set.member` y) || ((x ++ "PTR") `Set.member` y) = validFunctionPredicate' xs ys
+    -- | x `Set.member` y = validFunctionPredicate' xs ys
     | otherwise = False
-validFunctionPredicate' (x@(_, (VVariadic paramType _)):[]) (y:ys)
+validFunctionPredicate' (x@(_, paramVariable@(VVariadic paramType _)):[]) (y:ys)
     | paramType `Set.member` y = validFunctionPredicate' [x] ys
+    | (getAlphaTypeName paramVariable) `Set.member` y = (length ys) == 0
     | otherwise = False
 
 generateExpression::ProgramEnvironment -> Expression -> CompilerStatus String
@@ -136,9 +139,10 @@ validateAndGenerateD programEnvironment returnTypes (EConst const) = do
 validateAndGenerateD programEnvironment returnTypes (EIdent varName) = do
     variable <- lookupVariableType programEnvironment varName
     variableType <- getNoSynType programEnvironment variable
-    if variableType `Set.member` returnTypes
-        then return $ Right (variableType, varName)
-        else Error ("Identifier '" ++ varName ++ "' given cannot be used in context.") (show returnTypes)
+    let alphaVariableType = getAlphaTypeName variable in
+        if variableType `Set.member` returnTypes
+            then return $ Right (alphaVariableType, varName)
+            else Error ("Identifier '" ++ varName ++ "' given cannot be used in context") (show returnTypes)
 
 validateAndGenerateD'::ProgramEnvironment -> Set Ident -> [Set Ident] -> Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
 validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTypes functionCall@(EFuncCall funcName paramExpressions) = do
@@ -147,21 +151,41 @@ validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTy
         let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
             possibleFunctionsFromReturnAndParamTypes programEnvironment possibleReturnTypes funcName reducedParameterTypes
     let reducedReturnTypes = Prelude.foldl (\typeSet (FO { returnType = nextType }) -> nextType `Set.insert` typeSet) Set.empty possibleFunctions in
-        if (length possibleFunctions) == 1 
-            then let funcToGenerate = head possibleFunctions in
-                let finalReducedParameterTypes = parameterSetsFromPossibleFunctions possibleFunctions (length paramExpressions) in
-                reduceParameterTypes programEnvironment finalReducedParameterTypes paramExpressions >>= 
-                    (\finalReducedParameterTypeEithers ->
-                        generateDFunctionCall programEnvironment funcName funcToGenerate finalReducedParameterTypeEithers paramExpressions >>=
-                            (foundFunctionReturn funcToGenerate))
-            else let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
-                if reductionWasMade possibleReturnTypes reducedReturnTypes possibleParameterTypes reducedParameterTypes
-                    then validateAndGenerateD' programEnvironment reducedReturnTypes reducedParameterTypes functionCall 
-                    else return $ Left reducedReturnTypes
+        let maybeFuncToGenerate = 
+                if (length possibleFunctions) == 1 then 
+                    Just $ head possibleFunctions 
+                else let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in 
+                    reduceOnPointerParameters possibleFunctions reducedParameterTypes in 
+            case maybeFuncToGenerate of
+                Just funcToGenerate ->
+                    let finalReducedParameterTypes = parameterSetsFromPossibleFunctions possibleFunctions (length paramExpressions) in
+                    reduceParameterTypes programEnvironment finalReducedParameterTypes paramExpressions >>= 
+                        (\finalReducedParameterTypeEithers ->
+                            generateDFunctionCall programEnvironment funcName funcToGenerate finalReducedParameterTypeEithers paramExpressions >>=
+                                (foundFunctionReturn funcToGenerate))
+                _ -> let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
+                    if reductionWasMade possibleReturnTypes reducedReturnTypes possibleParameterTypes reducedParameterTypes then 
+                        validateAndGenerateD' programEnvironment reducedReturnTypes reducedParameterTypes functionCall 
+                    else if all (\x -> (length x) == 1) reducedParameterTypes then 
+                        Error "There was one parameter for each and it fucked up anyway" (show (possibleFunctions, reducedParameterTypes))
+                    else 
+                        return $ Left reducedReturnTypes
     where
         foundFunctionReturn functionOverload compileString = case (parentModule functionOverload) of
             (Just dependency) -> dependencyRequired dependency $ Right ((returnType functionOverload), compileString)
             Nothing -> return $ Right ((returnType functionOverload), compileString)
+
+reduceOnPointerParameters::[FunctionOverload] -> [Set Ident] -> (Maybe FunctionOverload)
+reduceOnPointerParameters [] _ = Nothing
+reduceOnPointerParameters (x:xs) parameterTypes
+    | reduceOnPointerParameters' [z | (_, z) <- OrderMap.assocs $ parameters x] (Prelude.map (head.(Set.toList)) parameterTypes) = Just x
+    | otherwise = reduceOnPointerParameters xs parameterTypes
+
+reduceOnPointerParameters'::[Variable] -> [Ident] -> Bool
+reduceOnPointerParameters' [] [] = True
+reduceOnPointerParameters' (x:xs) (y:ys)
+    | getAlphaTypeName x == y = reduceOnPointerParameters' xs ys
+    | otherwise = False
 
 reduceParameterTypes::ProgramEnvironment -> [Set Ident] -> [Expression] -> CompilerStatus [(Either (Set Ident) (Ident, String))]
 reduceParameterTypes programEnvironment possibleParameterTypes parameterExpressions = do
@@ -183,9 +207,6 @@ parameterTypesFromEithers::[Either (Set Ident) (Ident, String)] -> [Set Ident]
 parameterTypesFromEithers parameterTypeEithers =
     Prelude.map (either id (\(x,_) -> Set.singleton x)) parameterTypeEithers
 
-
-zipParameterTypesToExpressions::[Set Ident]->[Expression]->CompilerStatus [(Set Ident, Expression)]
-zipParameterTypesToExpressions a b = Error "The sets are" (show (a, b))
 
 zipVariablesToParameterTypesAndExpressions::[(Ident, Variable)]->[String]->[Expression]->CompilerStatus [((Ident, Variable), String, Expression)]
 zipVariablesToParameterTypesAndExpressions [] [] [] = return []

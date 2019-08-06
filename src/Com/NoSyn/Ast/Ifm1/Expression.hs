@@ -42,9 +42,14 @@ generateIfExpression programEnvironment@(PE { functions = functions }) expressio
         case x of
             (EIdent a) 
                 | a `Map.member` functions -> generateIfExpression programEnvironment (EFuncCall a xs)
+                | (a ++ "_function") `Map.member` functions -> generateIfExpression programEnvironment (EFuncCall a xs)
             _ -> do 
                     ifParameters <- generateIfParameters parameters
                     let ifFunctionName = (show bracketType) ++ "_bracketop" in
                         return $ IfExpression.EFuncCall ifFunctionName ifParameters
+                        --if (length functions) == 0 then 
+                            --return $ IfExpression.EFuncCall ifFunctionName ifParameters
+                        --else
+                            --Error ("Attempted to create a " ++ (show bracketType) ++ " bracket op") (show (expression, functions))
     where
         generateIfParameters parameters = sequence $ map (generateIfExpression programEnvironment) parameters

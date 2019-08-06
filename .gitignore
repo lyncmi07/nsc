@@ -9,6 +9,7 @@ _minted*
 test/*
 !test/*.hs
 !test/*.ns
+!test/*.ns.fail
 documents/*.pdf
 documents/*.html
 *.aux
