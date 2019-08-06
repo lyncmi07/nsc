@@ -93,11 +93,9 @@ validFunctionPredicate' _ [] = False
 validFunctionPredicate' [] _ = False
 validFunctionPredicate' ((_, (VConst x _)):xs) (y:ys)
     | (x `Set.member` y) || ((x ++ "PTR") `Set.member` y) = validFunctionPredicate' xs ys
-    -- | x `Set.member` y = validFunctionPredicate' xs ys
     | otherwise = False
 validFunctionPredicate' ((_, (VPointer x _)):xs) (y:ys)
     | (x `Set.member` y) || ((x ++ "PTR") `Set.member` y) = validFunctionPredicate' xs ys
-    -- | x `Set.member` y = validFunctionPredicate' xs ys
     | otherwise = False
 validFunctionPredicate' (x@(_, paramVariable@(VVariadic paramType _)):[]) (y:ys)
     | paramType `Set.member` y = validFunctionPredicate' [x] ys
