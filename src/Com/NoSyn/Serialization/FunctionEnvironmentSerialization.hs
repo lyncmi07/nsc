@@ -20,6 +20,7 @@ serializeFunctionEnvironment functionEnvironment =
         nosynFunctionPredicate (functionName, _)
             | (backTake (length "_function") functionName) == "_function" = True
             | (backTake (length "_operator") functionName) == "_operator" = True
+            | (backTake (length "_bracketop") functionName) == "_bracketop" = True
             | otherwise = False
 
 serializeNamedFunction a = serializeNamedFunction' a []

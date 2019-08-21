@@ -1,0 +1,12 @@
+nosyn:main_function:Int:
+foo.bar:bar_function:Int:
+%%SOURCE%%
+native import std.stdio;
+
+native Nothing writeln(String a);
+
+Int bar() {
+    writeln("This is the bar line");
+    0;
+}
+

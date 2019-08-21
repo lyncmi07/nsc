@@ -1,0 +1,17 @@
+nosyn:main_function:Int:
+foo.bar:bar_function:Int:
+foo.nobar:noBar_function:Nothing:
+%%SOURCE%%
+native import std.stdio;
+import foo.bar;
+import foo.nobar;
+
+native Nothing writeln(String a);
+
+Int main() {
+    writeln("HELLO WORLD!");
+    writeln("This is another line");
+    noBar();
+    bar();
+};
+
