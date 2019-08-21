@@ -40,11 +40,11 @@ main = do
 compileProgram headerText initialIfAst@(IfPreProgram (IfPreProgram.PreProgram allImports _)) ifm1Ast = do
     (_, initialProgramEnvironment) <- convertToIO $ programEnvironmentEvaluateIfElement initialIfAst
     -- Now that the program environment has been populated the ifAst is generated again to correct any missing function calls from expressions
-    (_, ifAst) <- convertToIO $ generateIfElement initialProgramEnvironment ifm1Ast
     selectedImports <- return $ filteredHeaders headerText (Listable.toList allImports)
     (_, programEnvironmentWithImports) <- convertToIO $ addImportedFunctionsToEnvironment selectedImports initialProgramEnvironment
+    (_, ifAst) <- convertToIO $ generateIfElement programEnvironmentWithImports ifm1Ast
     (dependencies, targetCode) <- convertToIO $ generateD programEnvironmentWithImports ifAst
-    putStrLn (concat dependencies)
+    putStrLn (concat $ intersperse "\n" dependencies)
     putStrLn "%%SOURCE%%"
     putStrLn targetCode
 
