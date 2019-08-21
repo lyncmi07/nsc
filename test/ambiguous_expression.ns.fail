@@ -1,0 +1,26 @@
+%%SOURCE%%
+native import std.stdio;
+
+native Nothing writeln(String a);
+native Nothing writeln(Int a);
+
+Nothing main() {
+    aFunc(10);
+    aFunc("Hello");
+    aFunc(bFunc());
+    
+}
+
+Nothing aFunc(String a) {
+    writeln("This was a string");
+}
+Nothing aFunc(Int a) {
+    writeln("This was an int");
+}
+
+String bFunc() {
+    "Hello";
+}
+Int bFunc() {
+    10;
+}

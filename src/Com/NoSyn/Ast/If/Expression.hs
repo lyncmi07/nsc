@@ -172,15 +172,22 @@ validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTy
             Nothing -> return $ Right ((returnType functionOverload), compileString)
 
 reduceOnPointerParameters::[FunctionOverload] -> [Set Ident] -> (Maybe FunctionOverload)
-reduceOnPointerParameters [] _ = Nothing
-reduceOnPointerParameters (x:xs) parameterTypes
-    | reduceOnPointerParameters' [z | (_, z) <- OrderMap.assocs $ parameters x] (Prelude.map (head.(Set.toList)) parameterTypes) = Just x
-    | otherwise = reduceOnPointerParameters xs parameterTypes
+reduceOnPointerParameters functionOverloads parameterTypes =
+    let reducedFunctions = reduceOnPointerParameters' functionOverloads parameterTypes in
+    if (length reducedFunctions) == 1 then
+        let (finalFunction:_) = reducedFunctions in Just finalFunction
+    else Nothing
+        
+reduceOnPointerParameters'::[FunctionOverload] -> [Set Ident] -> [FunctionOverload]
+reduceOnPointerParameters' [] _ = []
+reduceOnPointerParameters' (x:xs) parameterTypes
+    | reduceOnPointerParameters'' [z | (_, z) <- OrderMap.assocs $ parameters x] (Prelude.map (head.(Set.toList)) parameterTypes) = x:(reduceOnPointerParameters' xs parameterTypes)
+    | otherwise = reduceOnPointerParameters' xs parameterTypes
 
-reduceOnPointerParameters'::[Variable] -> [Ident] -> Bool
-reduceOnPointerParameters' [] [] = True
-reduceOnPointerParameters' (x:xs) (y:ys)
-    | getAlphaTypeName x == y = reduceOnPointerParameters' xs ys
+reduceOnPointerParameters''::[Variable] -> [Ident] -> Bool
+reduceOnPointerParameters'' [] [] = True
+reduceOnPointerParameters'' (x:xs) (y:ys)
+    | getAlphaTypeName x == y = reduceOnPointerParameters'' xs ys
     | otherwise = False
 
 reduceParameterTypes::ProgramEnvironment -> [Set Ident] -> [Expression] -> CompilerStatus [(Either (Set Ident) (Ident, String))]
@@ -226,7 +233,7 @@ generateExpressionForPointerParameter _ _ expr = Error ((show expr) ++ " cannot 
 
 generateDFunctionCall::ProgramEnvironment -> Ident -> FunctionOverload -> [Either (Set Ident) (Ident, String)] -> [Expression] -> CompilerStatus String
 generateDFunctionCall programEnvironment funcName functionOverload paramTypeEithers parameterExpressions = do
-    generatedParameters <- sequence $ Prelude.map (either (\x -> Error "Parameter expression could not be generated" (show x)) (\(_,x) -> return x)) paramTypeEithers
+    generatedParameters <- sequence $ Prelude.map (either (\x -> Error "Parameter expression could not be generated" (show (x, (funcName, functionOverload)))) (\(_,x) -> return x)) paramTypeEithers
     zippedParameters <- (zipVariablesToParameterTypesAndExpressions (OrderMap.assocs (parameters functionOverload)) generatedParameters parameterExpressions)
     addressWrappedParameters <- sequence $ Prelude.map (\((_,x),y, z) -> addressWrapper x y z) zippedParameters
     generateDFunctionCall' programEnvironment funcName functionOverload addressWrappedParameters
