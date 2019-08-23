@@ -1,0 +1,27 @@
+%%SOURCE%%
+Nothing infix_:=_(String a, Int b) {
+
+}
+Nothing infix_:=_(Int* a, Int b) {
+
+}
+
+Nothing bFunc(String a, Int b) {
+
+}
+Nothing bFunc(Int* a, Int b) {
+
+}
+
+Int aFunc() {
+    10;
+}
+String aFunc() {
+    "HELLO";
+}
+
+Int main() {
+    aFunc() := 10;
+    bFunc(aFunc(), 10);
+    0;
+}
