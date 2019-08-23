@@ -15,6 +15,7 @@ import Com.NoSyn.Data.Types
 import Com.NoSyn.Data.Variable
 import Control.Monad
 import Com.NoSyn.Environment.FunctionEnvironment
+import Data.Set
 
 data Expression =
     EFuncCall Ident [Expression]
@@ -28,25 +29,27 @@ instance Typeable Expression where
     getTypeNoCheck (EConst constant) = getTypeNoCheck constant
     getAlphaTypeName (EConst constant) = getAlphaTypeName constant
 
-parameterSetsFromPossibleFunctions::[FunctionOverload] -> Int -> [Set Ident]
-parameterSetsFromPossibleFunctions [] numberOfParameters = Prelude.take numberOfParameters $ repeat Set.empty
-parameterSetsFromPossibleFunctions possibleFunctions@(FO { parameters = paramMap }:_) numberOfParameters =
-    let initialParameterTypeSets = Prelude.take numberOfParameters $ repeat Set.empty in
-    parameterSetsFromPossibleFunctions' possibleFunctions initialParameterTypeSets
+parameterSetsFromPossibleFunctions::[FunctionOverload] -> [Expression] -> [Set Ident]
+parameterSetsFromPossibleFunctions [] parameterExpressions = Prelude.take (length parameterExpressions) $ repeat Set.empty
+parameterSetsFromPossibleFunctions possibleFunctions@(FO { parameters = paramMap }:_) parameterExpressions =
+    let initialParameterTypeSets = Prelude.take (length parameterExpressions) $ repeat Set.empty in
+    parameterSetsFromPossibleFunctions' possibleFunctions initialParameterTypeSets parameterExpressions
 
-parameterSetsFromPossibleFunctions'::[FunctionOverload]->[Set Ident]->[Set Ident]
-parameterSetsFromPossibleFunctions' [] finalParameterSets = finalParameterSets
-parameterSetsFromPossibleFunctions' (functionOverload:xs) currentParameterSets =
+parameterSetsFromPossibleFunctions'::[FunctionOverload] -> [Set Ident] -> [Expression] -> [Set Ident]
+parameterSetsFromPossibleFunctions' [] finalParameterSets _ = finalParameterSets
+parameterSetsFromPossibleFunctions' (functionOverload:xs) currentParameterSets parameterExpressions =
     let overloadParameters = OrderMap.assocs (parameters functionOverload) in
-    let updatedParameterSets = addOverloadTypesToTypeSets' overloadParameters currentParameterSets in
-    parameterSetsFromPossibleFunctions' xs updatedParameterSets
+    let updatedParameterSets = addOverloadTypesToTypeSets overloadParameters currentParameterSets parameterExpressions in
+    parameterSetsFromPossibleFunctions' xs updatedParameterSets parameterExpressions
     where
-        addOverloadTypesToTypeSets' _ [] = []
-        addOverloadTypesToTypeSets' (x@(_, newParam@(VVariadic _ _)):[]) (y:ys) = 
-            ((getTypeNoCheck newParam) `Set.insert` y):(addOverloadTypesToTypeSets' [x] ys)
-        addOverloadTypesToTypeSets' ((_, newParam):xs) (y:ys) =
-            ((getTypeNoCheck newParam) `Set.insert` y):(addOverloadTypesToTypeSets' xs ys)
-    
+        addOverloadTypesToTypeSets _ [] _ = []
+        addOverloadTypesToTypeSets (x@(_, newParam@(VVariadic _ _)):[]) (y:ys) (z:zs) =
+            ((getTypeNoCheck newParam) `Set.insert` y):(addOverloadTypesToTypeSets [x] ys zs)
+        addOverloadTypesToTypeSets ((_, newParam@(VPointer _ _)):xs) (y:ys) (z:zs) = case z of
+            (EIdent _) -> ((getTypeNoCheck newParam) `Set.insert` y):(addOverloadTypesToTypeSets xs ys zs)
+            otherwise -> y:(addOverloadTypesToTypeSets xs ys zs)
+        addOverloadTypesToTypeSets ((_, newParam):xs) (y:ys) (z:zs) =
+            ((getTypeNoCheck newParam) `Set.insert` y):(addOverloadTypesToTypeSets xs ys zs)
 
 possibleFunctionsFromReturnTypes::ProgramEnvironment -> Set Ident -> Ident -> Int -> CompilerStatus [FunctionOverload]
 possibleFunctionsFromReturnTypes (PE { functions = functionEnvironment }) possibleReturnTypes funcName noOfParams = do
@@ -125,9 +128,13 @@ generateExpressionForConstParameter _ generatedExpression _ = return generatedEx
 
 validateAndGenerateD::ProgramEnvironment -> Set Ident -> Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
 validateAndGenerateD programEnvironment returnTypes functionCall@(EFuncCall funcName paramExprs) = do
-    possibleFunctions <- possibleFunctionsFromReturnTypes programEnvironment returnTypes funcName (length paramExprs)
-    let parameterSets = parameterSetsFromPossibleFunctions possibleFunctions (length paramExprs) in
-        validateAndGenerateD' programEnvironment returnTypes parameterSets functionCall
+    possibleFunctions <- possibleFunctionsFromReturnTypes programEnvironment nonPointerReturnTypes funcName (length paramExprs)
+    let parameterSets = parameterSetsFromPossibleFunctions possibleFunctions paramExprs in
+            validateAndGenerateD' programEnvironment nonPointerReturnTypes parameterSets functionCall
+    where
+        nonPointerReturnTypes = Data.Set.fromList $ Prelude.filter (\x -> backTake 3 x /= "PTR") (Data.Set.toList returnTypes)
+        backTake x = reverse.(Prelude.take x).reverse
+        
 validateAndGenerateD programEnvironment returnTypes (EConst const) = do
     constantType <- getNoSynType programEnvironment const
     generatedConstant <- generateD programEnvironment const
@@ -156,7 +163,7 @@ validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTy
                     reduceOnPointerParameters possibleFunctions reducedParameterTypes in 
             case maybeFuncToGenerate of
                 Just funcToGenerate ->
-                    let finalReducedParameterTypes = parameterSetsFromPossibleFunctions possibleFunctions (length paramExpressions) in
+                    let finalReducedParameterTypes = parameterSetsFromPossibleFunctions possibleFunctions paramExpressions in
                     reduceParameterTypes programEnvironment finalReducedParameterTypes paramExpressions >>= 
                         (\finalReducedParameterTypeEithers ->
                             generateDFunctionCall programEnvironment funcName funcToGenerate finalReducedParameterTypeEithers paramExpressions >>=
