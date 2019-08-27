@@ -1,6 +1,7 @@
 module Com.NoSyn.Evaluation.Program.Internal.AliasEvaluation (programAliasEvaluate) where
 
 import Com.NoSyn.Ast.If.Program
+import Com.NoSyn.Ast.If.AliasDefinition
 import Com.NoSyn.Ast.Traits.Listable as Listable
 import Com.NoSyn.Error.CompilerStatus
 import Data.Map.Ordered
@@ -10,12 +11,20 @@ import Com.NoSyn.Data.Types
 
 programAliasEvaluate::AliasEnvironment -> Program -> CompilerStatus AliasEnvironment
 programAliasEvaluate defaultEnvironment program =
+    let environmentWithNativeAliases = addNativeAliases (Listable.toList program) defaultEnvironment in
     let noSynLookupTable = createNoSynTypeLookupTable (Listable.toList program) in
-    createRealTypeLookupTable noSynLookupTable defaultEnvironment
+    createRealTypeLookupTable noSynLookupTable environmentWithNativeAliases
+
+addNativeAliases::[ProgramStmt] -> AliasEnvironment -> AliasEnvironment
+addNativeAliases [] aliasEnvironment = aliasEnvironment
+addNativeAliases ((PSAliasDef (ADNative aliasName aliasType)):xs) aliasEnvironment =
+    let updatedAliasEnvironment = (aliasName, aliasType) |< aliasEnvironment in
+    addNativeAliases xs updatedAliasEnvironment
+addNativeAliases (_:xs) aliasEnvironment = addNativeAliases xs aliasEnvironment
 
 createNoSynTypeLookupTable::[ProgramStmt] -> OMap Ident Ident
 createNoSynTypeLookupTable [] = Data.Map.Ordered.empty
-createNoSynTypeLookupTable ((PSAliasDef aliasName aliasType):xs) =
+createNoSynTypeLookupTable ((PSAliasDef (ADNoSyn aliasName aliasType)):xs) =
     (aliasName, aliasType) |< (createNoSynTypeLookupTable xs)
 createNoSynTypeLookupTable (_:xs) = createNoSynTypeLookupTable xs
 

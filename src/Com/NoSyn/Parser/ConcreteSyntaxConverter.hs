@@ -4,6 +4,7 @@ import Com.NoSyn.Ast.If.Block
 import Com.NoSyn.Ast.If.Constant as IfConstant
 import Com.NoSyn.Ast.Ifm1.Constant as Ifm1Constant
 import Com.NoSyn.Ast.Ifm1.Expression
+import Com.NoSyn.Ast.Ifm1.AliasDefinition
 import Com.NoSyn.Ast.Ifm1.FunctionDefinition
 import Com.NoSyn.Ast.If.Parameter as IfParameter
 import Com.NoSyn.Ast.Ifm1.Parameter as Ifm1Parameter
@@ -154,10 +155,13 @@ convertFunctionDefinition (CBracketOpOverloadDef a b c d) = do
     m <- convertBlockStatement d
     return $ FDBracketOverload b a n m
 
-convertAliasDefinition :: CAliasDefinition -> CompilerStatus ProgramStmt
+convertAliasDefinition :: CAliasDefinition -> CompilerStatus AliasDefinition
 convertAliasDefinition (CAliasDef o a b)
-  | o == "=" = return $ PSAliasDef a b
-  | otherwise = Error "alias statement must assign using '=' symbol" (show (CAliasDef o a b))
+    | o == "=" = return $ ADNoSyn a b
+    | otherwise = Error "alias statement must assign using '=' symbol" (show (CAliasDef o a b))
+convertAliasDefinition (CNativeAliasDef o a b)
+    | o == "=" = return $ ADNative a b
+    | otherwise = Error "alias statement must assign using '=' symbol" (show (CNativeAliasDef o a b))
 
 convertProgramStatement :: CProgramStatement -> CompilerStatus ProgramStmt
 convertProgramStatement (CPSVarDec a) = do
@@ -167,7 +171,8 @@ convertProgramStatement (CPSFuncDef a) = do
     n <- convertFunctionDefinition a
     return $ PSFuncDef n
 convertProgramStatement (CPSAliasDef a) = do
-    convertAliasDefinition a
+    n <- convertAliasDefinition a
+    return $ PSAliasDef n
 convertProgramStatement (CPSImportStatement a) = 
     Error "COMPILER ERROR: Import statements should not be present in this context" (show (CPSImportStatement a))
 
