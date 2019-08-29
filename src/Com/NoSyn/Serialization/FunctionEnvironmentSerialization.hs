@@ -33,6 +33,7 @@ serializeNamedFunction' (functionName, (x:xs)) serializedFunctions =
         parameterVariables = Prelude.map (\(_, y) -> y) parameterList
         variableSerializer (VConst typ name) = typ ++ ";" ++ name
         variableSerializer (VPointer typ name) = typ ++ "*;" ++ name
+        variableSerializer (VVariadic typ name) = typ ++ "...;" ++ name
         serializedParameters = concat $ intersperse "," $ Prelude.map variableSerializer parameterVariables
 
 deserializeFunction :: String -> CompilerStatus (Ident, FunctionOverload)
@@ -67,4 +68,6 @@ deserializeParameters serializedParameters = do
             let paramType:paramName:empty = splitOn ";" serializedParameter in
                 if (empty /= []) then Error ("Invalid serialization: " ++ serializedParameter) (serializedParameters)
                 else if (backTake 1 paramType) == "*" then return $ VPointer (backDrop 1 paramType) paramName
+                else if (backTake 3 paramType) == "..." then return $ VVariadic (backDrop 3 paramType) paramName
                 else return $ VConst paramType paramName
+
