@@ -2,6 +2,7 @@ module Com.NoSyn.Parser.Token where
 
 data Token =
     TokenString String
+    | TokenNativeCode String
     | TokenInt Int
     | TokenDouble Double
     | TokenChar Char

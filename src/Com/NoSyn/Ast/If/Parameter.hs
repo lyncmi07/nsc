@@ -42,7 +42,7 @@ instance TargetCodeGeneratable Parameter where
         return $ parameterDType ++ "* " ++ paramName
     generateD programEnvironment parameter@(PVariadic paramType paramName) = do
         parameterDType <- getRealType programEnvironment parameter
-        return $ parameterDType ++ "... " ++ paramName
+        return $ parameterDType ++ "[] " ++ paramName ++ " ..."
 
 instance Typeable Parameter where
     getTypeNoCheck (PConst paramType _) = paramType

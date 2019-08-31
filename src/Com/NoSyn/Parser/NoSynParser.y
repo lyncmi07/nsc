@@ -13,6 +13,7 @@ import Com.NoSyn.Parser.Token
 
 %token
     string     { TokenString $$ }
+    nativecode { TokenNativeCode $$ }
     integer    { TokenInt $$ }
     double     { TokenDouble $$ }
     char       { TokenChar $$ }
@@ -99,6 +100,7 @@ BracketType : '(' empty ')' { Parentheses }
             | '{' empty '}' { Curly }
 
 AliasDefinition : alias ident operator ident    { CAliasDef $3 $2 $4 }
+                | native alias ident operator nativecode {CNativeAliasDef $4 $3 $5 }
 
 ProgramStatement : VariableDeclaration     { CPSVarDec $1 }
 		 | FunctionDefinition      { CPSFuncDef $1 }
@@ -115,3 +117,4 @@ ModuleName : ident                      { CModuleIdent $1 }
 parseError :: [Token] -> a
 parseError (x:_) = error $ "Parser Error at " ++ (show x)
 }
+

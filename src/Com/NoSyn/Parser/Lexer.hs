@@ -15,6 +15,7 @@ lexer (x:xs)
     | x `elem` digits = lexNum (x:xs)
     | x `elem` operatorChars = lexOperator (x:xs)
 lexer ('"':xs) = lexString xs
+lexer ('`':xs) = lexNativeCode xs
 lexer (x:xs)
     | x `elem` ['(', '[', '{'] = let (tokens, rest) = lexBracket x xs in
         tokens ++ lexer rest
@@ -43,6 +44,12 @@ lexString x = let (stringToken, rest) = lexString' x "" in stringToken : lexer r
 lexString' :: String -> String -> (Token, String)
 lexString' ('"':xs) finalString = (TokenString finalString, xs)
 lexString' (x:xs) currentString = lexString' xs (currentString ++ [x])
+
+lexNativeCode x = let (nativeCodeToken, rest) = lexNativeCode' x "" in nativeCodeToken : lexer rest
+lexNativeCode' :: String -> String -> (Token, String)
+lexNativeCode' ('`':xs) finalNativeCode = (TokenNativeCode finalNativeCode, xs)
+lexNativeCode' (x:xs) currentNativeCode = lexNativeCode' xs (currentNativeCode ++ [x])
+
 
 lexNum x = let (numToken, rest) = lexNum' x "" in numToken : lexer rest
 lexNum' :: String -> String -> (Token, String)

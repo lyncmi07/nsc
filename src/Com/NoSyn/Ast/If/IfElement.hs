@@ -2,6 +2,7 @@ module Com.NoSyn.Ast.If.IfElement where
 
 import Com.NoSyn.Ast.If.Constant
 import Com.NoSyn.Ast.If.Expression
+import Com.NoSyn.Ast.If.AliasDefinition
 import Com.NoSyn.Ast.If.FunctionDefinition
 import Com.NoSyn.Ast.If.Parameter
 import Com.NoSyn.Ast.If.Program
@@ -14,6 +15,7 @@ import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 data IfElement =
     IfConstant Constant
     | IfExpression Expression
+    | IfAliasDefinition AliasDefinition
     | IfFunctionDefinition FunctionDefinition
     | IfParameter Parameter
     | IfProgram Program
@@ -30,6 +32,7 @@ data IfElement =
 instance TargetCodeGeneratable IfElement where
     generateD a (IfConstant b) = generateD a b
     generateD a (IfExpression b) = generateD a b
+    generateD a (IfAliasDefinition b) = generateD a b
     generateD a (IfFunctionDefinition b) = generateD a b
     generateD a (IfParameter b) = generateD a b
     generateD a (IfProgram b) = generateD a b

@@ -1,0 +1,17 @@
+%%SOURCE%%
+
+native alias AnotherInt = `long`;
+
+native Nothing assignment(AnotherInt* a, AnotherInt b);
+
+Nothing infix_:=_(Int* a, AnotherInt b) {
+    assignment(b, b);
+}
+
+Nothing infix_+_(Int* a, AnotherInt b) {
+    a := add(a, b);
+}
+
+AnotherInt add(Int a, AnotherInt b) {
+    b;
+}

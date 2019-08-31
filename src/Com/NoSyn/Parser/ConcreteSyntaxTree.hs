@@ -72,6 +72,7 @@ data CFunctionDefinition =
 
 
 data CAliasDefinition = CAliasDef String String String
+    | CNativeAliasDef String String String
     deriving Show
 
 data CProgramStatement = 

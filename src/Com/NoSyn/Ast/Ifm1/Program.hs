@@ -6,6 +6,7 @@ import qualified Com.NoSyn.Ast.If.Program as IfProgram
 import Com.NoSyn.Data.Types
 import Com.NoSyn.Ast.Traits.IfElementGeneratable
 import Com.NoSyn.Ast.Ifm1.VariableDeclaration
+import Com.NoSyn.Ast.Ifm1.AliasDefinition
 import Com.NoSyn.Ast.Ifm1.FunctionDefinition
 import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Ast.If.Block
@@ -13,14 +14,15 @@ import Com.NoSyn.Ast.Traits.Listable
 
 type Program = Block ProgramStmt
 data ProgramStmt =
-    PSAliasDef Ident Ident
+    PSAliasDef AliasDefinition
     | PSFuncDef FunctionDefinition
     | PSVarDec VariableDeclaration
     deriving Show
 
 instance IfElementGeneratable ProgramStmt where
-    generateIfElement programEnvironment (PSAliasDef a b) =
-        return $ IfElement.IfProgramStmt (IfProgram.PSAliasDef a b)
+    generateIfElement programEnvironment (PSAliasDef a) = do
+        ~(IfElement.IfAliasDefinition b) <- generateIfElement programEnvironment a
+        return $ IfElement.IfProgramStmt (IfProgram.PSAliasDef b)
     generateIfElement programEnvironment (PSVarDec a) = do
         ~(IfElement.IfVariableDeclaration b) <- generateIfElement programEnvironment a
         return $ IfElement.IfProgramStmt (IfProgram.PSVarDec b)
