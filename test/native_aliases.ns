@@ -1,6 +1,6 @@
 %%SOURCE%%
 
-native alias AnotherInt = long;
+native alias AnotherInt = `long`;
 
 native Nothing assignment(AnotherInt* a, AnotherInt b);
 
