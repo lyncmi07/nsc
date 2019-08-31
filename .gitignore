@@ -10,6 +10,7 @@ test/*
 !test/*.hs
 !test/*.ns
 !test/*.ns.fail
+!test/*.ns.disable
 documents/*.pdf
 documents/*.html
 *.aux
