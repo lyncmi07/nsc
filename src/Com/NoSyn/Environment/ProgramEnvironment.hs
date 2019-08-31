@@ -63,7 +63,7 @@ lookupDType noSynType aliasEnvironment
 lookupDType' noSynType aliasEnvironment
     | noSynType `OrderMap.member` aliasEnvironment = do
         nextAlias <- compilerStatusFromMaybe ("COMPILER ERROR: imported library incorrect") (OrderMap.lookup noSynType aliasEnvironment)
-        if nextAlias == noSynType then return nextAlias
+        if nextAlias == noSynType then return nextAlias -- If the aliases are the same then the break out of the loop because `nextAlias` is actually refering to a type in D
         else lookupDType' nextAlias aliasEnvironment
     | otherwise = return noSynType
 
@@ -83,7 +83,7 @@ lookupAtomicNoSynType noSynType aliasEnvironment
 lookupAtomicNoSynType' previousType noSynType aliasEnvironment
     | noSynType `OrderMap.member` aliasEnvironment = do
         nextAlias <- compilerStatusFromMaybe ("COMPILER ERROR: imported library incorrect") (OrderMap.lookup noSynType aliasEnvironment)
-        if noSynType == nextAlias then return noSynType
+        if noSynType == nextAlias then return noSynType -- If the aliases are the same then the break out of the loop because `nextAlias` is actually refering to a type in D
         else lookupAtomicNoSynType' noSynType nextAlias aliasEnvironment
     | otherwise = return previousType
 
