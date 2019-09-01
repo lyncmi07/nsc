@@ -103,10 +103,8 @@ validFunctionPredicate' pg ((_, (VPointer x _)):xs) (y:ys)
 validFunctionPredicate' pg (x@(_, paramVariable@(VVariadic paramType _)):[]) (y:ys)
     | paramType `Set.member` y = validFunctionPredicate' pg [x] ys
     | otherwise = case (getAlphaTypeName (aliases pg) paramVariable) >>= (\x -> return $ x `Set.member` y) of
-        Valid _ x -> x
+        Valid _ x -> x && ((length ys) == 0)
         _ -> False
-    -- | (getAlphaTypeName (aliases pg) paramVariable) `Set.member` y = (length ys) == 0
-    -- | otherwise = False
 
 generateExpression::ProgramEnvironment -> Expression -> CompilerStatus String
 generateExpression programEnvironment functionCall@(EFuncCall _ _) = do
@@ -131,12 +129,11 @@ generateExpressionForConstParameter _ generatedExpression _ = return generatedEx
 
 validateAndGenerateD::ProgramEnvironment -> Set Ident -> Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
 validateAndGenerateD programEnvironment returnTypes functionCall@(EFuncCall funcName paramExprs) = do
-    -- unaliasedNonPointerReturnTypes <- sequence [lookupAtomicNoSynType x (aliases programEnvironment) | x <- (Data.Set.toList returnTypes), backTake 3 x /= "PTR"]
-    possibleFunctions <- possibleFunctionsFromReturnTypes programEnvironment nonPointerReturnTypes funcName (length paramExprs)
+    unaliasedNonPointerReturnTypes <- sequence [lookupAtomicNoSynType x (aliases programEnvironment) | x <- (Data.Set.toList returnTypes), backTake 3 x /= "PTR"]
+    possibleFunctions <- possibleFunctionsFromReturnTypes programEnvironment (Data.Set.fromList unaliasedNonPointerReturnTypes) funcName (length paramExprs)
     let parameterSets = parameterSetsFromPossibleFunctions possibleFunctions paramExprs in
-            validateAndGenerateD' programEnvironment nonPointerReturnTypes parameterSets functionCall
+            validateAndGenerateD' programEnvironment (Data.Set.fromList unaliasedNonPointerReturnTypes) parameterSets functionCall
     where
-        nonPointerReturnTypes = Data.Set.fromList $ Prelude.filter (\x -> backTake 3 x /= "PTR") (Data.Set.toList returnTypes)
         backTake x = reverse.(Prelude.take x).reverse
         
 validateAndGenerateD programEnvironment returnTypes (EConst const) = do

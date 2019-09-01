@@ -8,10 +8,10 @@ Nothing infix_:=_(Int* a, AnotherInt b) {
     assignment(b, b);
 }
 
-Nothing infix_+_(Int* a, AnotherInt b) {
+Nothing infix_+_(AnotherInt* a, AnotherInt b) {
     a := add(a, b);
 }
 
-Int add(Int a, Int b) {
+Int add(Int a, AnotherInt b) {
     a;
 }

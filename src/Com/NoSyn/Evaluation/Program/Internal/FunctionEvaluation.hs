@@ -36,15 +36,15 @@ programFunctionDefinitionEvaluate' aliasEnvironment (_:xs) currentFunctionEnviro
 createFunctionEntry::AliasEnvironment -> FunctionDefinition -> CompilerStatus (Ident, FunctionOverload)
 createFunctionEntry aliasEnvironment (FDNative functionName returnType parameters)= do
     _ <- lookupDType returnType aliasEnvironment
-    _ <- sequence $ Prelude.map (\(_, x) -> lookupDType (getTypeNoCheck x) aliasEnvironment) (parametersToTuples parameters)
-    return (functionName, FO { returnType = returnType, parameters = parameterOMap, parentModule = Nothing })
-    where
-        parameterOMap = (Data.Map.Ordered.fromList (parametersToTuples parameters))
+    unaliasedParameterList <- parametersToTuples aliasEnvironment parameters
+    unaliasedReturnType <- lookupAtomicNoSynType returnType aliasEnvironment
+    _ <- sequence $ Prelude.map (\(_, x) -> lookupDType (getTypeNoCheck x) aliasEnvironment) unaliasedParameterList
+    return (functionName, FO { returnType = unaliasedReturnType, parameters = (Data.Map.Ordered.fromList unaliasedParameterList), parentModule = Nothing })
 createFunctionEntry aliasEnvironment (FDNoSyn functionName returnType parameters _)= do
     _ <- lookupDType returnType aliasEnvironment
-    _ <- sequence $ Prelude.map (\(_, x) -> lookupDType (getTypeNoCheck x) aliasEnvironment) (parametersToTuples parameters)
-    return (functionName, FO { returnType = returnType, parameters = parameterOMap, parentModule = Nothing})
-    where
-        parameterOMap = (Data.Map.Ordered.fromList (parametersToTuples parameters))
+    unaliasedParameterList <- parametersToTuples aliasEnvironment parameters
+    unaliasedReturnType <- lookupAtomicNoSynType returnType aliasEnvironment
+    _ <- sequence $ Prelude.map (\(_, x) -> lookupDType (getTypeNoCheck x) aliasEnvironment) unaliasedParameterList
+    return (functionName, FO { returnType = unaliasedReturnType, parameters = (Data.Map.Ordered.fromList unaliasedParameterList), parentModule = Nothing})
 
 
