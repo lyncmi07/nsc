@@ -57,8 +57,6 @@ instance Typeable Parameter where
         atomicTypeName <- lookupAtomicNoSynType paramType aliasEnvironment
         return $ atomicTypeName ++ "VARAD"
 
-getAtomicTypeName pg paramType = lookupAtomicNoSynType  paramType
-
 instance Blockable Parameter where
     blockSeparator _ = ", "
 
