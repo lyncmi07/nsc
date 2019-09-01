@@ -24,5 +24,5 @@ instance Typeable Constant where
     getTypeNoCheck (CDouble _) = "Double"
     getTypeNoCheck (CChar _) = "Char"
     getTypeNoCheck (CString _) = "String"
-    getAlphaTypeName = getTypeNoCheck
+    getAlphaTypeName _ x = return $ getTypeNoCheck x
 

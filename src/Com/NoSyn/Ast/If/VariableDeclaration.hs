@@ -29,4 +29,6 @@ instance EnvironmentUpdater VariableDeclaration where
 
 instance Typeable VariableDeclaration where
     getTypeNoCheck (VDec varType _) = varType
-    getAlphaTypeName (VDec varType _) = varType
+    getAlphaTypeName aliasEnvironment (VDec varType _) = do
+        atomicVarType <- lookupAtomicNoSynType varType aliasEnvironment
+        return atomicVarType

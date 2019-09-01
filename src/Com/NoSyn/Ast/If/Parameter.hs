@@ -48,9 +48,15 @@ instance Typeable Parameter where
     getTypeNoCheck (PConst paramType _) = paramType
     getTypeNoCheck (PPointer paramType _) = paramType ++ "*"
     getTypeNoCheck (PVariadic paramType _) = paramType ++ "..."
-    getAlphaTypeName (PConst paramType _) = paramType
-    getAlphaTypeName (PPointer paramType _) = paramType ++ "PTR"
-    getAlphaTypeName (PVariadic paramType _) = paramType ++ "VARAD"
+    getAlphaTypeName aliasEnvironment (PConst paramType _) = lookupAtomicNoSynType paramType aliasEnvironment 
+    getAlphaTypeName aliasEnvironment (PPointer paramType _) = do
+        atomicTypeName <- lookupAtomicNoSynType paramType aliasEnvironment 
+        return $ atomicTypeName ++ "PTR"
+    getAlphaTypeName aliasEnvironment (PVariadic paramType _) = do
+        atomicTypeName <- lookupAtomicNoSynType paramType aliasEnvironment
+        return $ atomicTypeName ++ "VARAD"
+
+getAtomicTypeName pg paramType = lookupAtomicNoSynType  paramType
 
 instance Blockable Parameter where
     blockSeparator _ = ", "
