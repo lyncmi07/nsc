@@ -1,0 +1,8 @@
+%%SOURCE%%
+
+native AnotherInt foo();
+alias AnotherInt = Int;
+
+AnotherInt add(AnotherInt a, AnotherInt b) {
+    foo();
+}

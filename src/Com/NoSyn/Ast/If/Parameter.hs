@@ -11,6 +11,7 @@ import Com.NoSyn.Ast.Traits.Listable as Listable
 import Data.List
 import Data.Map
 import Com.NoSyn.Environment.ProgramEnvironment
+import Com.NoSyn.Environment.AliasEnvironment
 import Com.NoSyn.Error.CompilerStatus
 
 type Parameters = Block Parameter
@@ -48,21 +49,28 @@ instance Typeable Parameter where
     getTypeNoCheck (PConst paramType _) = paramType
     getTypeNoCheck (PPointer paramType _) = paramType ++ "*"
     getTypeNoCheck (PVariadic paramType _) = paramType ++ "..."
-    getAlphaTypeName (PConst paramType _) = paramType
-    getAlphaTypeName (PPointer paramType _) = paramType ++ "PTR"
-    getAlphaTypeName (PVariadic paramType _) = paramType ++ "VARAD"
+    getAlphaTypeName aliasEnvironment (PConst paramType _) = lookupAtomicNoSynType paramType aliasEnvironment 
+    getAlphaTypeName aliasEnvironment (PPointer paramType _) = do
+        atomicTypeName <- lookupAtomicNoSynType paramType aliasEnvironment 
+        return $ atomicTypeName ++ "PTR"
+    getAlphaTypeName aliasEnvironment (PVariadic paramType _) = do
+        atomicTypeName <- lookupAtomicNoSynType paramType aliasEnvironment
+        return $ atomicTypeName ++ "VARAD"
 
 instance Blockable Parameter where
     blockSeparator _ = ", "
 
-parameterToTuple::Parameter -> (Ident, Variable)
-parameterToTuple (PConst paramType paramName) = 
-    (paramName , (VConst paramType paramName))
-parameterToTuple (PPointer paramType paramName) = 
-    (paramName , (VPointer paramType paramName))
-parameterToTuple (PVariadic paramType paramName) =
-    (paramName, (VVariadic paramType paramName))
+parameterToTuple::AliasEnvironment -> Parameter -> CompilerStatus (Ident, Variable)
+parameterToTuple aliasEnvironment (PConst paramType paramName) = do
+    realParamType <- lookupAtomicNoSynType paramType aliasEnvironment
+    return (paramName , (VConst realParamType paramName))
+parameterToTuple aliasEnvironment (PPointer paramType paramName) = do
+    realParamType <- lookupAtomicNoSynType paramType aliasEnvironment
+    return (paramName , (VPointer realParamType paramName))
+parameterToTuple aliasEnvironment (PVariadic paramType paramName) = do
+    realParamType <- lookupAtomicNoSynType paramType aliasEnvironment
+    return (paramName, (VVariadic realParamType paramName))
 
-parametersToTuples::Parameters -> [(Ident, Variable)]
-parametersToTuples parameters =
-    Prelude.map parameterToTuple (Listable.toList parameters)
+parametersToTuples::AliasEnvironment -> Parameters -> CompilerStatus [(Ident, Variable)]
+parametersToTuples aliasEnvironment parameters =
+    sequence $ Prelude.map (parameterToTuple aliasEnvironment) (Listable.toList parameters)

@@ -14,9 +14,9 @@ instance Typeable Variable where
     getTypeNoCheck (VConst varType _) = varType
     getTypeNoCheck (VPointer varType _) = varType
     getTypeNoCheck (VVariadic varType _) = varType
-    getAlphaTypeName (VConst varType _) = varType
-    getAlphaTypeName (VPointer varType _) = varType ++ "PTR"
-    getAlphaTypeName (VVariadic varType _) = varType ++ "VARAD"
+    getAlphaTypeName _ (VConst varType _) = return $ varType
+    getAlphaTypeName _ (VPointer varType _) = return $ varType ++ "PTR"
+    getAlphaTypeName _ (VVariadic varType _) = return $ varType ++ "VARAD"
 
 instance Nameable Variable where
     getName (VConst _ name) = name

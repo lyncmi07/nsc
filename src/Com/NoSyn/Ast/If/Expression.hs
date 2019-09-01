@@ -27,7 +27,7 @@ instance TargetCodeGeneratable Expression where
     generateD = generateExpression
 instance Typeable Expression where
     getTypeNoCheck (EConst constant) = getTypeNoCheck constant
-    getAlphaTypeName (EConst constant) = getAlphaTypeName constant
+    getAlphaTypeName pg (EConst constant) = getAlphaTypeName pg constant
 
 parameterSetsFromPossibleFunctions::[FunctionOverload] -> [Expression] -> [Set Ident]
 parameterSetsFromPossibleFunctions [] parameterExpressions = Prelude.take (length parameterExpressions) $ repeat Set.empty
@@ -74,7 +74,7 @@ lookupFunction funcName funcEnvironment =
 possibleFunctionsFromReturnAndParamTypes::ProgramEnvironment -> Set Ident -> Ident -> [Set Ident] ->  CompilerStatus [FunctionOverload]
 possibleFunctionsFromReturnAndParamTypes programEnvironment possibleReturnTypes funcName possibleParameterTypes = do
     possibleFunctionsByReturnType <- possibleFunctionsFromReturnTypes programEnvironment possibleReturnTypes funcName (length possibleParameterTypes)
-    let filteredPossibleFunctions = Prelude.map (\(x,_) -> x) $ Prelude.filter validFunctionPredicate $ zip possibleFunctionsByReturnType (repeat possibleParameterTypes) in
+    let filteredPossibleFunctions = Prelude.map (\(x,_) -> x) $ Prelude.filter (validFunctionPredicate programEnvironment)  $ zip possibleFunctionsByReturnType (repeat possibleParameterTypes) in
         if (length filteredPossibleFunctions) == 0 then 
                 Error ("there are no function overloads for '"
                 ++ funcName
@@ -85,25 +85,26 @@ possibleFunctionsFromReturnAndParamTypes programEnvironment possibleReturnTypes 
             else return $ filteredPossibleFunctions
 
 
-validFunctionPredicate::(FunctionOverload, [Set Ident]) -> Bool
-validFunctionPredicate (FO { parameters = parameterMap }, parameterTypeSets) =
-    validFunctionPredicate' (OrderMap.assocs parameterMap) parameterTypeSets
+validFunctionPredicate::ProgramEnvironment -> (FunctionOverload, [Set Ident]) -> Bool
+validFunctionPredicate pg (FO { parameters = parameterMap }, parameterTypeSets) =
+    validFunctionPredicate' pg (OrderMap.assocs parameterMap) parameterTypeSets
 
-validFunctionPredicate'::[(Ident, Variable)] -> [Set Ident] -> Bool
-validFunctionPredicate' [] [] = True
-validFunctionPredicate' ((_, (VVariadic paramType _)):[]) [] = True
-validFunctionPredicate' _ [] = False
-validFunctionPredicate' [] _ = False
-validFunctionPredicate' ((_, (VConst x _)):xs) (y:ys)
-    | (x `Set.member` y) || ((x ++ "PTR") `Set.member` y) = validFunctionPredicate' xs ys
+validFunctionPredicate'::ProgramEnvironment -> [(Ident, Variable)] -> [Set Ident] -> Bool
+validFunctionPredicate' _ [] [] = True
+validFunctionPredicate' _ ((_, (VVariadic paramType _)):[]) [] = True
+validFunctionPredicate' _ _ [] = False
+validFunctionPredicate' _ [] _ = False
+validFunctionPredicate' pg ((_, (VConst x _)):xs) (y:ys)
+    | (x `Set.member` y) || ((x ++ "PTR") `Set.member` y) = validFunctionPredicate' pg xs ys
     | otherwise = False
-validFunctionPredicate' ((_, (VPointer x _)):xs) (y:ys)
-    | (x `Set.member` y) || ((x ++ "PTR") `Set.member` y) = validFunctionPredicate' xs ys
+validFunctionPredicate' pg ((_, (VPointer x _)):xs) (y:ys)
+    | (x `Set.member` y) || ((x ++ "PTR") `Set.member` y) = validFunctionPredicate' pg xs ys
     | otherwise = False
-validFunctionPredicate' (x@(_, paramVariable@(VVariadic paramType _)):[]) (y:ys)
-    | paramType `Set.member` y = validFunctionPredicate' [x] ys
-    | (getAlphaTypeName paramVariable) `Set.member` y = (length ys) == 0
-    | otherwise = False
+validFunctionPredicate' pg (x@(_, paramVariable@(VVariadic paramType _)):[]) (y:ys)
+    | paramType `Set.member` y = validFunctionPredicate' pg [x] ys
+    | otherwise = case (getAlphaTypeName (aliases pg) paramVariable) >>= (\x -> return $ x `Set.member` y) of
+        Valid _ x -> x && ((length ys) == 0)
+        _ -> False
 
 generateExpression::ProgramEnvironment -> Expression -> CompilerStatus String
 generateExpression programEnvironment functionCall@(EFuncCall _ _) = do
@@ -128,11 +129,11 @@ generateExpressionForConstParameter _ generatedExpression _ = return generatedEx
 
 validateAndGenerateD::ProgramEnvironment -> Set Ident -> Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
 validateAndGenerateD programEnvironment returnTypes functionCall@(EFuncCall funcName paramExprs) = do
-    possibleFunctions <- possibleFunctionsFromReturnTypes programEnvironment nonPointerReturnTypes funcName (length paramExprs)
+    unaliasedNonPointerReturnTypes <- sequence [lookupAtomicNoSynType x (aliases programEnvironment) | x <- (Data.Set.toList returnTypes), backTake 3 x /= "PTR"]
+    possibleFunctions <- possibleFunctionsFromReturnTypes programEnvironment (Data.Set.fromList unaliasedNonPointerReturnTypes) funcName (length paramExprs)
     let parameterSets = parameterSetsFromPossibleFunctions possibleFunctions paramExprs in
-            validateAndGenerateD' programEnvironment nonPointerReturnTypes parameterSets functionCall
+            validateAndGenerateD' programEnvironment (Data.Set.fromList unaliasedNonPointerReturnTypes) parameterSets functionCall
     where
-        nonPointerReturnTypes = Data.Set.fromList $ Prelude.filter (\x -> backTake 3 x /= "PTR") (Data.Set.toList returnTypes)
         backTake x = reverse.(Prelude.take x).reverse
         
 validateAndGenerateD programEnvironment returnTypes (EConst const) = do
@@ -144,10 +145,10 @@ validateAndGenerateD programEnvironment returnTypes (EConst const) = do
 validateAndGenerateD programEnvironment returnTypes (EIdent varName) = do
     variable <- lookupVariableType programEnvironment varName
     variableType <- getNoSynType programEnvironment variable
-    let alphaVariableType = getAlphaTypeName variable in
-        if variableType `Set.member` returnTypes
-            then return $ Right (alphaVariableType, varName)
-            else Error ("Identifier '" ++ varName ++ "' given cannot be used in context") (show returnTypes)
+    alphaVariableType <- getAlphaTypeName (aliases programEnvironment) variable
+    if variableType `Set.member` returnTypes
+        then return $ Right (alphaVariableType, varName)
+        else Error ("Identifier '" ++ varName ++ "' given cannot be used in context") (show returnTypes)
 
 validateAndGenerateD'::ProgramEnvironment -> Set Ident -> [Set Ident] -> Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
 validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTypes functionCall@(EFuncCall funcName paramExpressions) = do
@@ -160,7 +161,7 @@ validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTy
                 if (length possibleFunctions) == 1 then 
                     Just $ head possibleFunctions 
                 else let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in 
-                    reduceOnPointerParameters possibleFunctions reducedParameterTypes in 
+                    reduceOnPointerParameters programEnvironment possibleFunctions reducedParameterTypes in 
             case maybeFuncToGenerate of
                 Just funcToGenerate ->
                     let finalReducedParameterTypes = parameterSetsFromPossibleFunctions possibleFunctions paramExpressions in
@@ -178,23 +179,24 @@ validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTy
             (Just dependency) -> dependencyRequired dependency $ Right ((returnType functionOverload), compileString)
             Nothing -> return $ Right ((returnType functionOverload), compileString)
 
-reduceOnPointerParameters::[FunctionOverload] -> [Set Ident] -> (Maybe FunctionOverload)
-reduceOnPointerParameters functionOverloads parameterTypes =
-    let reducedFunctions = reduceOnPointerParameters' functionOverloads parameterTypes in
+reduceOnPointerParameters::ProgramEnvironment -> [FunctionOverload] -> [Set Ident] -> (Maybe FunctionOverload)
+reduceOnPointerParameters pg functionOverloads parameterTypes =
+    let reducedFunctions = reduceOnPointerParameters' pg functionOverloads parameterTypes in
     if (length reducedFunctions) == 1 then
         let (finalFunction:_) = reducedFunctions in Just finalFunction
     else Nothing
         
-reduceOnPointerParameters'::[FunctionOverload] -> [Set Ident] -> [FunctionOverload]
-reduceOnPointerParameters' [] _ = []
-reduceOnPointerParameters' (x:xs) parameterTypes
-    | reduceOnPointerParameters'' [z | (_, z) <- OrderMap.assocs $ parameters x] (Prelude.map (head.(Set.toList)) parameterTypes) = x:(reduceOnPointerParameters' xs parameterTypes)
-    | otherwise = reduceOnPointerParameters' xs parameterTypes
+reduceOnPointerParameters'::ProgramEnvironment -> [FunctionOverload] -> [Set Ident] -> [FunctionOverload]
+reduceOnPointerParameters' _ [] _ = []
+reduceOnPointerParameters' pg (x:xs) parameterTypes
+    | reduceOnPointerParameters'' pg [z | (_, z) <- 
+        OrderMap.assocs $ parameters x] (Prelude.map (head.(Set.toList)) parameterTypes) = x:(reduceOnPointerParameters' pg xs parameterTypes)
+    | otherwise = reduceOnPointerParameters' pg xs parameterTypes
 
-reduceOnPointerParameters''::[Variable] -> [Ident] -> Bool
-reduceOnPointerParameters'' [] [] = True
-reduceOnPointerParameters'' (x:xs) (y:ys)
-    | getAlphaTypeName x == y = reduceOnPointerParameters'' xs ys
+reduceOnPointerParameters''::ProgramEnvironment -> [Variable] -> [Ident] -> Bool
+reduceOnPointerParameters'' _ [] [] = True
+reduceOnPointerParameters'' pg (x:xs) (y:ys)
+    | getAlphaTypeName (aliases pg) x == (return y) = reduceOnPointerParameters'' pg xs ys
     | otherwise = False
 
 reduceParameterTypes::ProgramEnvironment -> [Set Ident] -> [Expression] -> CompilerStatus [(Either (Set Ident) (Ident, String))]
@@ -250,15 +252,14 @@ generateDFunctionCall programEnvironment funcName functionOverload paramTypeEith
         addressWrapper (VVariadic _ _) x y = generateExpressionForConstParameter programEnvironment x y
 
 generateDFunctionCall'::ProgramEnvironment->Ident->FunctionOverload->[String]->CompilerStatus String
-generateDFunctionCall' programEnvironment funcName (FO { returnType=returnType, parameters=parameters }) parameterExpressions =
-    let joinedParameterExpressions = concat $ intersperse "," parameterExpressions in
-    return $ fullDName ++ "(" ++ joinedParameterExpressions ++ ")"
-    where
-        parameterTypes = [ getAlphaTypeName x | (_, x) <- OrderMap.assocs parameters ]
-        fullDName = case functionIsNative programEnvironment funcName of
+generateDFunctionCall' programEnvironment funcName (FO { returnType=returnType, parameters=parameters }) parameterExpressions = do
+    parameterTypes <- sequence $ [ getAlphaTypeName (aliases programEnvironment) x | (_, x) <- OrderMap.assocs parameters ]
+    let fullDName = (case functionIsNative programEnvironment funcName of
             (Just postfix) -> dropPostfix postfix funcName
-            Nothing -> let dFuncSuffix = returnType ++ (concat parameterTypes) in
-                funcName ++ "_" ++ dFuncSuffix
+            Nothing -> let dFuncSuffix = returnType ++ (concat parameterTypes) in funcName ++ "_" ++ dFuncSuffix) in
+        let joinedParameterExpressions = concat $ intersperse "," parameterExpressions in
+            return $ fullDName ++ "(" ++ joinedParameterExpressions ++ ")"
+    where
     
 
 dropPostfix postfix = (reverse.(Prelude.drop $ length postfix).reverse)
