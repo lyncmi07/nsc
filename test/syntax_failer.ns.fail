@@ -1,0 +1,17 @@
+%%SOURCE%%
+
+alias AnotherInt = Int;
+
+native Nothing assignment(Int* a, Int b);
+
+Nothing infix_:=_(Int* a, AnotherInt b) {
+    assignment(b, b);
+}
+
+Nothing infix_+_(AnotherInt* a, AnotherInt b) {
+    a := add(a, 
+}
+
+Int add(Int a, AnotherInt b) {
+    a;
+}
