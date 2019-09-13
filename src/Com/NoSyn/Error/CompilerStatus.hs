@@ -3,8 +3,11 @@ module Com.NoSyn.Error.CompilerStatus where
 import Com.NoSyn.Error.MaybeConvertable
 import Com.NoSyn.Error.NonFatalError
 import Com.NoSyn.Error.CompilerContext as CompilerContext
-import Data.Set.SetTheory
+import Data.Set.SetTheory as SetTheory
 import Data.Set (empty, singleton, toList)
+import Data.List.Split
+import Data.List
+
 
 type LineNumber = Int
 type Cs a = String -> LineNumber -> CompilerStatus a
@@ -25,12 +28,12 @@ instance Applicative CompilerStatus where
     pure = Valid (CC {moduleDependencies = Data.Set.empty, nonFatalErrors = []})
     (Error a b) <*> _ = Error a b
     (Valid cc f) <*> a = case fmap f a of
-        Valid ccv b -> Valid (union ccv cc) b
+        Valid ccv b -> Valid (SetTheory.union ccv cc) b
         Error errorMessage context -> Error errorMessage context
 
 instance Monad CompilerStatus where
     (Valid cc a) >>= f = case (f a) of
-        (Valid ccv b) -> Valid (union ccv cc) b
+        (Valid ccv b) -> Valid (SetTheory.union ccv cc) b
         (Error errorMessage context) -> Error errorMessage context
     (Error a b) >>= f = Error a b
     return = Valid (CC {moduleDependencies = Data.Set.empty, nonFatalErrors = []})
@@ -60,16 +63,17 @@ dependencyRequired moduleName value = Valid (CC {moduleDependencies = singleton 
 addNonFatalError :: NonFatalError -> a -> CompilerStatus a
 addNonFatalError error value = Valid (CC { moduleDependencies = Data.Set.empty, nonFatalErrors = [error]}) value
 
-failOnNonFatalErrors :: CompilerStatus a -> CompilerStatus a
-failOnNonFatalErrors b@(Valid compilerContext n)
+failOnNonFatalErrors :: String -> CompilerStatus a -> CompilerStatus a
+failOnNonFatalErrors sourceCode b@(Valid compilerContext n)
     | (length $ nonFatalErrors compilerContext) == 0 = b
-    | otherwise = Error (prettyPrintNonFatalErrors compilerContext) "Compilation failed from too many errors"
-failOnNonFatalErrors error = error
+    | otherwise = Error (prettyPrintNonFatalErrors (splitOn "\n" sourceCode) compilerContext) "Compilation failed from too many errors"
+failOnNonFatalErrors _ error = error
 
-prettyPrintNonFatalErrors :: CompilerContext -> String
-prettyPrintNonFatalErrors (CC { nonFatalErrors = errors }) =
-    concat ["\nError occured at line " ++ (show lineNumber) ++ ":\n"
-            ++ relevantCode ++ "\n"
-            ++ "Cause: " ++ errorMessage 
-            ++ "\n\n------------------------------"
-        | (NFE errorMessage relevantCode lineNumber) <- errors]
+prettyPrintNonFatalErrors :: [String] -> CompilerContext -> String
+prettyPrintNonFatalErrors sourceCodeLines (CC { nonFatalErrors = errors }) =
+    concat [let relevantCode = sourceCodeLines !! (lineNumber - 1) in
+                "\nError occured at line " ++ (show lineNumber) ++ ":\n"
+                ++ relevantCode ++ "\n"
+                ++ "Cause: " ++ errorMessage 
+                ++ "\n\n------------------------------"
+            | (NFE errorMessage _ lineNumber) <- reverse errors]
