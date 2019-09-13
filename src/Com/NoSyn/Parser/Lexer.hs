@@ -3,11 +3,17 @@ module Com.NoSyn.Parser.Lexer where
 import Com.NoSyn.Parser.Token
 import Text.Ascii
 import Com.NoSyn.Data.Operators
+import Com.NoSyn.Error.CompilerStatus
 
 digits = ['0','1','2','3','4','5','6','7','8','9']
 
-lexer :: String -> [Token]
-lexer [] = [TokenEmpty]
+monadicLexer :: (Token -> Cs a) -> Cs a
+monadicLexer continueParse programSource =
+    let (token, restOfProgram) = lexer programSource in
+    continueParse token restOfProgram
+
+lexer :: String -> (Token, String)
+lexer [] = (TokenEOF, "")
 lexer ('/':xs) = lexMaybeComment xs
 lexer (x:xs)
     | isWhiteSpace x = lexer xs
@@ -16,42 +22,45 @@ lexer (x:xs)
     | x `elem` operatorChars = lexOperator (x:xs)
 lexer ('"':xs) = lexString xs
 lexer ('`':xs) = lexNativeCode xs
-lexer (x:xs)
-    | x `elem` ['(', '[', '{'] = let (tokens, rest) = lexBracket x xs in
-        tokens ++ lexer rest
+-- lexer (x:xs)
+    -- | x `elem` ['(', '[', '{'] = let (tokens, rest) = lexBracket x xs in
+        -- (tokens, rest)
 
-lexer (',':xs) = TokenComma : lexer xs
-lexer (')':xs) = TokenParameterClose : lexer xs
-lexer ('=':xs) = TokenEquals : lexer xs
-lexer ('}':xs) = TokenCurlyClose : lexer xs
-lexer (']':xs) = TokenSquareClose : lexer xs
-lexer (';':xs) = TokenSemicolon : lexer xs
-lexer ('_':xs) = TokenUnderscore : lexer xs
+lexer (',':xs) = (TokenComma, xs)
+lexer (')':xs) = (TokenParameterClose, xs)
+lexer ('=':xs) = (TokenEquals, xs)
+lexer ('}':xs) = (TokenCurlyClose, xs)
+lexer (']':xs) = (TokenSquareClose, xs)
+lexer (';':xs) = (TokenSemicolon, xs)
+lexer ('_':xs) = (TokenUnderscore, xs)
+lexer ('{':xs) = (TokenCurlyOpen, xs)
+lexer ('(':xs) = (TokenParameterOpen, xs)
+lexer ('[':xs) = (TokenSquareOpen, xs)
 
 lexVar xs = case span isAlpha xs of
-    ("alias", rest)         -> TokenAliasKeyword : lexer rest
-    ("prefix", rest)        -> TokenPrefixKeyword : lexer rest
-    ("postfix", rest)       -> TokenPostfixKeyword : lexer rest
-    ("infix", rest)         -> TokenInfixKeyword : lexer rest
-    ("bracketop", rest)     -> TokenBracketOpKeyword : lexer rest
-    ("native", rest)        -> TokenNativeKeyword : lexer rest
-    ("import", rest)        -> TokenImportKeyword : lexer rest
+    ("alias", rest)         -> (TokenAliasKeyword, rest)
+    ("prefix", rest)        -> (TokenPrefixKeyword, rest)
+    ("postfix", rest)       -> (TokenPostfixKeyword, rest)
+    ("infix", rest)         -> (TokenInfixKeyword, rest)
+    ("bracketop", rest)     -> (TokenBracketOpKeyword, rest)
+    ("native", rest)        -> (TokenNativeKeyword, rest)
+    ("import", rest)        -> (TokenImportKeyword, rest)
     (identPrefix, restOfIdent) ->
         let (ident, rest) = span (\x -> isAlpha x || x == '_') (identPrefix ++ restOfIdent) in
-            TokenIdent ident : lexer rest
+            (TokenIdent ident, rest)
             
-lexString x = let (stringToken, rest) = lexString' x "" in stringToken : lexer rest
+lexString x = let (stringToken, rest) = lexString' x "" in (stringToken, rest)
 lexString' :: String -> String -> (Token, String)
-lexString' ('"':xs) finalString = (TokenString finalString, xs)
+lexString' ('"':xs) finalString = ((TokenString finalString), xs)
 lexString' (x:xs) currentString = lexString' xs (currentString ++ [x])
 
-lexNativeCode x = let (nativeCodeToken, rest) = lexNativeCode' x "" in nativeCodeToken : lexer rest
+lexNativeCode x = let (nativeCodeToken, rest) = lexNativeCode' x "" in (nativeCodeToken, rest)
 lexNativeCode' :: String -> String -> (Token, String)
 lexNativeCode' ('`':xs) finalNativeCode = (TokenNativeCode finalNativeCode, xs)
 lexNativeCode' (x:xs) currentNativeCode = lexNativeCode' xs (currentNativeCode ++ [x])
 
 
-lexNum x = let (numToken, rest) = lexNum' x "" in numToken : lexer rest
+lexNum x = let (numToken, rest) = lexNum' x "" in (numToken, rest)
 lexNum' :: String -> String -> (Token, String)
 lexNum' ('.':xs) currentInt = lexDouble xs (currentInt ++ ".")
 lexNum' (x:xs) currentInt
@@ -63,16 +72,16 @@ lexDouble (x:xs) currentInt
     | x `elem` digits = lexDouble xs (currentInt++[x])
     | otherwise = (TokenDouble (read currentInt :: Double), x:xs)
 
-lexOperator x = let (operatorToken, rest) = lexOperator' x "" in operatorToken : lexer rest
+lexOperator x = let (operatorToken, rest) = lexOperator' x "" in (operatorToken, rest)
 lexOperator' :: String -> String -> (Token, String)
 lexOperator' (x:xs) currentOperator
     | x `elem` operatorChars = lexOperator' xs (currentOperator++[x])
     | otherwise = (TokenOperator currentOperator, x:xs)
 
-lexBracket bracket (x:xs)
-    | isWhiteSpace x = lexBracket bracket xs
-    | x == (closingBracket bracket) = ([bracketOpenToken bracket, TokenEmpty, bracketCloseToken bracket], xs)
-    | otherwise = ([bracketOpenToken bracket], x:xs)
+-- lexBracket bracket (x:xs)
+    -- | isWhiteSpace x = lexBracket bracket xs
+    -- | x == (closingBracket bracket) = ([bracketOpenToken bracket, TokenEmpty, bracketCloseToken bracket], xs)
+    -- | otherwise = ([bracketOpenToken bracket], x:xs)
 
 lexMaybeComment ('/':xs) = lexComment xs
 lexMaybeComment xs = lexOperator ('/':xs)
@@ -86,10 +95,4 @@ closingBracket '{' = '}'
 closingBracket '(' = ')'
 closingBracket '[' = ']'
 
-bracketOpenToken '{' = TokenCurlyOpen
-bracketOpenToken '(' = TokenParameterOpen
-bracketOpenToken '[' = TokenSquareOpen
-bracketCloseToken '{' = TokenCurlyClose
-bracketCloseToken '(' = TokenParameterClose
-bracketCloseToken '[' = TokenSquareClose
 

@@ -4,6 +4,7 @@ module Com.NoSyn.Parser.NoSynParser where
 import Com.NoSyn.Data.Operators
 import Com.NoSyn.Data.Types
 import Com.NoSyn.Parser.ConcreteSyntaxTree
+import Com.NoSyn.Parser.Lexer
 import Com.NoSyn.Parser.Token
 import Com.NoSyn.Error.CompilerContext
 import Com.NoSyn.Error.CompilerStatus
@@ -13,7 +14,8 @@ import Com.NoSyn.Error.NonFatalError
 %name parse
 %tokentype { Token }
 %error { parseError }
-%monad { Cs } { >>= } { return }
+%monad { Cs } { thenCs } { returnCs }
+%lexer { monadicLexer } { TokenEOF }
 
 %token
     string     { TokenString $$ }
@@ -39,12 +41,11 @@ import Com.NoSyn.Error.NonFatalError
     ']'        { TokenSquareClose }
     ';'        { TokenSemicolon }
     '_'        { TokenUnderscore }
-    empty      { TokenEmpty }
     ident      { TokenIdent $$ }
 
 %%
 
-Program : empty                             { CProgramEnd }
+Program : {- empty -}                   { CProgramEnd }
 	| ProgramStatement ';' Program      { CProgram $1 $3 }
     | FunctionDefinition Program { CProgram (CPSFuncDef $1) $2 }
 
@@ -53,7 +54,7 @@ FunctionDefinition : ident ident '(' Parameters ')' '{' BlockStatement '}'      
                    | native ident ident '(' Parameters ')'                                             { CFuncDefNative $2 $3 $5}
                    | ident bracketop '_' BracketType '_' '(' Parameters ')' '{' BlockStatement '}'     { CBracketOpOverloadDef $1 $4 $7 $10 } 
 
-ExpressionList : empty                  { CListEmpty }
+ExpressionList : {- empty -}                  { CListEmpty }
 	       | FilledExpressionList   { CListNonEmpty $1 }
 
 Expression : Constant                          { CEConst $1 }
@@ -80,48 +81,48 @@ Statement : Expression              { CSExpression $1 }
 	  | VariableDeclaration     { CSVarDec $1 }
 
 Parameter : ident ident { CParam $1 $2 }
-          | ident operator ident {%
+          | ident operator ident {% \s ->
                 case $2 of
                     "*" -> return $ CPointerParam $1 $2 $3
                     "..." -> return $ CPointerParam $1 $2 $3
                     _ -> addNonFatalError
-                        (NFE "Only '*' of '...' can be used on a type to denote an operator" "<Actual code here>")
+                        (NFE "Only '*' of '...' can be used on a type to denote an operator" s)
                         (CPointerParam $1 $2 $3)
             }
 
 FilledParameters : Parameter ',' FilledParameters     { CMultiParam $1 $3 }
 		 | Parameter                          { CFinalParam $1 }
 
-Parameters : empty               { CPEmpty }
+Parameters : {- empty -}               { CPEmpty }
 	   | FilledParameters    { CPParams $1 }
 
 -- Removing from use
 FilledBlock : Statement ';' FilledBlock         { CMultiStatement $1 $3 }
             | Statement ';'                   { CFinalStatement $1 }
 
-BlockStatement : empty                           { CBlockEmpty }
+BlockStatement : {- empty -}                           { CBlockEmpty }
                | FilledBlock    { CFilledBlock $1 }
 
 OperatorType : prefix        { Prefix }
 	     | postfix       { Postfix }
              | tinfix        { Infix }
 
-BracketType : '(' empty ')' { Parentheses }
-	        | '[' empty ']' { Square }
-            | '{' empty '}' { Curly }
+BracketType : '(' ')' { Parentheses }
+	        | '[' ']' { Square }
+            | '{' '}' { Curly }
 
-AliasDefinition : alias ident operator ident    {%
+AliasDefinition : alias ident operator ident    {% \s ->
                     case $3 of
                         "=" -> return $ CAliasDef $3 $2 $4 
                         _ -> addNonFatalError
-                            (NFE "A '=' operator must be used within an alias definition" "<Actual code here>")
+                            (NFE "A '=' operator must be used within an alias definition" s)
                             (CAliasDef $3 $2 $4)
                 }
-                | native alias ident operator nativecode {%
+                | native alias ident operator nativecode {% \s ->
                     case $3 of
                         "=" -> return $ CAliasDef $4 $3 $5
                         _ -> addNonFatalError
-                            (NFE "A '=' operator must be used within an alias definition" "<Actual code here>")
+                            (NFE "A '=' operator must be used within an alias definition" s)
                             (CAliasDef $4 $3 $5)
                 }
 
@@ -137,7 +138,7 @@ ImportStatement : import ModuleName            { CNSImport $2 }
 -- | ident operator ModuleName  { CPackage $1 $2 $3 }
 
 ModuleName : ident { CModuleIdent $1 }
-           | ident operator ModuleName {% 
+           | ident operator ModuleName {% \s ->
                 case $2 of
                     "." -> return $ CPackage $1 $2 $3
                     _ -> addNonFatalError 
@@ -147,10 +148,22 @@ ModuleName : ident { CModuleIdent $1 }
             }
 
 {
-type Cs a = CompilerStatus a
+-- parseError (x:_) = Error "Parse error" (show x)
 
-parseError (x:_) = Error "Parse error" (show x)
+parseError :: Token -> Cs a
+parseError t = failCs (show t)
 
+thenCs :: Cs a -> (a -> Cs b) -> Cs b
+m `thenCs` k = \s -> (m s) >>= (\x -> k x s)
+
+returnCs :: a -> Cs a
+returnCs a = \s -> Valid empty a
+
+failCs :: String -> Cs a
+failCs err = \s -> Error err s
+
+
+{-
 thenCs :: Cs a -> (a -> Cs b) -> Cs b
 m `thenCs` k =
     case m of
@@ -161,12 +174,13 @@ returnCs :: a -> Cs a
 returnCs a = Valid empty a
 
 failCs :: String -> Cs a
-failCs err = Error err "<Actual code here>"
+failCs err = \s -> Error err s
 
 catchCs :: Cs a -> (String -> Cs a) -> Cs a
 catchCs m k =
     case m of
         Valid a b -> Valid a b
         Error a _ -> k a
+-}
 }
 

@@ -1,4 +1,7 @@
 module Com.NoSyn.Error.NonFatalError where
 
-data NonFatalError = NFE String String
+type ErrorMessage = String
+type RelevantCode = String
+
+data NonFatalError = NFE ErrorMessage RelevantCode
     deriving (Show,Eq)
