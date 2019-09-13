@@ -2,11 +2,15 @@ module Com.NoSyn.Error.CompilerStatus where
 
 import Com.NoSyn.Error.MaybeConvertable
 import Com.NoSyn.Error.NonFatalError
-import Com.NoSyn.Error.CompilerContext
+import Com.NoSyn.Error.CompilerContext as CompilerContext
 import Data.Set.SetTheory
 import Data.Set (empty, singleton, toList)
 
-type Cs a = String -> CompilerStatus a
+type LineNumber = Int
+type Cs a = String -> LineNumber -> CompilerStatus a
+
+getLineNo :: Cs LineNumber
+getLineNo = \s l -> Valid CompilerContext.empty l
 
 data CompilerStatus a =
     Valid CompilerContext a
@@ -64,8 +68,8 @@ failOnNonFatalErrors error = error
 
 prettyPrintNonFatalErrors :: CompilerContext -> String
 prettyPrintNonFatalErrors (CC { nonFatalErrors = errors }) =
-    concat ["\nError occured at:\n"
+    concat ["\nError occured at line " ++ (show lineNumber) ++ ":\n"
             ++ relevantCode ++ "\n"
             ++ "Cause: " ++ errorMessage 
             ++ "\n\n------------------------------"
-        | (NFE errorMessage relevantCode) <- errors]
+        | (NFE errorMessage relevantCode lineNumber) <- errors]
