@@ -29,7 +29,7 @@ main = do
     args <- getArgs
     (headerText, programText) <- getContents >>= return.splitInputs
     -- tokens <- return $ lexer programText
-    (_, cst) <- convertToIO $ failOnNonFatalErrors programText (parse programText 1)
+    (_, cst) <- convertToIO $ failOnNonFatalErrors programText (parse programText 1 (0, 0))
     (_, ifm1Ast@(Ifm1PreProgram.PreProgram importStatments _)) <- convertToIO $ convertProgram cst
     (_, ifAst) <- convertToIO $ generateIfElement defaultProgramEnvironment ifm1Ast
     if args == [] then compileProgram headerText ifAst ifm1Ast

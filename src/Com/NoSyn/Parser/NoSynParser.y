@@ -81,12 +81,12 @@ Statement : Expression              { CSExpression $1 }
 	  | VariableDeclaration     { CSVarDec $1 }
 
 Parameter : ident ident { CParam $1 $2 }
-          | ident operator ident {% \s l ->
+          | ident operator ident {% \s l (sCol, eCol) ->
                 case $2 of
                     "*" -> return $ CPointerParam $1 $2 $3
                     "..." -> return $ CPointerParam $1 $2 $3
                     _ -> addNonFatalError
-                        (NFE "Only '*' of '...' can be used on a type to denote an operator" s l)
+                        (NFE "Only '*' of '...' can be used on a type to denote an operator" s l sCol eCol)
                         (CPointerParam $1 $2 $3)
             }
 
@@ -111,18 +111,18 @@ BracketType : '(' ')' { Parentheses }
 	        | '[' ']' { Square }
             | '{' '}' { Curly }
 
-AliasDefinition : alias ident operator ident    {% \s l ->
+AliasDefinition : alias ident operator ident    {% \s l (sCol, eCol) ->
                     case $3 of
                         "=" -> return $ CAliasDef $3 $2 $4 
                         _ -> addNonFatalError
-                            (NFE "A '=' operator must be used within an alias definition" s l)
+                            (NFE "A '=' operator must be used within an alias definition" s l sCol eCol)
                             (CAliasDef $3 $2 $4)
                 }
-                | native alias ident operator nativecode {% \s l ->
+                | native alias ident operator nativecode {% \s l (sCol, eCol) ->
                     case $3 of
                         "=" -> return $ CAliasDef $4 $3 $5
                         _ -> addNonFatalError
-                            (NFE "A '=' operator must be used within an alias definition" s l)
+                            (NFE "A '=' operator must be used within an alias definition" s l sCol eCol)
                             (CAliasDef $4 $3 $5)
                 }
 
@@ -138,11 +138,11 @@ ImportStatement : import ModuleName            { CNSImport $2 }
 -- | ident operator ModuleName  { CPackage $1 $2 $3 }
 
 ModuleName : ident { CModuleIdent $1 }
-           | ident operator ModuleName {% \s l ->
+           | ident operator ModuleName {% \s l (sCol, eCol) ->
                 case $2 of
                     "." -> return $ CPackage $1 $2 $3
                     _ -> addNonFatalError 
-                        (NFE "package names are separated by '.' operator"  s l)
+                        (NFE "package names are separated by '.' operator"  s l sCol eCol)
                         (CPackage $1 $2 $3)
 
             }
@@ -151,15 +151,15 @@ ModuleName : ident { CModuleIdent $1 }
 -- parseError (x:_) = Error "Parse error" (show x)
 
 parseError :: Token -> Cs a
-parseError t = getLineNo `thenCs` \line -> (failCs ((show t) ++ " at line " ++ (show line)))
+parseError t = getTokenPositionData `thenCs` \(line, sCol, eCol)  -> (failCs ((show t) ++ " at line " ++ (show line) ++ " (" ++ (show sCol) ++ ", " ++ (show eCol) ++ ")"))
 
 thenCs :: Cs a -> (a -> Cs b) -> Cs b
-m `thenCs` k = \s l -> (m s l) >>= (\x -> k x s l)
+m `thenCs` k = \s l (sCol, eCol) -> (m s l (sCol, eCol)) >>= (\x -> k x s l (sCol, eCol))
 
 returnCs :: a -> Cs a
-returnCs a = \s l -> Valid empty a
+returnCs a = \s l (_, _) -> Valid empty a
 
 failCs :: String -> Cs a
-failCs err = \s l -> Error err s
+failCs err = \s l (sCol, eCol) -> Error err (show (l, sCol, eCol))
 }
 

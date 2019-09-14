@@ -10,10 +10,14 @@ import Data.List
 
 
 type LineNumber = Int
-type Cs a = String -> LineNumber -> CompilerStatus a
+type Column = Int
+type Cs a = String -> LineNumber -> (Int, Int) -> CompilerStatus a
 
 getLineNo :: Cs LineNumber
-getLineNo = \s l -> Valid CompilerContext.empty l
+getLineNo = \s l (_, _) -> Valid CompilerContext.empty l
+
+getTokenPositionData :: Cs (LineNumber, Column, Column)
+getTokenPositionData = \s l (sCol, eCol) -> return (l, sCol, eCol)
 
 data CompilerStatus a =
     Valid CompilerContext a
@@ -51,7 +55,6 @@ convertToIO (Error errorMessage context) = do
     putStrLn "Context:"
     putStrLn context
     fail "Exiting unsuccessfully"
-    -- fail ("\n" ++ errorMessage ++ ". Context: " ++ context)
 
 compilerStatusFromMaybe::String->Maybe a->CompilerStatus a
 compilerStatusFromMaybe _ (Just a) = return a
@@ -72,8 +75,8 @@ failOnNonFatalErrors _ error = error
 prettyPrintNonFatalErrors :: [String] -> CompilerContext -> String
 prettyPrintNonFatalErrors sourceCodeLines (CC { nonFatalErrors = errors }) =
     concat [let relevantCode = sourceCodeLines !! (lineNumber - 1) in
-                "\nError occured at line " ++ (show lineNumber) ++ ":\n"
+                "\nError occured at line " ++ (show lineNumber) ++ " " ++ (show startColumn) ++ " to " ++ (show endColumn) ++ ":\n"
                 ++ relevantCode ++ "\n"
                 ++ "Cause: " ++ errorMessage 
                 ++ "\n\n------------------------------"
-            | (NFE errorMessage _ lineNumber) <- reverse errors]
+            | (NFE errorMessage _ lineNumber startColumn endColumn) <- reverse errors]
