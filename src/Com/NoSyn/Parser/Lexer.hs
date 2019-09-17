@@ -8,16 +8,16 @@ import Com.NoSyn.Error.CompilerStatus
 digits = ['0','1','2','3','4','5','6','7','8','9']
 
 monadicLexer :: (Token -> Cs a) -> Cs a
-monadicLexer continueParse programSource = \originLine (lastTokenStart, lastTokenEnd) ->
-    let (token, restOfProgram, newLine, (currentTokenStart, currentTokenEnd)) = lexer programSource originLine (lastTokenStart, lastTokenEnd) in
-    continueParse token restOfProgram newLine (currentTokenStart, currentTokenEnd)
+monadicLexer continueParse programSource = \originCol originLine originTokenPositions ->
+    let (token, restOfProgram, newCol, newLine, newTokenPositions) = lexer programSource originCol originLine originTokenPositions in
+        continueParse token restOfProgram newCol newLine newTokenPositions
 
-lexer :: String -> LineNumber -> (Column, Column) -> (Token, String, LineNumber, (Column, Column))
-lexer [] = \line (_, _) -> (TokenEOF, "", line + 1, (0, 0))
-lexer ('/':xs) = \line (sCol, eCol) -> lexMaybeComment xs line (eCol + 1, eCol + 1)
-lexer ('\n':xs) = \line (sCol, eCol) -> lexer xs (line + 1) (0, 0)
+lexer :: String -> Column -> LineNumber -> [(LineNumber, Column, Column)] -> (Token, String, Column, LineNumber, [(LineNumber, Column, Column)])
+lexer [] = \currentCol line tokenPositions -> (TokenEOF, "", currentCol, line, tokenPositions)
+lexer ('/':xs) = \currentCol -> lexMaybeComment xs (currentCol + 1)
+lexer ('\n':xs) = \_ line -> lexer xs 0 (line + 1)
 lexer (x:xs)
-    | isWhiteSpace x = \line (sCol, eCol) -> lexer xs line (sCol + 1, eCol + 1)
+    | isWhiteSpace x = \currentCol -> lexer xs (currentCol + 1)
     | isAlpha x = lexVar (x:xs)
     | x `elem` digits = lexNum (x:xs)
     | x `elem` operatorChars = lexOperator (x:xs)
@@ -35,10 +35,10 @@ lexer ('{':xs) = lexReturningFunction "{" TokenCurlyOpen xs
 lexer ('(':xs) = lexReturningFunction "(" TokenParameterOpen xs
 lexer ('[':xs) = lexReturningFunction "[" TokenSquareOpen xs
 
-lexReturningFunction tokenString token restOfProgram = 
-    \line (sCol, eCol) -> (token, restOfProgram, line, (eCol+1, eCol+1+(length tokenString)))
+lexReturningFunction tokenString token restOfProgram =
+    \currentCol line tokenPositions ->
+        (token, restOfProgram, currentCol+(length tokenString), line, tokenPositions ++ [(line, currentCol, currentCol + (length tokenString) - 1)])
 
-lexVar :: String -> LineNumber -> (Column, Column) -> (Token, String, LineNumber, (Column, Column))
 lexVar xs = case span isAlpha xs of
     ("alias", rest)         -> lexReturningFunction "alias" TokenAliasKeyword rest
     ("prefix", rest)        -> lexReturningFunction "prefix" TokenPrefixKeyword rest
@@ -47,42 +47,47 @@ lexVar xs = case span isAlpha xs of
     ("bracketop", rest)     -> lexReturningFunction "bracketop" TokenBracketOpKeyword rest
     ("native", rest)        -> lexReturningFunction "native" TokenNativeKeyword rest
     ("import", rest)        -> lexReturningFunction "import" TokenImportKeyword rest
-    (identPrefix, restOfIdent) -> \line (sCol, eCol) -> 
+    (identPrefix, restOfIdent) -> \currentCol line tokenPositions ->
         let (ident, rest) = span (\x -> isAlpha x || x == '_') (identPrefix ++ restOfIdent) in
-            (TokenIdent ident, rest, line, (sCol, eCol))
+            (TokenIdent ident, rest, currentCol + (length ident), line, tokenPositions ++ [(line, currentCol, currentCol + (length ident) - 1)])
             
-lexString x = \line (sCol, eCol) -> lexString' x "" line (eCol + 1, eCol + 1)
-lexString' ('"':xs) finalString = \line (sCol, eCol) -> ((TokenString finalString), xs, line, (sCol, eCol+1))
-lexString' ('\n':xs) currentString = \line (sCol, eCol) -> lexString' xs (currentString ++ ['\n']) (line + 1) (0, 0)
-lexString' (x:xs) currentString = \line (sCol, eCol) -> lexString' xs (currentString ++ [x]) line (sCol, eCol + 1)
+lexString x = \startCol line tokenPositions -> lexString' x "" (startCol + 1) line tokenPositions startCol
+lexString' ('"':xs) finalString = \currentCol line tokenPositions startCol ->
+    (TokenString finalString, xs, (currentCol+2), line, tokenPositions ++ [(line, startCol, currentCol + 1)])
+lexString' ('\n':xs) currentString = \_ line -> lexString' xs (currentString ++ "\n") 0 (line + 1)
+lexString' (x:xs) currentString = \currentCol -> lexString' xs (currentString ++ [x]) (currentCol + 1)
 
-lexNativeCode x = \line (sCol, eCol) -> lexNativeCode' x "" line (sCol, eCol)
-lexNativeCode' ('`':xs) finalNativeCode = \line (sCol, eCol) -> (TokenNativeCode finalNativeCode, xs, line, (sCol, eCol + 1))
-lexNativeCode' ('\n':xs) currentNativeCode = \line (sCol, eCol) -> lexNativeCode' xs (currentNativeCode ++ ['\n']) (line + 1) (0, 0)
-lexNativeCode' (x:xs) currentNativeCode = \line (sCol, eCol) -> lexNativeCode' xs (currentNativeCode ++ [x]) line (sCol, eCol + 1)
+lexNativeCode x = \startCol line tokenPositions -> lexNativeCode' x "" (startCol + 1) line tokenPositions startCol
+lexNativeCode' :: String -> String -> Column -> LineNumber -> [(LineNumber, Column, Column)] -> Column -> (Token, String, Column, LineNumber, [(LineNumber, Column, Column)])
+lexNativeCode' ('`':xs) finalNativeCode = \currentCol line tokenPositions startCol ->
+    (TokenNativeCode finalNativeCode, xs, (currentCol + 2), line, tokenPositions ++ [(line, startCol, currentCol + 1)])
+lexNativeCode' ('\n':xs) currentNativeCode = \_ line -> lexNativeCode' xs (currentNativeCode ++ "\n") 0 (line + 1)
+lexNativeCode' (x:xs) currentNativeCode = \currentCol -> lexNativeCode' xs (currentNativeCode ++ [x]) (currentCol + 1)
 
-
-lexNum x = \line (sCol, eCol) -> lexNum' x "" line (eCol + 1, eCol + 1)
-lexNum' ('.':xs) currentInt = \line (sCol, eCol) -> lexDouble xs (currentInt ++ ".") line (sCol, eCol + 1)
+lexNum :: String -> Column -> LineNumber -> [(LineNumber, Column, Column)] -> (Token, String, Column, LineNumber, [(LineNumber, Column, Column)])
+lexNum x = \startCol line tokenPositions -> lexNum' x "" startCol line tokenPositions startCol
+lexNum' :: String -> String -> Column -> LineNumber -> [(LineNumber, Column, Column)] -> Column -> (Token, String, Column, LineNumber, [(LineNumber, Column, Column)])
+lexNum' ('.':xs) currentInt = \currentCol line tokenPositions startCol-> lexDouble xs (currentInt ++ ".") (currentCol + 1) line tokenPositions startCol
 lexNum' (x:xs) currentInt
-    | x `elem` digits = \line (sCol, eCol) -> lexNum' xs (currentInt++[x]) line (sCol, eCol + 1)
-    | otherwise = \line (sCol, eCol) -> (TokenInt (read currentInt :: Int), x:xs, line, (sCol, eCol))
+    | x `elem` digits = \currentCol -> lexNum' xs (currentInt++[x]) (currentCol + 1)
+    | otherwise = \currentCol line tokenPositions startCol ->
+        (TokenInt (read currentInt :: Int), x:xs, currentCol, line, tokenPositions ++ [(line, startCol, currentCol - 1)])
 
 lexDouble (x:xs) currentInt
-    | x `elem` digits = \line (sCol, eCol) -> lexDouble xs (currentInt++[x]) line (sCol, eCol + 1)
-    | otherwise = \line (sCol, eCol) -> (TokenDouble (read currentInt :: Double), x:xs, line, (sCol, eCol))
+    | x `elem` digits = \currentCol -> lexDouble xs (currentInt ++ [x]) (currentCol + 1)
+    | otherwise  = \currentCol line tokenPositions startCol ->
+        (TokenDouble (read currentInt :: Double), x:xs, currentCol, line, tokenPositions ++ [(line, startCol, currentCol - 1)])
 
-lexOperator x = lexOperator' x ""
+lexOperator x = \startCol line tokenPositions -> lexOperator' x "" startCol line tokenPositions startCol
 lexOperator' (x:xs) currentOperator
-    | x `elem` operatorChars = \line (sCol, eCol) -> lexOperator' xs (currentOperator++[x]) line (sCol, eCol + 1)
-    | otherwise = \line (sCol, eCol) -> (TokenOperator currentOperator, x:xs, line, (sCol, eCol))
+    | x `elem` operatorChars = \currentCol -> lexOperator' xs (currentOperator ++ [x]) (currentCol + 1)
+    | otherwise = \currentCol line tokenPositions startCol ->
+        (TokenOperator currentOperator, x:xs, currentCol, line, tokenPositions ++ [(line, startCol+1, currentCol)])
 
-lexMaybeComment ('/':xs) = \line (sCol, eCol) -> lexComment xs line (sCol, eCol + 1)
-lexMaybeComment xs =  lexOperator ('/':xs)
+lexMaybeComment ('/':xs) = lexComment xs
 
-lexComment :: String -> LineNumber -> (Column, Column) -> (Token, String, LineNumber, (Column, Column))
-lexComment ('\n':xs) = \line (_, _) -> lexer xs (line + 1) (0, 0)
-lexComment (_:xs) = \line (sCol, eCol) -> lexComment xs line (sCol, eCol + 1)
+lexComment ('\n':xs) = \_ line -> lexer xs 0 (line + 1)
+lexComment (_:xs) = lexComment xs
 lexComment [] = lexer []
 
 

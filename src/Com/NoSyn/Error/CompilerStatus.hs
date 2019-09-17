@@ -11,13 +11,11 @@ import Data.List
 
 type LineNumber = Int
 type Column = Int
-type Cs a = String -> LineNumber -> (Int, Int) -> CompilerStatus a
+-- type Cs a = String -> LineNumber -> [(LineNumber, Column, Column)] -> Column -> CompilerStatus a
+type Cs a = String -> Column -> LineNumber -> [(LineNumber, Column, Column)] -> CompilerStatus a
 
-getLineNo :: Cs LineNumber
-getLineNo = \s l (_, _) -> Valid CompilerContext.empty l
-
-getTokenPositionData :: Cs (LineNumber, Column, Column)
-getTokenPositionData = \s l (sCol, eCol) -> return (l, sCol, eCol)
+getLineNumber :: Cs LineNumber
+getLineNumber = \s _ l _ -> Valid CompilerContext.empty l
 
 data CompilerStatus a =
     Valid CompilerContext a
@@ -76,7 +74,13 @@ prettyPrintNonFatalErrors :: [String] -> CompilerContext -> String
 prettyPrintNonFatalErrors sourceCodeLines (CC { nonFatalErrors = errors }) =
     concat [let relevantCode = sourceCodeLines !! (lineNumber - 1) in
                 "\nError occured at line " ++ (show lineNumber) ++ " " ++ (show startColumn) ++ " to " ++ (show endColumn) ++ ":\n"
-                ++ relevantCode ++ "\n"
+                ++ prettyPrintTokenPosition sourceCodeLines lineNumber startColumn endColumn ++ "\n"
                 ++ "Cause: " ++ errorMessage 
                 ++ "\n\n------------------------------"
             | (NFE errorMessage _ lineNumber startColumn endColumn) <- reverse errors]
+
+prettyPrintTokenPosition :: [String] -> LineNumber -> Column -> Column -> String
+prettyPrintTokenPosition sourceLines line startColumn endColumn =
+    let codeLine = sourceLines !! (line - 1) in
+        codeLine ++ "\n"
+        ++ (take (startColumn - 1) $ repeat ' ') ++ (take (endColumn - startColumn + 1) $ repeat '^')

@@ -81,13 +81,14 @@ Statement : Expression              { CSExpression $1 }
 	  | VariableDeclaration     { CSVarDec $1 }
 
 Parameter : ident ident { CParam $1 $2 }
-          | ident operator ident {% \s l (sCol, eCol) ->
+          | ident operator ident {% \s currentCol l tokenPositions -> let returnVal = (CPointerParam $1 $2 $3) in
                 case $2 of
-                    "*" -> return $ CPointerParam $1 $2 $3
-                    "..." -> return $ CPointerParam $1 $2 $3
-                    _ -> addNonFatalError
-                        (NFE "Only '*' of '...' can be used on a type to denote an operator" s l sCol eCol)
-                        (CPointerParam $1 $2 $3)
+                    "*" -> return returnVal
+                    "..." -> return returnVal
+                    _ -> let (line, sCol, eCol) = getTokenPositions returnVal tokenPositions 2 in
+                            addNonFatalError
+                            (NFE "Only '*' of '...' can be used on a type to denote an operator" s line sCol eCol)
+                            returnVal
             }
 
 FilledParameters : Parameter ',' FilledParameters     { CMultiParam $1 $3 }
@@ -111,19 +112,23 @@ BracketType : '(' ')' { Parentheses }
 	        | '[' ']' { Square }
             | '{' '}' { Curly }
 
-AliasDefinition : alias ident operator ident    {% \s l (sCol, eCol) ->
+AliasDefinition : alias ident operator ident    {% \s currentCol l tokenPositions ->
                     case $3 of
                         "=" -> return $ CAliasDef $3 $2 $4 
-                        _ -> addNonFatalError
-                            (NFE "A '=' operator must be used within an alias definition" s l sCol eCol)
-                            (CAliasDef $3 $2 $4)
+                        _ -> let returnVal = (CNativeAliasDef $3 $2 $4) in
+                            let (line, sCol, eCol) = getTokenPositions returnVal tokenPositions 3 in
+                                addNonFatalError
+                                (NFE "A '=' operator must be used within an alias definition" s line sCol eCol)
+                                returnVal
                 }
-                | native alias ident operator nativecode {% \s l (sCol, eCol) ->
+                | native alias ident operator nativecode {% \s currentCol l tokenPositions ->
                     case $3 of
                         "=" -> return $ CAliasDef $4 $3 $5
-                        _ -> addNonFatalError
-                            (NFE "A '=' operator must be used within an alias definition" s l sCol eCol)
-                            (CAliasDef $4 $3 $5)
+                        _ -> let returnVal = CNativeAliasDef $4 $3 $5 in
+                            let (line, sCol, eCol) = getTokenPositions returnVal tokenPositions 4 in
+                                addNonFatalError
+                                (NFE "A '=' operator must be used within an alias definition" s line sCol eCol)
+                                returnVal
                 }
 
 ProgramStatement : VariableDeclaration     { CPSVarDec $1 }
@@ -138,28 +143,33 @@ ImportStatement : import ModuleName            { CNSImport $2 }
 -- | ident operator ModuleName  { CPackage $1 $2 $3 }
 
 ModuleName : ident { CModuleIdent $1 }
-           | ident operator ModuleName {% \s l (sCol, eCol) ->
+           | ident operator ModuleName {% \s currentCol l tokenPositions ->
                 case $2 of
                     "." -> return $ CPackage $1 $2 $3
-                    _ -> addNonFatalError 
-                        (NFE "package names are separated by '.' operator"  s l sCol eCol)
-                        (CPackage $1 $2 $3)
-
+                    _ -> let returnVal = (CPackage $1 $2 $3) in
+                        let (line, sCol, eCol) = getTokenPositions returnVal tokenPositions 2 in
+                        addNonFatalError 
+                        (NFE "package names are separated by '.' operator"  s line sCol eCol)
+                        returnVal
             }
 
 {
--- parseError (x:_) = Error "Parse error" (show x)
+-- getTokenPositions noOfTokens tokenNumber tokenPositions =
+    -- (drop ((length tokenPositions) - noOfTokens) tokenPositions) !! (tokenNumber - 2)
+
+getTokenPositions cstElem tokenPositions tokenNumber =
+    (drop ((length tokenPositions) - (tokenLength cstElem)) tokenPositions) !! (tokenNumber - 2)
 
 parseError :: Token -> Cs a
-parseError t = getTokenPositionData `thenCs` \(line, sCol, eCol)  -> (failCs ((show t) ++ " at line " ++ (show line) ++ " (" ++ (show sCol) ++ ", " ++ (show eCol) ++ ")"))
+parseError t = getLineNumber `thenCs` \line  -> (failCs ((show t) ++ " at line " ++ (show line)))
 
 thenCs :: Cs a -> (a -> Cs b) -> Cs b
-m `thenCs` k = \s l (sCol, eCol) -> (m s l (sCol, eCol)) >>= (\x -> k x s l (sCol, eCol))
+m `thenCs` k = \s currentCol l tokenPositions-> (m s currentCol l tokenPositions) >>= (\x -> k x s currentCol l tokenPositions)
 
 returnCs :: a -> Cs a
-returnCs a = \s l (_, _) -> Valid empty a
+returnCs a = \s _ _ _ -> Valid empty a
 
 failCs :: String -> Cs a
-failCs err = \s l (sCol, eCol) -> Error err (show (l, sCol, eCol))
+failCs err = \s currentCol l tokenPositions -> Error err (show (l, currentCol))
 }
 

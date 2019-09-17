@@ -1,6 +1,6 @@
 %%SOURCE%%
 
-import another.module=here;
+import another.module=$$here$$$andhere^^£$%^£g;
 import another$$mistake;
 
 alias AnotherInt = Int;

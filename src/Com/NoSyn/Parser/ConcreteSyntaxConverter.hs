@@ -44,9 +44,9 @@ convertExpression (CEConst a) = do
     n <- convertConstant a
     return $ EConst n
 convertExpression (CEIdent a) = return $ EIdent a
-convertExpression (CEFuncCall a b) = do
-    n <- convertExpressionList b
-    return $ EFuncCall a n
+-- convertExpression (CEFuncCall a b) = do
+    -- n <- convertExpressionList b
+    -- return $ EFuncCall a n
 convertExpression (CEBracketed a) = convertExpression a
 convertExpression (CEBracketOp bracketType a b) = do
     n <- convertExpression a

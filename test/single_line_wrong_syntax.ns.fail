@@ -1,2 +1,2 @@
 %%SOURCE%%
-alias AnotherInt$$Int;
+alias AnotherInt == Int;
