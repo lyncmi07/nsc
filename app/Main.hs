@@ -28,8 +28,7 @@ import Data.Foldable
 main = do
     args <- getArgs
     (headerText, programText) <- getContents >>= return.splitInputs
-    tokens <- return $ lexer programText
-    cst <- return $ parse tokens
+    (_, cst) <- convertToIO $ failOnNonFatalErrors programText (parse programText 0 1 [])
     (_, ifm1Ast@(Ifm1PreProgram.PreProgram importStatments _)) <- convertToIO $ convertProgram cst
     (_, ifAst) <- convertToIO $ generateIfElement defaultProgramEnvironment ifm1Ast
     if args == [] then compileProgram headerText ifAst ifm1Ast

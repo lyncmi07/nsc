@@ -1,15 +1,18 @@
 module Com.NoSyn.Error.CompilerContext where
 
-import Data.Set
+import qualified Data.Set as DataSet
 import Data.Set.SetTheory
-import Data.Set
+import Com.NoSyn.Error.NonFatalError
+
+empty = CC { moduleDependencies = DataSet.empty, nonFatalErrors = [] }
 
 data CompilerContext = CC {
-        moduleDependencies :: (Set String)
+        moduleDependencies :: (DataSet.Set String),
+        nonFatalErrors :: [NonFatalError]
     } deriving (Show, Eq)
 
 instance SetSatisfiable CompilerContext where
-    union (CC {moduleDependencies = mda}) (CC {moduleDependencies = mdb}) =
-        CC {moduleDependencies = (Data.Set.union mda mdb)}
+    union (CC {moduleDependencies = mda, nonFatalErrors = nfeA}) (CC {moduleDependencies = mdb, nonFatalErrors = nfeB}) =
+        CC {moduleDependencies = (DataSet.union mda mdb), nonFatalErrors = (nfeA ++ nfeB) }
     difference (CC {moduleDependencies = mda}) (CC {moduleDependencies = mdb}) =
-        CC {moduleDependencies = (Data.Set.difference mda mdb)}
+        CC {moduleDependencies = (DataSet.difference mda mdb), nonFatalErrors = []}

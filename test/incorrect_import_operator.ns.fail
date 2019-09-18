@@ -1,0 +1,21 @@
+%%SOURCE%%
+
+import another.module=$$here$$$andhere^^£$%^£g;
+import another$$mistake;
+
+alias AnotherInt = Int;
+native alias Hello <> `hello`;
+
+native Nothing assignment(Int* a, Int b);
+
+Nothing infix_:=_(Int* a, AnotherInt b) {
+    assignment(b, b);
+}
+
+Nothing infix_+_(AnotherInt* a, AnotherInt b) {
+    a := add(a, b);
+}
+
+Int add(Int a, AnotherInt b) {
+    a;
+}

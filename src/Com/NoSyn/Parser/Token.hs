@@ -26,4 +26,5 @@ data Token =
     | TokenSemicolon
     | TokenEmpty
     | TokenUnderscore
+    | TokenEOF
     deriving Show
