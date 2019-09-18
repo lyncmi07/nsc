@@ -7,11 +7,11 @@ import Data.Set.SetTheory as SetTheory
 import Data.Set (empty, singleton, toList)
 import Data.List.Split
 import Data.List
+import System.IO
 
 
 type LineNumber = Int
 type Column = Int
--- type Cs a = String -> LineNumber -> [(LineNumber, Column, Column)] -> Column -> CompilerStatus a
 type Cs a = String -> Column -> LineNumber -> [(LineNumber, Column, LineNumber, Column)] -> CompilerStatus a
 
 getLineNumber :: Cs LineNumber
@@ -47,11 +47,11 @@ instance MaybeConvertable CompilerStatus where
 convertToIO :: CompilerStatus a -> IO ([String], a)
 convertToIO (Valid compilerContext value) = return (toList (moduleDependencies compilerContext), value)
 convertToIO (Error errorMessage context) = do
-    putStrLn "--COMPILATION FAILED--"
-    putStrLn "Reason:"
-    putStrLn errorMessage
-    putStrLn "Context:"
-    putStrLn context
+    hPutStrLn stderr "--COMPILATION FAILED--"
+    hPutStrLn stderr "Reason:"
+    hPutStrLn stderr errorMessage
+    hPutStrLn stderr "Context:"
+    hPutStrLn stderr context
     fail "Exiting unsuccessfully"
 
 compilerStatusFromMaybe::String->Maybe a->CompilerStatus a
@@ -72,15 +72,25 @@ failOnNonFatalErrors _ error = error
 
 prettyPrintNonFatalErrors :: [String] -> CompilerContext -> String
 prettyPrintNonFatalErrors sourceCodeLines (CC { nonFatalErrors = errors }) =
-    concat [let relevantCode = sourceCodeLines !! (lineNumber - 1) in
-                "\nError occured at line " ++ (show lineNumber) ++ " " ++ (show startColumn) ++ " to " ++ (show endColumn) ++ ":\n"
-                ++ prettyPrintTokenPosition sourceCodeLines lineNumber startColumn endColumn ++ "\n"
+    concat [let relevantCode = sourceCodeLines !! (startLine - 1) in
+                "\nError occured from line " ++ (show startLine) ++ " col " ++ (show startColumn) ++ " to line " ++ (show endLine) ++ " col "  ++ (show endColumn) ++ ":\n"
+                ++ prettyPrintTokenPosition sourceCodeLines startLine startColumn endLine endColumn ++ "\n"
                 ++ "Cause: " ++ errorMessage 
                 ++ "\n\n------------------------------"
-            | (NFE errorMessage _ lineNumber startColumn endColumn) <- reverse errors]
+            | (NFE errorMessage _ startLine startColumn endLine endColumn) <- reverse errors]
 
-prettyPrintTokenPosition :: [String] -> LineNumber -> Column -> Column -> String
-prettyPrintTokenPosition sourceLines line startColumn endColumn =
+prettyPrintTokenPosition :: [String] -> LineNumber -> Column -> LineNumber -> Column -> String
+prettyPrintTokenPosition sourceLines startLine startColumn endLine endColumn =
+    if (startLine == endLine) then prettyPrintSingleLinePosition sourceLines startLine startColumn endColumn
+    else prettyPrintToEndOfLine sourceLines startLine startColumn ++ "\n"
+        ++ prettyPrintTokenPosition sourceLines (startLine + 1) 0 endLine endColumn
+
+prettyPrintToEndOfLine sourceLines line startColumn =
+    let codeLine = sourceLines !! (line - 1) in
+        codeLine ++ "\n"
+        ++ (take (startColumn - 1) $ repeat ' ') ++ (take ((length codeLine) - startColumn + 1) $ repeat '^')
+
+prettyPrintSingleLinePosition sourceLines line startColumn endColumn = 
     let codeLine = sourceLines !! (line - 1) in
         codeLine ++ "\n"
         ++ (take (startColumn - 1) $ repeat ' ') ++ (take (endColumn - startColumn + 1) $ repeat '^')
