@@ -33,7 +33,6 @@ instance TokenLength CExpressionList where
 data CExpression =
     CEConst CConstant
     | CEIdent String
-    -- | CEFuncCall String CExpressionList
     | CEPrefixOp String CExpression
     | CEPostfixOp String CExpression
     | CEInfixOp String CExpression CExpression
