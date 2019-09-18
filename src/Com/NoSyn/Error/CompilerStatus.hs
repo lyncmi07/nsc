@@ -12,7 +12,7 @@ import Data.List
 type LineNumber = Int
 type Column = Int
 -- type Cs a = String -> LineNumber -> [(LineNumber, Column, Column)] -> Column -> CompilerStatus a
-type Cs a = String -> Column -> LineNumber -> [(LineNumber, Column, Column)] -> CompilerStatus a
+type Cs a = String -> Column -> LineNumber -> [(LineNumber, Column, LineNumber, Column)] -> CompilerStatus a
 
 getLineNumber :: Cs LineNumber
 getLineNumber = \s _ l _ -> Valid CompilerContext.empty l
