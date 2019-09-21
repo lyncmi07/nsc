@@ -63,11 +63,13 @@ instance TokenLength CStatement where
 
 data CParameter =
     CParam String String
-    | CPointerParam String String String
+    | CPointerParam String String
+    | CVariadicParam String String
     deriving Show
 instance TokenLength CParameter where
     tokenLength (CParam _ _) = 2
-    tokenLength (CPointerParam _ _ _) = 3
+    tokenLength (CPointerParam _ _) = 3
+    tokenLength (CVariadicParam _ _) = 3
 
 data CFilledParameters =
     CMultiParam CParameter CFilledParameters
@@ -114,12 +116,12 @@ instance TokenLength CFunctionDefinition where
     tokenLength (CBracketOpOverloadDef _ _ a b) = 9 + (tokenLength a) + (tokenLength b)
 
 
-data CAliasDefinition = CAliasDef String String String
-    | CNativeAliasDef String String String
+data CAliasDefinition = CAliasDef String String
+    | CNativeAliasDef String String
     deriving Show
 instance TokenLength CAliasDefinition where
-    tokenLength (CAliasDef _ _ _) = 4
-    tokenLength (CNativeAliasDef _ _ _) = 5
+    tokenLength (CAliasDef _ _) = 4
+    tokenLength (CNativeAliasDef _ _) = 5
 
 data CProgramStatement = 
     CPSVarDec CVariableDeclaration
@@ -151,8 +153,8 @@ instance TokenLength CImportStatement where
 
 data CModuleName =
     CModuleIdent String
-    | CPackage String String CModuleName
+    | CPackage String CModuleName
     deriving Show
 instance TokenLength CModuleName where
     tokenLength (CModuleIdent _) = 1
-    tokenLength (CPackage _ _ a) = 2 + (tokenLength a)
+    tokenLength (CPackage _ a) = 2 + (tokenLength a)

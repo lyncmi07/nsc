@@ -81,10 +81,10 @@ Statement : Expression              { CSExpression $1 }
 	  | VariableDeclaration     { CSVarDec $1 }
 
 Parameter : ident ident { CParam $1 $2 }
-          | ident operator ident {% \s currentCol l tokenPositions -> let returnVal = (CPointerParam $1 $2 $3) in
+          | ident operator ident {% \s currentCol l tokenPositions -> let returnVal = (CPointerParam $1 $3) in
                 case $2 of
                     "*" -> return returnVal
-                    "..." -> return returnVal
+                    "..." -> return (CVariadicParam $1 $3)
                     actualOperator -> let (sLine, sCol, eLine, eCol) = getTokenPositions returnVal tokenPositions 2 in
                             addNonFatalError
                             (NFE ("Only '*' of '...' can be used on a type to denote an operator. Received operator '" ++ actualOperator ++ "' instead.") s sLine sCol eLine eCol)
@@ -114,8 +114,8 @@ BracketType : '(' ')' { Parentheses }
 
 AliasDefinition : alias ident operator ident    {% \s currentCol l tokenPositions ->
                     case $3 of
-                        "=" -> return $ CAliasDef $3 $2 $4 
-                        _ -> let returnVal = (CAliasDef $3 $2 $4) in
+                        "=" -> return $ CAliasDef $2 $4 
+                        _ -> let returnVal = (CAliasDef $2 $4) in
                             let (sLine, sCol, eLine, eCol) = getTokenPositions returnVal tokenPositions 3 in
                                 addNonFatalError
                                 (NFE "A '=' operator must be used within an alias definition" s sLine sCol eLine eCol)
@@ -123,8 +123,8 @@ AliasDefinition : alias ident operator ident    {% \s currentCol l tokenPosition
                 }
                 | native alias ident operator nativecode {% \s currentCol l tokenPositions ->
                     case $4 of
-                        "=" -> return $ CNativeAliasDef $4 $3 $5
-                        actualOperator -> let returnVal = CNativeAliasDef $4 $3 $5 in
+                        "=" -> return $ CNativeAliasDef $3 $5
+                        actualOperator -> let returnVal = CNativeAliasDef $3 $5 in
                             let (sLine, sCol, eLine, eCol) = getTokenPositions returnVal tokenPositions 4 in
                                 addNonFatalError
                                 (NFE ("A '=' operator must be used within an alias definition. Received operator '" ++ actualOperator ++ "' instead.") s sLine sCol eLine eCol)
@@ -140,13 +140,13 @@ ImportStatement : import ModuleName            { CNSImport $2 }
                 | native import ModuleName     { CNativeImport $3 }
 
 -- ModuleName : ident                      { CModuleIdent $1 }
--- | ident operator ModuleName  { CPackage $1 $2 $3 }
+-- | ident operator ModuleName  { CPackage $1 $3 }
 
 ModuleName : ident { CModuleIdent $1 }
            | ident operator ModuleName {% \s currentCol l tokenPositions ->
                 case $2 of
-                    "." -> return $ CPackage $1 $2 $3
-                    actualOperator -> let returnVal = (CPackage $1 $2 $3) in
+                    "." -> return $ CPackage $1 $3
+                    actualOperator -> let returnVal = (CPackage $1 $3) in
                         let (sLine, sCol, eLine, eCol) = getTokenPositions returnVal tokenPositions 2 in
                         addNonFatalError 
                         (NFE ("package names must be separated by '.' operator. Received operator '" ++ actualOperator ++ "' instead.")  s sLine sCol eLine eCol)
