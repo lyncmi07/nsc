@@ -104,10 +104,8 @@ convertStatement (CSVarDec a) = do
 
 convertParameter :: CParameter -> CompilerStatus Ifm1Parameter.Parameter
 convertParameter (CParam a b) = return $ Ifm1Parameter.IfParameter $ PConst a b
-convertParameter (CPointerParam a op b)
-    | op == "*" = return $ Ifm1Parameter.IfParameter $ PPointer a b
-    | op == "..." = return $ Ifm1Parameter.IfParameter $ PVariadic a b
-    | otherwise = Error "Only '*' or '...' can be used on a type to denote an operator" (show (CPointerParam a op b))
+convertParameter (CPointerParam a b) = return $ Ifm1Parameter.IfParameter $ PPointer a b
+convertParameter (CVariadicParam a b) = return $ Ifm1Parameter.IfParameter $ PVariadic a b
 
 convertFilledParameters :: CFilledParameters -> CompilerStatus [Ifm1Parameter.Parameter]
 convertFilledParameters (CMultiParam x xs) = do
@@ -153,12 +151,8 @@ convertFunctionDefinition (CBracketOpOverloadDef a b c d) = do
     return $ FDBracketOverload b a n m
 
 convertAliasDefinition :: CAliasDefinition -> CompilerStatus AliasDefinition
-convertAliasDefinition (CAliasDef o a b)
-    | o == "=" = return $ ADNoSyn a b
-    | otherwise = Error "alias statement must assign using '=' symbol" (show (CAliasDef o a b))
-convertAliasDefinition (CNativeAliasDef o a b)
-    | o == "=" = return $ ADNative a b
-    | otherwise = Error "alias statement must assign using '=' symbol" (show (CNativeAliasDef o a b))
+convertAliasDefinition (CAliasDef a b) = return $ ADNoSyn a b
+convertAliasDefinition (CNativeAliasDef a b) = return $ ADNative a b
 
 convertProgramStatement :: CProgramStatement -> CompilerStatus ProgramStmt
 convertProgramStatement (CPSVarDec a) = do
@@ -211,8 +205,6 @@ convertImportStatement' (CNativeImport a) = do
 
 convertModuleName :: CModuleName -> CompilerStatus [String]
 convertModuleName (CModuleIdent moduleName) = return [moduleName]
-convertModuleName (CPackage parentPackage operator childPackage)
-    | (operator == ".") = do
-        rest <- convertModuleName childPackage
-        return $ parentPackage:rest
-    | otherwise = Error "package names are separated by '.' operator" (show (CPackage parentPackage operator childPackage))
+convertModuleName (CPackage parentPackage childPackage) = do
+    rest <- convertModuleName childPackage
+    return $ parentPackage:rest
