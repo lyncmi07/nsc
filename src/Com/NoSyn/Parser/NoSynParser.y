@@ -85,9 +85,9 @@ Parameter : ident ident { CParam $1 $2 }
                 case $2 of
                     "*" -> return returnVal
                     "..." -> return returnVal
-                    _ -> let (sLine, sCol, eLine, eCol) = getTokenPositions returnVal tokenPositions 2 in
+                    actualOperator -> let (sLine, sCol, eLine, eCol) = getTokenPositions returnVal tokenPositions 2 in
                             addNonFatalError
-                            (NFE "Only '*' of '...' can be used on a type to denote an operator" s sLine sCol eLine eCol)
+                            (NFE ("Only '*' of '...' can be used on a type to denote an operator. Received operator '" ++ actualOperator ++ "' instead.") s sLine sCol eLine eCol)
                             returnVal
             }
 
@@ -115,19 +115,19 @@ BracketType : '(' ')' { Parentheses }
 AliasDefinition : alias ident operator ident    {% \s currentCol l tokenPositions ->
                     case $3 of
                         "=" -> return $ CAliasDef $3 $2 $4 
-                        _ -> let returnVal = (CNativeAliasDef $3 $2 $4) in
+                        _ -> let returnVal = (CAliasDef $3 $2 $4) in
                             let (sLine, sCol, eLine, eCol) = getTokenPositions returnVal tokenPositions 3 in
                                 addNonFatalError
                                 (NFE "A '=' operator must be used within an alias definition" s sLine sCol eLine eCol)
                                 returnVal
                 }
                 | native alias ident operator nativecode {% \s currentCol l tokenPositions ->
-                    case $3 of
-                        "=" -> return $ CAliasDef $4 $3 $5
-                        _ -> let returnVal = CNativeAliasDef $4 $3 $5 in
+                    case $4 of
+                        "=" -> return $ CNativeAliasDef $4 $3 $5
+                        actualOperator -> let returnVal = CNativeAliasDef $4 $3 $5 in
                             let (sLine, sCol, eLine, eCol) = getTokenPositions returnVal tokenPositions 4 in
                                 addNonFatalError
-                                (NFE "A '=' operator must be used within an alias definition" s sLine sCol eLine eCol)
+                                (NFE ("A '=' operator must be used within an alias definition. Received operator '" ++ actualOperator ++ "' instead.") s sLine sCol eLine eCol)
                                 returnVal
                 }
 
@@ -146,10 +146,10 @@ ModuleName : ident { CModuleIdent $1 }
            | ident operator ModuleName {% \s currentCol l tokenPositions ->
                 case $2 of
                     "." -> return $ CPackage $1 $2 $3
-                    _ -> let returnVal = (CPackage $1 $2 $3) in
+                    actualOperator -> let returnVal = (CPackage $1 $2 $3) in
                         let (sLine, sCol, eLine, eCol) = getTokenPositions returnVal tokenPositions 2 in
                         addNonFatalError 
-                        (NFE "package names are separated by '.' operator"  s sLine sCol eLine eCol)
+                        (NFE ("package names must be separated by '.' operator. Received operator '" ++ actualOperator ++ "' instead.")  s sLine sCol eLine eCol)
                         returnVal
             }
 
