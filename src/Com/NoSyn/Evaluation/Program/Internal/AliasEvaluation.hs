@@ -41,7 +41,7 @@ createRealTypeLookupTable noSynLookupTable realLookupTable
             (keySet noSynLookupTable)) =
                 let reorderedNoSynLookupTable = Data.Map.Ordered.fromList (xs ++ [(aliasName, aliasType)]) in
                 createRealTypeLookupTable reorderedNoSynLookupTable realLookupTable
-    | otherwise = Error ("'alias " ++ aliasName ++ " = " ++ aliasType ++ "' is an invalid alias") "Context given"
+    | otherwise = Error ("'alias " ++ aliasName ++ " = " ++ aliasType ++ "' is an invalid alias") (show (noSynLookupTable, realLookupTable))
     where
         ((aliasName, aliasType):xs) = Data.Map.Ordered.assocs noSynLookupTable
 
