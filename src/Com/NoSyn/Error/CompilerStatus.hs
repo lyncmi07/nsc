@@ -2,20 +2,23 @@ module Com.NoSyn.Error.CompilerStatus where
 
 import Com.NoSyn.Error.MaybeConvertable
 import Com.NoSyn.Error.NonFatalError
+import qualified Com.NoSyn.Error.SourcePosition as SourcePosition
 import Com.NoSyn.Error.CompilerContext as CompilerContext
 import Data.Set.SetTheory as SetTheory
 import Data.Set (empty, singleton, toList)
 import Data.List.Split
 import Data.List
 import System.IO
+import Control.Monad.Trans.Class
+import Com.NoSyn.Parser.TokenLength
 
 
 type LineNumber = Int
 type Column = Int
-type Cs a = String -> Column -> LineNumber -> [(LineNumber, Column, LineNumber, Column)] -> CompilerStatus a
+type Cs a = String -> Column -> LineNumber -> [(LineNumber, Column, LineNumber, Column)] -> SourcePosition.SourcePositionT CompilerStatus a
 
 getLineNumber :: Cs LineNumber
-getLineNumber = \s _ l _ -> Valid CompilerContext.empty l
+getLineNumber = \s _ l _ -> lift $ Valid CompilerContext.empty l
 
 data CompilerStatus a =
     Valid CompilerContext a

@@ -1,11 +1,14 @@
 module Com.NoSyn.Error.SourcePosition where
 
 import Prelude hiding (getContents)
+import Control.Monad.Trans.Class
+import Control.Monad (liftM)
 
 type LineNumber = Int
 type Column = Int
 
 data SourcePosition a = SourcePosition LineNumber Column LineNumber Column a
+    deriving (Show, Eq)
 
 changeContents (SourcePosition a b c d e) f = (SourcePosition a b c d f)
 getContents (SourcePosition _ _ _ _ a) = a
@@ -30,3 +33,28 @@ instance Monad SourcePosition where
     -- Should the positions be combined here or do we just take the new positions?
     spa >>= f = f (getContents spa)
     return = pure
+
+newtype SourcePositionT m a = SourcePositionT { runSourcePositionT :: m (SourcePosition a) }
+
+instance MonadTrans SourcePositionT where
+    lift = SourcePositionT . fmap return
+
+mapSourcePositionT :: (m (SourcePosition a) -> n (SourcePosition b))  -> SourcePositionT m a -> SourcePositionT n b
+mapSourcePositionT f = SourcePositionT . f . runSourcePositionT
+
+instance (Functor m) => Functor (SourcePositionT m) where
+    fmap f = mapSourcePositionT (fmap (fmap f))
+
+instance (Monad m) => Applicative (SourcePositionT m) where
+    pure = SourcePositionT . return . return
+    spfT <*> spaT = SourcePositionT $ do
+        spf <- runSourcePositionT spfT
+        spa <- runSourcePositionT spaT
+        return $ spf <*> spa
+
+instance (Monad m) => Monad (SourcePositionT m) where
+    return = SourcePositionT . return . return
+    spaT >>= f = SourcePositionT $ do
+        spa <- runSourcePositionT spaT
+        spb <- runSourcePositionT $ (f (getContents spa))
+        return $ spa >> spb

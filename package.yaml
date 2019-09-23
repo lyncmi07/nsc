@@ -29,6 +29,7 @@ library:
   - text-latin1
   - split
   - set-theory
+  - transformers
 
 executables:
   no-syn-exe:

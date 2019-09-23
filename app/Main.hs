@@ -9,6 +9,8 @@ import Com.NoSyn.Parser.ConcreteSyntaxConverter
 import Com.NoSyn.Environment.ProgramEnvironment
 import Com.NoSyn.Environment.FunctionEnvironment
 import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Error.SourcePosition hiding (getContents)
+import qualified Com.NoSyn.Error.SourcePosition as SourcePosition (getContents)
 import Com.NoSyn.Ast.Traits.IfElementGeneratable
 import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 import Com.NoSyn.Ast.Traits.Listable as Listable
@@ -28,8 +30,8 @@ import Data.Foldable
 main = do
     args <- getArgs
     (headerText, programText) <- getContents >>= return.splitInputs
-    (_, cst) <- convertToIO $ failOnNonFatalErrors programText (parse programText 0 1 [])
-    (_, ifm1Ast@(Ifm1PreProgram.PreProgram importStatments _)) <- convertToIO $ convertProgram cst
+    (_, cst) <- convertToIO $ failOnNonFatalErrors programText (runSourcePositionT $ parse programText 0 1 [])
+    (_, ifm1Ast@(Ifm1PreProgram.PreProgram importStatments _)) <- convertToIO $ convertProgram (SourcePosition.getContents cst)
     (_, ifAst) <- convertToIO $ generateIfElement defaultProgramEnvironment ifm1Ast
     if args == [] then compileProgram headerText ifAst ifm1Ast
     else let (x:_) = args in
