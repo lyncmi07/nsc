@@ -15,10 +15,10 @@ import Com.NoSyn.Parser.TokenLength
 
 type LineNumber = Int
 type Column = Int
-type Cs a = String -> Column -> LineNumber -> [(LineNumber, Column, LineNumber, Column)] -> SourcePosition.SourcePositionT CompilerStatus a
+type Cs a = String -> Column -> LineNumber -> [(LineNumber, Column, LineNumber, Column)] -> CompilerStatus a
 
 getLineNumber :: Cs LineNumber
-getLineNumber = \s _ l _ -> lift $ Valid CompilerContext.empty l
+getLineNumber = \s _ l _ -> Valid CompilerContext.empty l
 
 data CompilerStatus a =
     Valid CompilerContext a
@@ -66,6 +66,10 @@ dependencyRequired moduleName value = Valid (CC {moduleDependencies = singleton 
 
 addNonFatalError :: NonFatalError -> a -> CompilerStatus a
 addNonFatalError error value = Valid (CC { moduleDependencies = Data.Set.empty, nonFatalErrors = [error]}) value
+
+addNonFatalErrorM :: NonFatalError -> CompilerStatus a -> CompilerStatus a
+addNonFatalErrorM _ (Error a b) = Error a b
+addNonFatalErrorM error value = value >>= (addNonFatalError error)
 
 failOnNonFatalErrors :: String -> CompilerStatus a -> CompilerStatus a
 failOnNonFatalErrors sourceCode b@(Valid compilerContext n)
