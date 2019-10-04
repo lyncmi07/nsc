@@ -101,3 +101,33 @@ prettyPrintSingleLinePosition sourceLines line startColumn endColumn =
     let codeLine = sourceLines !! (line - 1) in
         codeLine ++ "\n"
         ++ (take (startColumn - 1) $ repeat ' ') ++ (take (endColumn - startColumn + 1) $ repeat '^')
+
+newtype CompilerStatusT m a = CompilerStatusT { runCompilerStatusT :: m (CompilerStatus a) }
+
+instance MonadTrans CompilerStatusT where
+    lift = CompilerStatusT . fmap return
+
+mapCompilerStatusT :: (m (CompilerStatus a) -> n (CompilerStatus b)) -> CompilerStatusT m a -> CompilerStatusT n b
+mapCompilerStatusT f = CompilerStatusT . f . runCompilerStatusT
+
+instance (Functor m) => Functor (CompilerStatusT m) where
+    fmap f = mapCompilerStatusT (fmap (fmap f))
+
+instance (Monad m) => Applicative (CompilerStatusT m) where
+    pure = CompilerStatusT . return . return
+    csfT <*> csaT = CompilerStatusT $ do
+        csf <- runCompilerStatusT csfT
+        csa <- runCompilerStatusT csaT
+        return $ csf <*> csa
+
+instance (Monad m) => Monad (CompilerStatusT m) where
+    return = pure
+    -- csaT >>= f = CompilerStatusT $ do
+        -- csa <- runCompilerStatusT csaT
+        -- csb <- runCompilerStatusT % (f ())
+    csaT >>= f = CompilerStatusT $ do
+    csa <- runCompilerStatusT csaT
+    csb <- case csa of
+        Error a b -> return $ Error a b
+        Valid e a -> runCompilerStatusT $ f a
+    return $ csa >> csb
