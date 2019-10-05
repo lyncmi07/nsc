@@ -154,8 +154,9 @@ convertFunctionDefinition (CBracketOpOverloadDef a b c d) = do
     return $ FDBracketOverload b a n m
 
 convertAliasDefinition :: SPCAliasDefinition -> CompilerStatusT SourcePosition AliasDefinition
-convertAliasDefinition (CAliasDef a b) = return $ ADNoSyn a b
-convertAliasDefinition (CNativeAliasDef a b) = return $ ADNative a b
+convertAliasDefinition spcAliasDefinition = case getContents spcAliasDefinition of
+    CAliasDef a b -> lift $ changeContents spcAliasDefinition $ ADNoSyn a b
+    CNativeAliasDef a b -> lift $ changeContents spcAliasDefinition $ ADNative a b
 
 convertProgramStatement :: SPCProgramStatement -> CompilerStatusT SourcePosition ProgramStmt
 convertProgramStatement spcProgramStatement = case getContents spcProgramStatement of
