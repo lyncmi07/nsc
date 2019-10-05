@@ -137,21 +137,28 @@ convertBlockStatement (CFilledBlock a) = do
     return $ SequentialBlock n
 
 convertFunctionDefinition :: SPCFunctionDefinition -> CompilerStatusT SourcePosition FunctionDefinition
-convertFunctionDefinition (CFuncDefNative b a c) = do
-    n <- convertParameters c
-    return $ FDNative a b n
-convertFunctionDefinition (CFuncDef b a c d) = do
-    n <- convertParameters c
-    m <- convertBlockStatement d
-    return $ FDNoSyn a b n m
-convertFunctionDefinition (COpOverloadDef a b c d e) = do
-    n <- convertParameters d
-    m <- convertBlockStatement e
-    return $ FDOperatorOverload b c a n m
-convertFunctionDefinition (CBracketOpOverloadDef a b c d) = do
-    n <- convertParameters c
-    m <- convertBlockStatement d
-    return $ FDBracketOverload b a n m
+convertFunctionDefinition spcFunctionDefinition = case getContents spcFunctionDefinition of
+    CFuncDefNative b a c -> let positionedN = convertParameters c in do
+        n <- positionedN
+        lift $ changeContents spcFunctionDefinition $ FDNative a b $ changeContents (runCompilerStatusT positionedN) n
+    CFuncDef b a c d -> let positionedN = convertParameters c in
+        let positionedM = convertBlockStatement d in do
+        n <- positionedN
+        m <- positionedM
+        lift $ changeContents spcFunctionDefinition $
+            FDNoSyn a b (changeContents (runCompilerStatusT positionedN) n) (changeContents (runCompilerStatusT positionedM) m)
+    COpOverloadDef a b c d e -> let positionedN = convertParameters d in
+        let positionedM = convertBlockStatement e in do
+        n <- positionedN
+        m <- positionedM
+        lift $ changeContents spcFunctionDefinition $
+            FDOperatorOverload b c a (changeContents (runCompilerStatusT positionedN) n) (changeContents (runCompilerStatusT positionedM) m)
+    CBracketOpOverloadDef a b c d -> let positionedN = convertParameters c in
+        let positionedM = convertBlockStatement d in do
+        n <- positionedN
+        m <- positionedM
+        lift $ changeContents spcFunctionDefinition $
+            FDBracketOverload b a (changeContents (runCompilerStatusT positionedN) n) (changeContents (runCompilerStatusT positionedM) m)
 
 convertAliasDefinition :: SPCAliasDefinition -> CompilerStatusT SourcePosition AliasDefinition
 convertAliasDefinition spcAliasDefinition = case getContents spcAliasDefinition of
