@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module Com.NoSyn.Ast.Ifm1.Program where
 
+import Prelude hiding (getContents)
 import qualified Com.NoSyn.Ast.If.IfElement as IfElement
 import qualified Com.NoSyn.Ast.If.Program as IfProgram
 import Com.NoSyn.Data.Types
@@ -9,26 +10,27 @@ import Com.NoSyn.Ast.Ifm1.VariableDeclaration
 import Com.NoSyn.Ast.Ifm1.AliasDefinition
 import Com.NoSyn.Ast.Ifm1.FunctionDefinition
 import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Error.SourcePosition
 import Com.NoSyn.Ast.If.Block
 import Com.NoSyn.Ast.Traits.Listable
 
 type Program = Block ProgramStmt
 data ProgramStmt =
-    PSAliasDef AliasDefinition
-    | PSFuncDef FunctionDefinition
-    | PSVarDec VariableDeclaration
+    PSAliasDef (SourcePosition AliasDefinition)
+    | PSFuncDef (SourcePosition FunctionDefinition)
+    | PSVarDec (SourcePosition VariableDeclaration)
     deriving Show
 
 instance IfElementGeneratable ProgramStmt where
     generateIfElement programEnvironment (PSAliasDef a) = do
-        ~(IfElement.IfAliasDefinition b) <- generateIfElement programEnvironment a
-        return $ IfElement.IfProgramStmt (IfProgram.PSAliasDef b)
+        ~(IfElement.IfAliasDefinition b) <- generateIfElement programEnvironment $ getContents a
+        return $ IfElement.IfProgramStmt (IfProgram.PSAliasDef $ changeContents a b)
     generateIfElement programEnvironment (PSVarDec a) = do
-        ~(IfElement.IfVariableDeclaration b) <- generateIfElement programEnvironment a
-        return $ IfElement.IfProgramStmt (IfProgram.PSVarDec b)
+        ~(IfElement.IfVariableDeclaration b) <- generateIfElement programEnvironment $ getContents a
+        return $ IfElement.IfProgramStmt (IfProgram.PSVarDec $ changeContents a b)
     generateIfElement programEnvironment (PSFuncDef a) = do
-        ~(IfElement.IfFunctionDefinition b) <- generateIfElement programEnvironment a
-        return $ IfElement.IfProgramStmt (IfProgram.PSFuncDef b)
+        ~(IfElement.IfFunctionDefinition b) <- generateIfElement programEnvironment $ getContents a
+        return $ IfElement.IfProgramStmt (IfProgram.PSFuncDef $ changeContents a b)
 
 
 instance IfElementGeneratable Program where

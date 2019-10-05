@@ -1,5 +1,6 @@
 module Com.NoSyn.Evaluation.Program.Internal.FunctionEvaluation (programFunctionDefinitionEvaluate) where
 
+import Prelude hiding (getContents)
 import Com.NoSyn.Data.Types
 import Com.NoSyn.Data.Variable
 import Com.NoSyn.Environment.AliasEnvironment
@@ -10,6 +11,7 @@ import Com.NoSyn.Ast.If.FunctionDefinition
 import Com.NoSyn.Ast.If.Parameter
 import Com.NoSyn.Ast.Traits.Listable as Listable
 import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Error.SourcePosition
 import Data.Map
 import Data.Map.Ordered
 import Data.Maybe
@@ -24,7 +26,7 @@ programFunctionDefinitionEvaluate aliasEnvironment program =
 programFunctionDefinitionEvaluate'::AliasEnvironment->[ProgramStmt]->FunctionEnvironment->CompilerStatus FunctionEnvironment
 programFunctionDefinitionEvaluate' _ [] functionLookup = return functionLookup
 programFunctionDefinitionEvaluate' aliasEnvironment ((PSFuncDef funcDef):xs) currentFunctionEnvironment = do
-    (functionName, newFunction) <- createFunctionEntry aliasEnvironment funcDef
+    (functionName, newFunction) <- createFunctionEntry aliasEnvironment (getContents funcDef)
     let currentFunctionOverloads = fromMaybe [] $ Data.Map.lookup functionName currentFunctionEnvironment in
         if any (==newFunction) currentFunctionOverloads then
             Error ("There is already an equivalent function to " ++ (show newFunction)) (show currentFunctionOverloads)

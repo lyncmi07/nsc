@@ -158,18 +158,18 @@ convertAliasDefinition (CAliasDef a b) = return $ ADNoSyn a b
 convertAliasDefinition (CNativeAliasDef a b) = return $ ADNative a b
 
 convertProgramStatement :: SPCProgramStatement -> CompilerStatusT SourcePosition ProgramStmt
-convertProgramStatement (CPSVarDec a) = do
-    n <- convertVariableDeclaration a
-    return $ PSVarDec n
-convertProgramStatement (CPSFuncDef a) = do
-    n <- convertFunctionDefinition a
-    return $ PSFuncDef n
-convertProgramStatement (CPSAliasDef a) = do
-    n <- convertAliasDefinition a
-    return $ PSAliasDef n
-convertProgramStatement (CPSImportStatement a) = 
-    Error "COMPILER ERROR: Import statements should not be present in this context" (show (CPSImportStatement a))
-
+convertProgramStatement spcProgramStatement = case getContents spcProgramStatement of
+    CPSVarDec a -> let positionedN = convertVariableDeclaration a in do
+        n <- positionedN
+        lift $ changeContents spcProgramStatement $ PSVarDec $ changeContents (runCompilerStatusT positionedN) n
+    CPSFuncDef a -> let positionedN = convertFunctionDefinition a in do
+        n <- positionedN
+        lift $ changeContents spcProgramStatement $ PSFuncDef $ changeContents (runCompilerStatusT positionedN) n
+    CPSAliasDef a -> let positionedN = convertAliasDefinition a in do
+        n <- positionedN
+        lift $ changeContents spcProgramStatement $ PSAliasDef $ changeContents (runCompilerStatusT positionedN) n
+    CPSImportStatement a ->
+        CompilerStatusT $ changeContents spcProgramStatement $ Error "COMPILER ERROR: Import statements should not be present in this context" (show $ CPSImportStatement a)
 convertProgram :: SPCProgram -> CompilerStatusT SourcePosition PreProgram
 convertProgram program = do
     convertedImportStatements <- convertImportStatements importStatements
@@ -199,20 +199,9 @@ convertProgramStatements programStatements = do
     return $ StandardBlock ifm1ProgramStatements
 
 convertImportStatement :: SPCProgramStatement -> CompilerStatusT SourcePosition Ifm1ImportStatement.ImportStatement
-convertImportStatement spProgramStatement = case getContents spProgramStatement of
+convertImportStatement spcProgramStatement = case getContents spcProgramStatement of
     CPSImportStatement a -> convertImportStatement' a
-    otherwise -> CompilerStatusT $ return $ Error "COMPILER ERROR: Only import statements should be present in this context" (show a)
-
-convertImportStatement (CPSImportStatement a) = convertImportStatement' a
-convertImportStatement a = CompilerStatusT $ return $ Error "COMPILER ERROR: Only import statements should be present in this context" (show a)
-
-convertImportStatement' (CNSImport a) = do
-    n <- convertModuleName a
-    return $ Ifm1ImportStatement.IfImportStatement $ NSImport n
-convertImportStatement' (CNativeImport a) = do
-    n <- convertModuleName a
-    return $ Ifm1ImportStatement.IfImportStatement $ NativeImport n
-
+    otherwise -> CompilerStatusT $ changeContents spcProgramStatement $ Error "COMPILER ERROR: Only import statements should be present in this context" (show spcProgramStatement)
 
 convertImportStatement' spcImportStatement = case getContents spcImportStatement of
     CNSImport a -> do
@@ -223,25 +212,6 @@ convertImportStatement' spcImportStatement = case getContents spcImportStatement
         n <- convertModuleName a
         lift $ changeContents spcImportStatement $ 
             Ifm1ImportStatement.IfImportStatement $ NativeImport n
-
--- convertImportStatement' spcImportStatement = case getContents spcImportStatement of
-    -- CNSImport a -> do
-        -- n <- convertModuleName
-    -- CNativeImport a -> 
-
--- convertModuleName :: SPCModuleName -> CompilerStatus [String]
--- convertModuleName (CModuleIdent moduleName) = return [moduleName]
--- convertModuleName (CPackage parentPackage childPackage) = case getContents x of
-    -- CPackage parentPackage childPackage -> do
-    -- rest <- convertModuleName childPackage
-    -- return $ parentPackage:rest
-
--- convertModuleName :: SPCModuleName -> CompilerStatusT SourcePosition [String]
--- convertModuleName spModuleName = case getContents spModuleName of
-    -- CModuleIdent moduleName -> lift $ changeContents spModuleName [moduleName]
-    -- CPackage parentPackage childPackage -> do
-        -- rest <- convertModuleName childPackage
-        -- lift $ changeContents spModuleName $ parentPackage:rest
 
 convertModuleName :: SPCModuleName -> CompilerStatusT SourcePosition [SourcePosition String]
 convertModuleName spModuleName = case getContents spModuleName of

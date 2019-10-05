@@ -1,8 +1,10 @@
 module Com.NoSyn.Evaluation.Program.Internal.VariableDeclarationEvaluation (programVariableDeclarationEvaluate) where
 
+import Prelude hiding (getContents)
 import Com.NoSyn.Data.Types
 import Com.NoSyn.Data.Variable
 import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Error.SourcePosition
 import Com.NoSyn.Environment.AliasEnvironment
 import Com.NoSyn.Environment.VariableEnvironment
 import Com.NoSyn.Environment.ProgramEnvironment
@@ -19,7 +21,7 @@ programVariableDeclarationEvaluate aliasEnvironment program = do
 programVariableDeclarationEvaluate'::AliasEnvironment -> [ProgramStmt] -> CompilerStatus [(Ident, Variable)]
 programVariableDeclarationEvaluate' _ [] = return []
 programVariableDeclarationEvaluate' aliasEnvironment ((PSVarDec variableDeclaration):xs) = do
-    varDecEntry <- createVariableDeclarationEntry aliasEnvironment variableDeclaration
+    varDecEntry <- createVariableDeclarationEntry aliasEnvironment (getContents variableDeclaration)
     otherVarDecs <- programVariableDeclarationEvaluate' aliasEnvironment xs
     return $ varDecEntry:otherVarDecs
 programVariableDeclarationEvaluate' aliasEnvironment (_:xs) = do

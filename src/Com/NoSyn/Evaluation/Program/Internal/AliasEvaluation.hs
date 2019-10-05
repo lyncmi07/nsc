@@ -1,9 +1,11 @@
 module Com.NoSyn.Evaluation.Program.Internal.AliasEvaluation (programAliasEvaluate) where
 
+import Prelude hiding (getContents)
 import Com.NoSyn.Ast.If.Program
 import Com.NoSyn.Ast.If.AliasDefinition
 import Com.NoSyn.Ast.Traits.Listable as Listable
 import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Error.SourcePosition
 import Data.Map.Ordered
 import Data.Set
 import Com.NoSyn.Environment.AliasEnvironment
@@ -17,16 +19,21 @@ programAliasEvaluate defaultEnvironment program =
 
 addNativeAliases::[ProgramStmt] -> AliasEnvironment -> AliasEnvironment
 addNativeAliases [] aliasEnvironment = aliasEnvironment
-addNativeAliases ((PSAliasDef (ADNative aliasName aliasType)):xs) aliasEnvironment =
-    let updatedAliasEnvironment = (aliasName, aliasType) |< aliasEnvironment in
-    addNativeAliases xs updatedAliasEnvironment
-addNativeAliases (_:xs) aliasEnvironment = addNativeAliases xs aliasEnvironment
+addNativeAliases ((PSAliasDef aliasDef):xs) aliasEnvironment = case getContents aliasDef of
+    ADNative aliasName aliasType ->
+        let updatedAliasEnvironment = (aliasName, aliasType) |< aliasEnvironment in
+        addNativeAliases xs updatedAliasEnvironment
+    otherwise -> addNativeAliases xs aliasEnvironment
 
 createNoSynTypeLookupTable::[ProgramStmt] -> OMap Ident Ident
 createNoSynTypeLookupTable [] = Data.Map.Ordered.empty
-createNoSynTypeLookupTable ((PSAliasDef (ADNoSyn aliasName aliasType)):xs) =
-    (aliasName, aliasType) |< (createNoSynTypeLookupTable xs)
-createNoSynTypeLookupTable (_:xs) = createNoSynTypeLookupTable xs
+createNoSynTypeLookupTable ((PSAliasDef aliasDef):xs) = case getContents aliasDef of
+    ADNoSyn aliasName aliasType ->
+        (aliasName, aliasType) |< (createNoSynTypeLookupTable xs)
+    otherwise -> createNoSynTypeLookupTable xs
+-- createNoSynTypeLookupTable ((PSAliasDef (ADNoSyn aliasName aliasType)):xs) =
+    -- (aliasName, aliasType) |< (createNoSynTypeLookupTable xs)
+-- createNoSynTypeLookupTable (_:xs) = createNoSynTypeLookupTable xs
 
 createRealTypeLookupTable::OMap Ident Ident -> AliasEnvironment -> CompilerStatus AliasEnvironment
 createRealTypeLookupTable noSynLookupTable realLookupTable
