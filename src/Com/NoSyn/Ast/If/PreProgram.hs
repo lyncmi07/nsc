@@ -4,8 +4,9 @@ import Com.NoSyn.Ast.Traits.EnvironmentUpdater
 import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 import Com.NoSyn.Ast.If.ImportStatement
 import Com.NoSyn.Ast.If.Program
+import Com.NoSyn.Error.SourcePosition
 
-data PreProgram = PreProgram ImportStatements Program
+data PreProgram = PreProgram (SourcePosition ImportStatements) (SourcePosition Program)
     deriving Show
 
 instance TargetCodeGeneratable PreProgram where

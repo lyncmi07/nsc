@@ -5,12 +5,14 @@ import qualified Com.NoSyn.Ast.If.PreProgram as IfPreProgram
 import Com.NoSyn.Ast.Traits.IfElementGeneratable
 import Com.NoSyn.Ast.Ifm1.ImportStatement
 import Com.NoSyn.Ast.Ifm1.Program
+import Com.NoSyn.Error.SourcePosition
 
-data PreProgram = PreProgram ImportStatements Program
+data PreProgram = PreProgram (SourcePosition ImportStatements) (SourcePosition Program)
     deriving Show
 
 instance IfElementGeneratable PreProgram where
     generateIfElement programEnvironment (PreProgram a b) = do
         ~(IfElement.IfImportStatements importStatements) <- generateIfElement programEnvironment a
         ~(IfElement.IfProgram program) <- generateIfElement programEnvironment b
-        return $ IfElement.IfPreProgram $ IfPreProgram.PreProgram importStatements program
+        -- return $ IfElement.IfPreProgram $ IfPreProgram.PreProgram (changeContents a importStatements) (changeContents b program)
+        return $ IfElement.IfPreProgram $ return $ IfPreProgram.PreProgram importStatements program

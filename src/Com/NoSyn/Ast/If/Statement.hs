@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module Com.NoSyn.Ast.If.Statement where
 
+import Prelude hiding (getContents)
 import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 import Com.NoSyn.Ast.Traits.EnvironmentUpdater
 import Com.NoSyn.Ast.If.Block
@@ -8,13 +9,14 @@ import Com.NoSyn.Ast.If.VariableDeclaration
 import Com.NoSyn.Ast.If.Expression
 import Com.NoSyn.Environment.ProgramEnvironment
 import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Error.SourcePosition
 import Data.List
 
-type BlockStatement = Block Statement
+type BlockStatement = Block (SourcePosition Statement)
 
 data Statement = 
-    SVarDec VariableDeclaration
-    | SExpression Expression
+    SVarDec (SourcePosition VariableDeclaration)
+    | SExpression (SourcePosition Expression)
     deriving Show
 
 instance TargetCodeGeneratable Statement where
@@ -31,7 +33,7 @@ instance Blockable Statement where
     blockSeparator _ = ";\n"
 
 instance {-# OVERLAPS #-} TargetCodeGeneratable BlockStatement where
-    generateD programEnvironment (SequentialBlock xs) = generateDForStatements programEnvironment xs
+    generateD programEnvironment (SequentialBlock xs) = generateDForStatements programEnvironment (getContents $ sequence xs)
 
 generateDForStatements _ ((SVarDec a):[]) = Error "The last statement in a block statement must be an expression" (show a)
 generateDForStatements programEnvironment@(PE { scopeReturnType = returnType }) (SExpression x:[]) = do

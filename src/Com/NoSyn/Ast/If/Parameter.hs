@@ -1,5 +1,6 @@
 module Com.NoSyn.Ast.If.Parameter where
 
+import Prelude hiding (getContents)
 import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 import Com.NoSyn.Ast.Traits.EnvironmentUpdater
 import Com.NoSyn.Ast.Traits.Typeable
@@ -13,9 +14,10 @@ import Data.Map
 import Com.NoSyn.Environment.ProgramEnvironment
 import Com.NoSyn.Environment.AliasEnvironment
 import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Error.SourcePosition
+import Com.NoSyn.Error.SourcePositionTraits
 
-type Parameters = Block Parameter
-
+type Parameters = Block (SourcePosition Parameter)
 
 data Parameter = 
     PConst Ident Ident
@@ -60,17 +62,18 @@ instance Typeable Parameter where
 instance Blockable Parameter where
     blockSeparator _ = ", "
 
-parameterToTuple::AliasEnvironment -> Parameter -> CompilerStatus (Ident, Variable)
-parameterToTuple aliasEnvironment (PConst paramType paramName) = do
-    realParamType <- lookupAtomicNoSynType paramType aliasEnvironment
-    return (paramName , (VConst realParamType paramName))
-parameterToTuple aliasEnvironment (PPointer paramType paramName) = do
-    realParamType <- lookupAtomicNoSynType paramType aliasEnvironment
-    return (paramName , (VPointer realParamType paramName))
-parameterToTuple aliasEnvironment (PVariadic paramType paramName) = do
-    realParamType <- lookupAtomicNoSynType paramType aliasEnvironment
-    return (paramName, (VVariadic realParamType paramName))
+parameterToTuple::AliasEnvironment -> SourcePosition Parameter -> CompilerStatus (Ident, Variable)
+parameterToTuple aliasEnvironment spParameter = case getContents spParameter of
+    PConst paramType paramName -> do
+        realParamType <- lookupAtomicNoSynType paramType aliasEnvironment
+        return (paramName , (VConst realParamType paramName))
+    PPointer paramType paramName -> do
+        realParamType <- lookupAtomicNoSynType paramType aliasEnvironment
+        return (paramName , (VPointer realParamType paramName))
+    PVariadic paramType paramName -> do
+        realParamType <- lookupAtomicNoSynType paramType aliasEnvironment
+        return (paramName, (VVariadic realParamType paramName))
 
-parametersToTuples::AliasEnvironment -> Parameters -> CompilerStatus [(Ident, Variable)]
+parametersToTuples::AliasEnvironment -> SourcePosition Parameters -> CompilerStatus [(Ident, Variable)]
 parametersToTuples aliasEnvironment parameters =
-    sequence $ Prelude.map (parameterToTuple aliasEnvironment) (Listable.toList parameters)
+    sequence $ Prelude.map (parameterToTuple aliasEnvironment) (sourcePositionToList parameters)

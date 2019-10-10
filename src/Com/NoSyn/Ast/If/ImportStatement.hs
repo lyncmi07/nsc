@@ -9,7 +9,7 @@ import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Error.SourcePosition
 import Com.NoSyn.Data.Types
 
-type ImportStatements = Block ImportStatement
+type ImportStatements = Block (SourcePosition ImportStatement)
 data ImportStatement =
     NativeImport [SourcePosition Ident]
     | NSImport [SourcePosition Ident]

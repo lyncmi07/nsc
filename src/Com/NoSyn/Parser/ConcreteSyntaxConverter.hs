@@ -123,18 +123,21 @@ convertParameters (CPParams a) = do
     n <- convertFilledParameters a
     return $ StandardBlock n
 
-convertFilledBlock :: SPCFilledBlock -> CompilerStatusT SourcePosition [Statement]
-convertFilledBlock (CMultiStatement x xs) = do
-    n <- convertStatement x
-    m <- convertFilledBlock xs
-    return $ n:m
-convertFilledBlock (CFinalStatement x) = sequence [convertStatement x]
+convertFilledBlock :: SPCFilledBlock -> CompilerStatusT SourcePosition [SourcePosition Statement]
+convertFilledBlock spcFilledBlock = case getContents spcFilledBlock of
+    CMultiStatement x xs -> let positionedN = convertStatement x in
+        let positionedM = convertFilledBlock xs in do
+        n <- positionedN
+        m <- positionedM
+        lift $ changeContents spcFilledBlock $ (changeContents positionedN n):m
+    CFinalStatement x -> sequence [convertStatement x]
 
 convertBlockStatement :: SPCBlockStatement -> CompilerStatusT SourcePosition BlockStatement
-convertBlockStatement CBlockEmpty = return $ SequentialBlock []
-convertBlockStatement (CFilledBlock a) = do
-    n <- convertFilledBlock a
-    return $ SequentialBlock n
+convertBlockStatement spcBlockStatement = case getContents spcBlockStatement of
+    CBlockEmpty -> lift $ changeContents spcBlockStatement $ SequentialBlock []
+    CFilledBlock a -> let positionedN = convertFilledBlock a in do
+        n <- positionedN
+        lift $ changeContents spcBlockStatement $ SequentialBlock n
 
 convertFunctionDefinition :: SPCFunctionDefinition -> CompilerStatusT SourcePosition FunctionDefinition
 convertFunctionDefinition spcFunctionDefinition = case getContents spcFunctionDefinition of
@@ -204,7 +207,7 @@ convertImportStatements importStatements = do
 convertProgramStatements :: [SPCProgramStatement] -> CompilerStatusT SourcePosition Program
 convertProgramStatements programStatements = do
     ifm1ProgramStatements <- sequence $ map convertProgramStatement programStatements
-    return $ StandardBlock ifm1ProgramStatements
+    lift $ changeContents (sequence programStatements) $ StandardBlock ifm1ProgramStatements
 
 convertImportStatement :: SPCProgramStatement -> CompilerStatusT SourcePosition Ifm1ImportStatement.ImportStatement
 convertImportStatement spcProgramStatement = case getContents spcProgramStatement of
@@ -215,11 +218,11 @@ convertImportStatement' spcImportStatement = case getContents spcImportStatement
     CNSImport a -> do
         n <- convertModuleName a
         lift $ changeContents spcImportStatement $ 
-            Ifm1ImportStatement.IfImportStatement $ NSImport n
+            Ifm1ImportStatement.IfImportStatement $ changeContents spcImportStatement $ NSImport n
     CNativeImport a -> do
         n <- convertModuleName a
         lift $ changeContents spcImportStatement $ 
-            Ifm1ImportStatement.IfImportStatement $ NativeImport n
+            Ifm1ImportStatement.IfImportStatement $ changeContents spcImportStatement $ NativeImport n
 
 convertModuleName :: SPCModuleName -> CompilerStatusT SourcePosition [SourcePosition String]
 convertModuleName spModuleName = case getContents spModuleName of

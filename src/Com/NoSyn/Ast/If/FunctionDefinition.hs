@@ -1,5 +1,6 @@
 module Com.NoSyn.Ast.If.FunctionDefinition where
 
+import Prelude hiding (getContents)
 import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 import Com.NoSyn.Ast.Traits.DIdentifiable
 import Com.NoSyn.Ast.Traits.Nameable
@@ -12,11 +13,13 @@ import Com.NoSyn.Ast.If.Statement
 import Com.NoSyn.Ast.If.Parameter
 import Data.Map.Ordered
 import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Error.SourcePosition
+import Com.NoSyn.Error.SourcePositionTraits
 import Com.NoSyn.Environment.ProgramEnvironment
 
 data FunctionDefinition =
-    FDNative Ident Ident Parameters    
-    | FDNoSyn Ident Ident Parameters BlockStatement
+    FDNative Ident Ident (SourcePosition Parameters)
+    | FDNoSyn Ident Ident (SourcePosition Parameters) (SourcePosition BlockStatement)
     deriving Show
 
 instance EnvironmentUpdater FunctionDefinition where
@@ -43,7 +46,7 @@ instance DIdentifiable FunctionDefinition where
     getDIdentifier _ (FDNative funcName _ _) = return funcName
     getDIdentifier programEnvironment func@(FDNoSyn funcName returnType parameters _) = do
         noSynReturnType <- getNoSynType programEnvironment func
-        parameterNoSynTypes <- sequence $ Prelude.map (getAlphaTypeName (aliases programEnvironment)) (Listable.toList parameters)
+        parameterNoSynTypes <- sequence $ Prelude.map ((getAlphaTypeName (aliases programEnvironment))) (sourcePositionToList parameters)
         return $ funcName
             ++ "_"
             ++ noSynReturnType

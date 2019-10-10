@@ -1,5 +1,6 @@
 module Com.NoSyn.Ast.Ifm1.Expression where
 
+import Prelude hiding (getContents)
 import qualified Com.NoSyn.Ast.If.IfElement as IfElement
 import qualified Com.NoSyn.Ast.If.Expression as IfExpression
 import Com.NoSyn.Ast.Traits.IfElementGeneratable
@@ -8,44 +9,46 @@ import Com.NoSyn.Data.Operators
 import Com.NoSyn.Ast.Ifm1.Constant
 import Com.NoSyn.Environment.ProgramEnvironment
 import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Error.SourcePosition
+import Com.NoSyn.Error.SourcePositionIfGenerator
 import qualified Data.Map as Map
 
 data Expression =
-    EFuncCall Ident [Expression]
-    | EConst Constant
+    EFuncCall Ident [SourcePosition Expression]
+    | EConst (SourcePosition Constant)
     | EIdent Ident
-    | EOp OperatorType String [Expression]
-    | EBrackets BracketType [Expression]
+    | EOp OperatorType String [SourcePosition Expression]
+    | EBrackets BracketType [SourcePosition Expression]
     deriving Show
 
 instance IfElementGeneratable Expression where
     generateIfElement programEnvironment expression = do
-        ifExpression <- generateIfExpression programEnvironment expression
+        ifExpression <- generateIfExpression programEnvironment (return expression)
         return $ IfElement.IfExpression ifExpression
 
-generateIfExpression :: ProgramEnvironment -> Expression -> CompilerStatus IfExpression.Expression
-generateIfExpression programEnvironment@(PE { functions = functions }) expression = case expression of
+generateIfExpression :: ProgramEnvironment -> SourcePosition Expression -> CompilerStatus (SourcePosition IfExpression.Expression)
+generateIfExpression programEnvironment@(PE { functions = functions }) expression = case getContents expression of
     EFuncCall funcName parameters -> do
         ifParameters <- generateIfParameters parameters
-        return $ IfExpression.EFuncCall (funcName ++ "_function") ifParameters
+        return $ changeContents expression $ IfExpression.EFuncCall (funcName ++ "_function") ifParameters
     EConst constant -> do
         ~(IfElement.IfConstant ifConstant) <- generateIfElement programEnvironment constant
-        return $ IfExpression.EConst ifConstant
+        return $ changeContents expression $ IfExpression.EConst ifConstant
     EIdent ident -> do
-        return $ IfExpression.EIdent ident
+        return $ changeContents expression $ IfExpression.EIdent ident
     EOp operatorType operatorString parameters -> do
         namedOperators <- operatorStringConverter operatorString
         ifParameters <- generateIfParameters parameters
         let ifFunctionName = (show operatorType) ++ "_" ++ (concat namedOperators) ++ "_operator" in
-            return $ IfExpression.EFuncCall ifFunctionName ifParameters
+            return $ changeContents expression $ IfExpression.EFuncCall ifFunctionName ifParameters
     EBrackets bracketType parameters@(x:xs) ->
-        case x of
+        case getContents x of
             (EIdent a) 
-                | a `Map.member` functions -> generateIfExpression programEnvironment (EFuncCall a xs)
-                | (a ++ "_function") `Map.member` functions -> generateIfExpression programEnvironment (EFuncCall a xs)
+                | a `Map.member` functions -> generateIfExpression programEnvironment (changeContents x $ EFuncCall a xs)
+                | (a ++ "_function") `Map.member` functions -> generateIfExpression programEnvironment (changeContents x $ EFuncCall a xs)
             _ -> do 
                     ifParameters <- generateIfParameters parameters
                     let ifFunctionName = (show bracketType) ++ "_bracketop" in
-                        return $ IfExpression.EFuncCall ifFunctionName ifParameters
+                        return $ changeContents expression $ IfExpression.EFuncCall ifFunctionName ifParameters
     where
         generateIfParameters parameters = sequence $ map (generateIfExpression programEnvironment) parameters

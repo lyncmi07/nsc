@@ -12,7 +12,7 @@ import Data.Map.Ordered
 import Com.NoSyn.Environment.ProgramEnvironment
 import Com.NoSyn.Error.SourcePosition
 
-type Program = Block ProgramStmt
+type Program = Block (SourcePosition ProgramStmt)
 data ProgramStmt =
     PSAliasDef (SourcePosition AliasDefinition)
     | PSFuncDef (SourcePosition FunctionDefinition)

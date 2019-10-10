@@ -41,3 +41,7 @@ instance (EnvironmentUpdater a, TargetCodeGeneratable a, Blockable a) => TargetC
 instance Listable Block where
     toList (StandardBlock a) = a
     toList (SequentialBlock  a) = a
+
+instance Functor Block where
+    fmap f (StandardBlock a) = StandardBlock $ map f a
+    fmap f (SequentialBlock a) = SequentialBlock $ map f a

@@ -14,7 +14,7 @@ import Com.NoSyn.Error.SourcePosition
 import Com.NoSyn.Ast.If.Block
 import Com.NoSyn.Ast.Traits.Listable
 
-type Program = Block ProgramStmt
+type Program = Block (SourcePosition ProgramStmt)
 data ProgramStmt =
     PSAliasDef (SourcePosition AliasDefinition)
     | PSFuncDef (SourcePosition FunctionDefinition)
@@ -24,24 +24,24 @@ data ProgramStmt =
 instance IfElementGeneratable ProgramStmt where
     generateIfElement programEnvironment (PSAliasDef a) = do
         ~(IfElement.IfAliasDefinition b) <- generateIfElement programEnvironment $ getContents a
-        return $ IfElement.IfProgramStmt (IfProgram.PSAliasDef $ changeContents a b)
+        return $ IfElement.IfProgramStmt $ changeContents a (IfProgram.PSAliasDef b)
     generateIfElement programEnvironment (PSVarDec a) = do
         ~(IfElement.IfVariableDeclaration b) <- generateIfElement programEnvironment $ getContents a
-        return $ IfElement.IfProgramStmt (IfProgram.PSVarDec $ changeContents a b)
+        return $ IfElement.IfProgramStmt $ changeContents a (IfProgram.PSVarDec b)
     generateIfElement programEnvironment (PSFuncDef a) = do
         ~(IfElement.IfFunctionDefinition b) <- generateIfElement programEnvironment $ getContents a
-        return $ IfElement.IfProgramStmt (IfProgram.PSFuncDef $ changeContents a b)
+        return $ IfElement.IfProgramStmt $ changeContents a (IfProgram.PSFuncDef b)
 
 
 instance IfElementGeneratable Program where
     generateIfElement programEnvironment program = do
         ifElements <- sequence $ map (generateIfElement programEnvironment) programStmtList
         ifProgramStmts <- extractIfProgramStatements ifElements
-        return $ IfElement.IfProgram (StandardBlock ifProgramStmts)
+        return $ IfElement.IfProgram $ return $ (StandardBlock ifProgramStmts)
         where
             programStmtList = toList program
 
-extractIfProgramStatements :: [IfElement.IfElement] -> CompilerStatus [IfProgram.ProgramStmt]
+extractIfProgramStatements :: [IfElement.IfElement] -> CompilerStatus [SourcePosition IfProgram.ProgramStmt]
 extractIfProgramStatements [] = return []
 extractIfProgramStatements ((IfElement.IfProgramStmt x):xs) = do
     xsm <- extractIfProgramStatements xs

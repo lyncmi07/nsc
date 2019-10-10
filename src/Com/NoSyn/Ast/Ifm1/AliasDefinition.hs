@@ -12,6 +12,6 @@ data AliasDefinition =
 
 instance IfElementGeneratable AliasDefinition where
     generateIfElement programEnvironment (ADNative aliasName aliasType) =
-        return $ IfElement.IfAliasDefinition (IfAliasDefinition.ADNative aliasName aliasType)
+        return $ IfElement.IfAliasDefinition $ return $ (IfAliasDefinition.ADNative aliasName aliasType)
     generateIfElement programEnvironment (ADNoSyn aliasName aliasType) =
-        return $ IfElement.IfAliasDefinition (IfAliasDefinition.ADNoSyn aliasName aliasType)
+        return $ IfElement.IfAliasDefinition $ return $ (IfAliasDefinition.ADNoSyn aliasName aliasType)

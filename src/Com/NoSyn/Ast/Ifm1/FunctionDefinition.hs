@@ -21,17 +21,17 @@ data FunctionDefinition =
 instance IfElementGeneratable FunctionDefinition where
     generateIfElement programEnvironment (FDNative a b parameters) = do
         ~(IfElement.IfParameters ifParameters) <- generateIfElement programEnvironment (getContents parameters)
-        return $ IfElement.IfFunctionDefinition (IfFunctionDefinition.FDNative a b ifParameters)
+        return $ IfElement.IfFunctionDefinition $ return $ (IfFunctionDefinition.FDNative a b ifParameters)
     generateIfElement programEnvironment (FDNoSyn funcName returnType parameters blockStatement) = do
         ~(IfElement.IfParameters ifParameters) <- generateIfElement programEnvironment (getContents parameters)
         ~(IfElement.IfBlockStatement ifBlockStatement) <- generateIfElement programEnvironment (getContents blockStatement)
-        return $ IfElement.IfFunctionDefinition (IfFunctionDefinition.FDNoSyn (funcName++"_function") returnType ifParameters ifBlockStatement)
+        return $ IfElement.IfFunctionDefinition $ return $ (IfFunctionDefinition.FDNoSyn (funcName++"_function") returnType ifParameters ifBlockStatement)
     generateIfElement programEnvironment (FDOperatorOverload operatorType operatorString returnType parameters blockStatement) = do
         ~(IfElement.IfParameters ifParameters) <- generateIfElement programEnvironment (getContents parameters)
         ~(IfElement.IfBlockStatement ifBlockStatement) <- generateIfElement programEnvironment (getContents blockStatement)
         namedOperators <- operatorStringConverter operatorString
-        return $ IfElement.IfFunctionDefinition (IfFunctionDefinition.FDNoSyn ((show operatorType)++"_"++(concat namedOperators)++"_operator") returnType ifParameters ifBlockStatement)
+        return $ IfElement.IfFunctionDefinition $ return $ (IfFunctionDefinition.FDNoSyn ((show operatorType)++"_"++(concat namedOperators)++"_operator") returnType ifParameters ifBlockStatement)
     generateIfElement programEnvironment (FDBracketOverload bracketType returnType parameters blockStatement) = do
         ~(IfElement.IfParameters ifParameters) <- generateIfElement programEnvironment (getContents parameters)
         ~(IfElement.IfBlockStatement ifBlockStatement) <- generateIfElement programEnvironment (getContents blockStatement)
-        return $ IfElement.IfFunctionDefinition (IfFunctionDefinition.FDNoSyn ((show bracketType)++"_bracketop") returnType ifParameters ifBlockStatement)
+        return $ IfElement.IfFunctionDefinition $ return $ (IfFunctionDefinition.FDNoSyn ((show bracketType)++"_bracketop") returnType ifParameters ifBlockStatement)
