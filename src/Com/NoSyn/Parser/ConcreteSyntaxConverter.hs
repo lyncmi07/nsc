@@ -205,9 +205,9 @@ convertImportStatements importStatements = do
     return $ StandardBlock ifm1ImportStatements
 
 convertProgramStatements :: [SPCProgramStatement] -> CompilerStatusT SourcePosition Program
-convertProgramStatements programStatements = do
-    ifm1ProgramStatements <- sequence $ map convertProgramStatement programStatements
-    lift $ changeContents (sequence programStatements) $ StandardBlock ifm1ProgramStatements
+convertProgramStatements programStatements = let positionedStatements = map (runSourcePositionT.convertProgramStatement) programStatements in do
+    ifm1ProgramStatements <- sequence $ positionedStatements
+    lift $ changeContents (sequence programStatements) $ StandardBlock (map (uncurry changeContents) $ zip positionedStatements ifm1ProgramStatements)
 
 convertImportStatement :: SPCProgramStatement -> CompilerStatusT SourcePosition Ifm1ImportStatement.ImportStatement
 convertImportStatement spcProgramStatement = case getContents spcProgramStatement of
