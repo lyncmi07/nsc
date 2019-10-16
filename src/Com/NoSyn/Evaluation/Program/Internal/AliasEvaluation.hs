@@ -25,6 +25,7 @@ addNativeAliases (spProgramStmt:xs) aliasEnvironment = case getContents spProgra
         ADNative aliasName aliasType ->
             let updatedAliasEnvironment = (aliasName, aliasType) |< aliasEnvironment in
                 addNativeAliases xs updatedAliasEnvironment
+        otherwise -> addNativeAliases xs aliasEnvironment
     otherwise -> addNativeAliases xs aliasEnvironment
     
 createNoSynTypeLookupTable::[SourcePosition ProgramStmt] -> OMap Ident Ident
@@ -34,6 +35,7 @@ createNoSynTypeLookupTable (spProgramStmt:xs) = case getContents spProgramStmt o
         ADNoSyn aliasName aliasType ->
             (aliasName, aliasType) |< (createNoSynTypeLookupTable xs)
         otherwise -> createNoSynTypeLookupTable xs
+    otherwise -> createNoSynTypeLookupTable xs
 
 createRealTypeLookupTable::OMap Ident Ident -> AliasEnvironment -> CompilerStatus AliasEnvironment
 createRealTypeLookupTable noSynLookupTable realLookupTable
