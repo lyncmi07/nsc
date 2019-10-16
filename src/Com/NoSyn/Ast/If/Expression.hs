@@ -240,10 +240,10 @@ zipVariablesToParameterTypesAndExpressions (x:xs) (y:ys) (z:zs) = do
 generateExpressionForPointerParameter::ProgramEnvironment -> String -> SourcePosition Expression -> CompilerStatus String
 generateExpressionForPointerParameter programEnvironment generatedExpression spExp = case getContents spExp of
     EIdent varName -> do
-    variable <- lookupVariableType programEnvironment varName
-    case variable of
-        (VPointer _ _) -> return generatedExpression
-        (VConst _ _) -> return $ "&" ++ generatedExpression
+        variable <- lookupVariableType programEnvironment varName
+        case variable of
+            (VPointer _ _) -> return generatedExpression
+            (VConst _ _) -> return $ "&" ++ generatedExpression
 generateExpressionForPointerParameter _ _ expr = Error ((show expr) ++ " cannot be referenced in a pointer context") (show expr)
 
 generateDFunctionCall::ProgramEnvironment -> Ident -> FunctionOverload -> [Either (Set Ident) (Ident, String)] -> [SourcePosition Expression] -> CompilerStatus String

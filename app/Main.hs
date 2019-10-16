@@ -10,6 +10,7 @@ import Com.NoSyn.Environment.ProgramEnvironment
 import Com.NoSyn.Environment.FunctionEnvironment
 import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Error.SourcePosition hiding (getContents)
+import Com.NoSyn.Error.SourcePositionTraits
 import qualified Com.NoSyn.Error.SourcePosition as SourcePosition (getContents)
 import Com.NoSyn.Ast.Traits.IfElementGeneratable
 import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
@@ -29,25 +30,28 @@ import Data.Foldable
 
 main = do
     args <- getArgs
-    (headerText, programText) <- getContents >>= return.splitInputs
-    (_, cst) <- convertToIO $ failOnNonFatalErrors programText (runSourcePositionT $ parse programText 0 1 [])
-    (_, ifm1Ast@(Ifm1PreProgram.PreProgram importStatments _)) <- convertToIO $ convertProgram (SourcePosition.getContents cst)
+    (headerText, programText) <- Prelude.getContents >>= return.splitInputs
+    -- putStrLn $ show (headerText, programText)
+    (_, cst) <- convertToIO $ failOnNonFatalErrors programText (parse programText 0 1 [])
+    (_, ifm1Ast@(Ifm1PreProgram.PreProgram importStatments _)) <- convertToIO $ SourcePosition.getContents $ runCompilerStatusT $ convertProgram cst
     (_, ifAst) <- convertToIO $ generateIfElement defaultProgramEnvironment ifm1Ast
-    if args == [] then compileProgram headerText ifAst ifm1Ast
+    if args == [] then compileProgram headerText (return ifAst) ifm1Ast
     else let (x:_) = args in
         if x == "--headers" then createHeaders ifAst
         else putStrLn $ "Invalid argument: " ++ x
 
-compileProgram headerText initialIfAst@(IfPreProgram (IfPreProgram.PreProgram allImports _)) ifm1Ast = do
-    (_, initialProgramEnvironment) <- convertToIO $ programEnvironmentEvaluateIfElement initialIfAst
-    -- Now that the program environment has been populated the ifAst is generated again to correct any missing function calls from expressions
-    selectedImports <- return $ filteredHeaders headerText (Listable.toList allImports)
-    (_, programEnvironmentWithImports) <- convertToIO $ addImportedFunctionsToEnvironment selectedImports initialProgramEnvironment
-    (_, ifAst) <- convertToIO $ generateIfElement programEnvironmentWithImports ifm1Ast
-    (dependencies, targetCode) <- convertToIO $ generateD programEnvironmentWithImports ifAst
-    putStrLn (concat $ intersperse "\n" dependencies)
-    putStrLn "%%SOURCE%%"
-    putStrLn targetCode
+compileProgram headerText spInitialIfAst ifm1Ast = case SourcePosition.getContents spInitialIfAst of
+    IfPreProgram spcIfPreProgram -> case SourcePosition.getContents spcIfPreProgram of
+        IfPreProgram.PreProgram allImports _ -> do
+            (_, initialProgramEnvironment) <- convertToIO $ programEnvironmentEvaluateIfElement (SourcePosition.getContents spInitialIfAst)
+            -- Now that the program environment has been populated the ifAst is generated again to correct any missing function calls from expressions
+            selectedImports <- return $ filteredHeaders headerText (Prelude.map SourcePosition.getContents $ sourcePositionToList allImports)
+            (_, programEnvironmentWithImports) <- convertToIO $ addImportedFunctionsToEnvironment selectedImports initialProgramEnvironment
+            (_, ifAst) <- convertToIO $ generateIfElement programEnvironmentWithImports ifm1Ast
+            (dependencies, targetCode) <- convertToIO $ generateD programEnvironmentWithImports ifAst
+            putStrLn (concat $ intersperse "\n" dependencies)
+            putStrLn "%%SOURCE%%"
+            putStrLn targetCode
 
 createHeaders ifAst = do
     (_, functionEnvironment) <- convertToIO $ functionEnvironmentEvaluateIfElement ifAst
@@ -84,5 +88,5 @@ importedNSModulesList importStatements =
     where
         nsImportPredicate (NativeImport _) = False
         nsImportPredicate (NSImport _) = True
-        importNameProvider (NativeImport a) = concat $ intersperse "." a
-        importNameProvider (NSImport a) = concat $ intersperse "." a
+        importNameProvider (NativeImport a) = concat $ intersperse "." (Prelude.map SourcePosition.getContents a)
+        importNameProvider (NSImport a) = concat $ intersperse "." (Prelude.map SourcePosition.getContents a)

@@ -33,8 +33,8 @@ programEnvironmentEvaluateIfElement (IfProgram program) =
 functionEnvironmentEvaluateIfElement :: IfElement -> CompilerStatus FunctionEnvironment
 functionEnvironmentEvaluateIfElement (IfPreProgram spPreProgram) = case getContents spPreProgram of
     PreProgram _ program -> do
-    aliasEnvironment <- programAliasEvaluate initialAliasEnvironment program
-    programFunctionDefinitionEvaluate aliasEnvironment program
-    where
-        PE { aliases = initialAliasEnvironment } = defaultProgramEnvironment
+        aliasEnvironment <- programAliasEvaluate initialAliasEnvironment program
+        programFunctionDefinitionEvaluate aliasEnvironment program
+        where
+            PE { aliases = initialAliasEnvironment } = defaultProgramEnvironment
 

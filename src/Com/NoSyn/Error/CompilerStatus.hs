@@ -126,8 +126,8 @@ instance (Monad m) => Monad (CompilerStatusT m) where
         -- csa <- runCompilerStatusT csaT
         -- csb <- runCompilerStatusT % (f ())
     csaT >>= f = CompilerStatusT $ do
-    csa <- runCompilerStatusT csaT
-    csb <- case csa of
-        Error a b -> return $ Error a b
-        Valid e a -> runCompilerStatusT $ f a
-    return $ csa >> csb
+        csa <- runCompilerStatusT csaT
+        csb <- case csa of
+            Error a b -> return $ Error a b
+            Valid e a -> runCompilerStatusT $ f a
+        return $ csa >> csb
