@@ -4,7 +4,7 @@ stack install
 
 for i in $(find ./test/*.ns)
 do
-    if cat $i | /home/michael/.local/bin/no-syn-exe ; then
+    if cat $i | no-syn-exe ; then
         echo "$?"
     else
         echo "The test $i failed"
@@ -14,7 +14,7 @@ done
 
 for i in $(find ./test/*.ns.fail)
 do
-    if cat $i | /home/michael/.local/bin/no-syn-exe ; then
+    if cat $i | no-syn-exe ; then
         echo "The test $i should have failed but did not"
         exit 1
     else
