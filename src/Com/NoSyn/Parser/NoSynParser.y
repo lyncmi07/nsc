@@ -165,7 +165,7 @@ ModuleName : ident {% addSourcePosition $ CModuleIdent $1 }
 
 {
 getTokenPositions cstElem tokenPositions tokenNumber =
-    (drop ((length tokenPositions) - (tokenLength cstElem)) tokenPositions) !! (tokenNumber - 2)
+    (drop ((length tokenPositions) - (tokenLength cstElem)) tokenPositions) !! (tokenNumber - 1)
 
 parseError :: Token -> Cs a
 parseError t = getLineNumber `thenCs` \line  -> (failCs ((show t) ++ " at line " ++ (show line)))

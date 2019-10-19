@@ -49,6 +49,8 @@ instance TokenLength CExpression where
     tokenLength (CEPrefixOp _ a) = 1 + (tokenLength $ getContents a)
     tokenLength (CEPostfixOp _ a) = 1 + (tokenLength $ getContents a)
     tokenLength (CEInfixOp _ a b) = 1 + (tokenLength $ getContents a) + (tokenLength $ getContents b)
+    tokenLength (CEBracketOp a b c) = 2 + (tokenLength $ getContents b) + (tokenLength $ getContents c)
+    tokenLength (CEBracketed a) = 2 + (tokenLength $ getContents a)
     
     
 

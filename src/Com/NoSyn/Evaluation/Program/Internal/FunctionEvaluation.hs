@@ -31,7 +31,7 @@ programFunctionDefinitionEvaluate' aliasEnvironment (spProgramStmt:xs) currentFu
         (functionName, newFunction) <- createFunctionEntry aliasEnvironment (getContents funcDef)
         let currentFunctionOverloads = fromMaybe [] $ Data.Map.lookup functionName currentFunctionEnvironment in
             if any (==newFunction) currentFunctionOverloads then
-                Error ("There is already an equivalent function to " ++ (show newFunction)) (show currentFunctionOverloads)
+                Error ("There is already an equivalent function to " ++ (show newFunction)) (show (currentFunctionOverloads, getSourcePosition spProgramStmt))
             else let newFunctionEnvironment = insert functionName (newFunction:currentFunctionOverloads) currentFunctionEnvironment in
                 programFunctionDefinitionEvaluate' aliasEnvironment xs newFunctionEnvironment
     otherwise -> programFunctionDefinitionEvaluate' aliasEnvironment xs currentFunctionEnvironment

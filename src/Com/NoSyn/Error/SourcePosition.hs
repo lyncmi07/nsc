@@ -21,6 +21,7 @@ headContents (SourcePosition a b c d e) (SourcePosition aT bT cT dT eT) f =
     SourcePosition a b cT (if dT > 0 then dT - 1 else 0) f
 
 getSourcePosition (SourcePosition sl sc el ec _) = (sl, sc, el, ec)
+getSourcePosition (NoPosition _) = (0,0,0,0)
 
 combineSourcePositions :: SourcePosition a -> SourcePosition b -> SourcePosition (a, b)
 combineSourcePositions (NoPosition a) (NoPosition b) = NoPosition (a, b)
