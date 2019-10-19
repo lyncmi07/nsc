@@ -21,7 +21,7 @@ data CFilledExpressionList =
     | CFinalExpression SPCExpression
     deriving Show
 instance TokenLength CFilledExpressionList where
-    tokenLength (CMultiExpression a b) = (tokenLength $ getContents  a) + (tokenLength $ getContents b)
+    tokenLength (CMultiExpression a b) = (tokenLength $ getContents  a) + 1 + (tokenLength $ getContents b)
     tokenLength (CFinalExpression a) = tokenLength $ getContents  a
 
 type SPCExpressionList = SourcePosition CExpressionList 
