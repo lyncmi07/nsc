@@ -217,6 +217,7 @@ convertProgram program =
         flattenProgramStatements x = case getContents x of
             CProgramEnd -> []
             CProgram x xs -> x:(flattenProgramStatements xs)
+            CProgramFunction x xs -> x:(flattenProgramStatements xs)
         -- flattenProgramStatements CProgramEnd = []
         -- flattenProgramStatements (CProgram x xs) = x:(flattenProgramStatements xs)
         flattenedStatements = flattenProgramStatements program

@@ -155,10 +155,13 @@ type SPCProgram = SourcePosition CProgram
 data CProgram =
     CProgramEnd
     | CProgram SPCProgramStatement SPCProgram
+    -- A destinction needs to be made for functions without colon separators, to get the correct number of tokens in the production. The parser will use this version instead
+    | CProgramFunction SPCProgramStatement SPCProgram 
     deriving Show
 instance TokenLength CProgram where
     tokenLength CProgramEnd = 0
     tokenLength (CProgram a b) = (tokenLength $ getContents a) + 1 + (tokenLength $ getContents b)
+    tokenLength (CProgramFunction a b) = (tokenLength $ getContents a) + (tokenLength $ getContents b)
 
 type SPCImportStatement = SourcePosition CImportStatement 
 data CImportStatement =

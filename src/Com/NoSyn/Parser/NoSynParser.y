@@ -52,7 +52,7 @@ Program : {- empty -}                   {% addSourcePosition $ CProgramEnd }
 	| ProgramStatement ';' Program      {% addSourcePosition $ CProgram $1 $3 }
     | FunctionDefinition Program {% \s currentCol l tokenPositions -> do
         cpsFuncDef <- addSourcePosition (CPSFuncDef $1) s currentCol l tokenPositions
-        addSourcePosition (CProgram cpsFuncDef $2) s currentCol l tokenPositions 
+        addSourcePosition (CProgramFunction cpsFuncDef $2) s currentCol l tokenPositions 
     }
 
 FunctionDefinition : ident ident '(' Parameters ')' '{' BlockStatement '}'                             {% addSourcePosition $ CFuncDef $1 $2 $4 $7 }
@@ -165,7 +165,7 @@ ModuleName : ident {% addSourcePosition $ CModuleIdent $1 }
 
 {
 getTokenPositions cstElem tokenPositions tokenNumber =
-    (drop ((length tokenPositions) - (tokenLength cstElem)) tokenPositions) !! (tokenNumber - 1)
+    (drop ((length tokenPositions) - (tokenLength cstElem) - 1) tokenPositions) !! (tokenNumber - 1)
 
 parseError :: Token -> Cs a
 parseError t = getLineNumber `thenCs` \line  -> (failCs ((show t) ++ " at line " ++ (show line)))
