@@ -59,7 +59,7 @@ convertToIOWithSourcePositions _ err@(Error errorMessage context) = convertToIO 
 convertToIOWithSourcePositions sourceCode (PositionedError (startLine, startCol, endLine, endCol) errorMessage context) = 
     let lineSplitSource = splitOn "\n" sourceCode in do
     writeErrorMessage errorMessage context
-    hPutStrLn stderr "Source:"
+    hPutStrLn stderr $ "Source: line " ++ (show (startLine + 1)) ++ ", column " ++ (show (startCol + 1))
     hPutStrLn stderr $ prettyPrintTokenPosition lineSplitSource startLine startCol endLine endCol
     fail "Exiting unsuccessfully"
 
@@ -113,13 +113,22 @@ prettyPrintNonFatalErrors sourceCodeLines (CC { nonFatalErrors = errors }) =
 prettyPrintTokenPosition :: [String] -> LineNumber -> Column -> LineNumber -> Column -> String
 prettyPrintTokenPosition sourceLines startLine startColumn endLine endColumn =
     if (startLine == endLine) then prettyPrintSingleLinePosition sourceLines startLine startColumn endColumn
-    else prettyPrintToEndOfLine sourceLines startLine startColumn ++ "\n"
-        ++ prettyPrintTokenPosition sourceLines (startLine + 1) 0 endLine endColumn
+    else prettyPrintFirstOfMultiLine prettyPrintSingleLineAbovePosition sourceLines startLine startColumn ++ "\n"
+        ++ prettyPrintTokenPosition' sourceLines (startLine + 1) 0 endLine endColumn
 
-prettyPrintToEndOfLine sourceLines line startColumn =
+prettyPrintTokenPosition' sourceLines startLine startColumn endLine endColumn =
+    if (startLine == endLine) then prettyPrintSingleLinePosition sourceLines startLine startColumn endColumn
+    else (sourceLines !! (startLine - 1)) ++ "\n"
+        ++ prettyPrintTokenPosition' sourceLines (startLine + 1) 0 endLine endColumn
+
+prettyPrintFirstOfMultiLine printerFunction sourceLines line startColumn =
     let codeLine = sourceLines !! (line - 1) in
-        codeLine ++ "\n"
-        ++ (take (startColumn - 1) $ repeat ' ') ++ (take ((length codeLine) - startColumn + 1) $ repeat '^')
+        prettyPrintSingleLineAbovePosition sourceLines line startColumn (length codeLine)
+
+prettyPrintSingleLineAbovePosition sourceLines line startColumn endColumn =
+    let codeLine = sourceLines !! (line - 1) in
+    (take (startColumn - 1) $ repeat ' ') ++ (take (endColumn - startColumn + 1) $ repeat 'v') ++ "\n"
+    ++ codeLine
 
 prettyPrintSingleLinePosition sourceLines line startColumn endColumn = 
     let codeLine = sourceLines !! (line - 1) in
