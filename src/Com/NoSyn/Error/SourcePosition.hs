@@ -6,6 +6,7 @@ import Control.Monad (liftM)
 
 type LineNumber = Int
 type Column = Int
+type SourcePositionInfo = (LineNumber, Column, LineNumber, Column)
 
 data SourcePosition a = 
     SourcePosition LineNumber Column LineNumber Column a
@@ -20,6 +21,7 @@ getContents (NoPosition a) = a
 headContents (SourcePosition a b c d e) (SourcePosition aT bT cT dT eT) f = 
     SourcePosition a b cT (if dT > 0 then dT - 1 else 0) f
 
+getSourcePosition :: (SourcePosition a) -> SourcePositionInfo
 getSourcePosition (SourcePosition sl sc el ec _) = (sl, sc, el, ec)
 getSourcePosition (NoPosition _) = (0,0,0,0)
 

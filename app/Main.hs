@@ -33,22 +33,22 @@ main = do
     (headerText, programText) <- Prelude.getContents >>= return.splitInputs
     -- putStrLn $ show (headerText, programText)
     (_, cst) <- convertToIO $ failOnNonFatalErrors programText (parse programText 0 1 [])
-    (_, ifm1Ast@(Ifm1PreProgram.PreProgram importStatments _)) <- convertToIO $ SourcePosition.getContents $ runCompilerStatusT $ convertProgram cst
-    (_, ifAst) <- convertToIO $ generateIfElement defaultProgramEnvironment ifm1Ast
-    if args == [] then compileProgram headerText (return ifAst) ifm1Ast
+    (_, ifm1Ast@(Ifm1PreProgram.PreProgram importStatments _)) <- convertToIOWithSourcePositions programText $ SourcePosition.getContents $ runCompilerStatusT $ convertProgram cst
+    (_, ifAst) <- convertToIOWithSourcePositions programText $ generateIfElement defaultProgramEnvironment ifm1Ast
+    if args == [] then compileProgram programText headerText (return ifAst) ifm1Ast
     else let (x:_) = args in
         if x == "--headers" then createHeaders ifAst
         else putStrLn $ "Invalid argument: " ++ x
 
-compileProgram headerText spInitialIfAst ifm1Ast = case SourcePosition.getContents spInitialIfAst of
+compileProgram sourceCode headerText spInitialIfAst ifm1Ast = case SourcePosition.getContents spInitialIfAst of
     IfPreProgram spcIfPreProgram -> case SourcePosition.getContents spcIfPreProgram of
         IfPreProgram.PreProgram allImports _ -> do
-            (_, initialProgramEnvironment) <- convertToIO $ programEnvironmentEvaluateIfElement (SourcePosition.getContents spInitialIfAst)
+            (_, initialProgramEnvironment) <- convertToIOWithSourcePositions sourceCode $ programEnvironmentEvaluateIfElement (SourcePosition.getContents spInitialIfAst)
             -- Now that the program environment has been populated the ifAst is generated again to correct any missing function calls from expressions
             selectedImports <- return $ filteredHeaders headerText (Prelude.map SourcePosition.getContents $ sourcePositionToList allImports)
-            (_, programEnvironmentWithImports) <- convertToIO $ addImportedFunctionsToEnvironment selectedImports initialProgramEnvironment
-            (_, ifAst) <- convertToIO $ generateIfElement programEnvironmentWithImports ifm1Ast
-            (dependencies, targetCode) <- convertToIO $ generateD programEnvironmentWithImports ifAst
+            (_, programEnvironmentWithImports) <- convertToIOWithSourcePositions sourceCode $ addImportedFunctionsToEnvironment selectedImports initialProgramEnvironment
+            (_, ifAst) <- convertToIOWithSourcePositions sourceCode $ generateIfElement programEnvironmentWithImports ifm1Ast
+            (dependencies, targetCode) <- convertToIOWithSourcePositions sourceCode $ generateD programEnvironmentWithImports ifAst
             putStrLn (concat $ intersperse "\n" dependencies)
             putStrLn "%%SOURCE%%"
             putStrLn targetCode

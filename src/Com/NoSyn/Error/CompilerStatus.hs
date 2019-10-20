@@ -23,39 +23,63 @@ getLineNumber = \s _ l _ -> Valid CompilerContext.empty l
 data CompilerStatus a =
     Valid CompilerContext a
     | Error String String
+    | PositionedError SourcePosition.SourcePositionInfo String String
     deriving (Show, Eq)
 
 instance Functor CompilerStatus where
     fmap f (Valid cc a) = Valid cc (f a)
     fmap f (Error a b) = Error a b
+    fmap f (PositionedError a b c) = PositionedError a b c
 
 instance Applicative CompilerStatus where
     pure = Valid (CC {moduleDependencies = Data.Set.empty, nonFatalErrors = []})
     (Error a b) <*> _ = Error a b
     (Valid cc f) <*> a = case fmap f a of
         Valid ccv b -> Valid (SetTheory.union ccv cc) b
-        Error errorMessage context -> Error errorMessage context
+        Error a b-> Error a b
+        PositionedError a b c -> PositionedError a b c
 
 instance Monad CompilerStatus where
     (Valid cc a) >>= f = case (f a) of
         (Valid ccv b) -> Valid (SetTheory.union ccv cc) b
-        (Error errorMessage context) -> Error errorMessage context
+        (Error a b) -> Error a b
+        (PositionedError a b c) -> PositionedError a b c
     (Error a b) >>= f = Error a b
+    (PositionedError a b c) >>= f = PositionedError a b c
     return = Valid (CC {moduleDependencies = Data.Set.empty, nonFatalErrors = []})
 
 instance MaybeConvertable CompilerStatus where
     toMaybe (Valid _ a) = (Just a)
     toMaybe (Error _ _) = Nothing
+    toMaybe (PositionedError _ _ _) = Nothing
+
+convertToIOWithSourcePositions :: String -> CompilerStatus a -> IO ([String], a)
+convertToIOWithSourcePositions _ valid@(Valid compilerContext value) = convertToIO valid
+convertToIOWithSourcePositions _ err@(Error errorMessage context) = convertToIO err
+convertToIOWithSourcePositions sourceCode (PositionedError (startLine, startCol, endLine, endCol) errorMessage context) = 
+    let lineSplitSource = splitOn "\n" sourceCode in do
+    writeErrorMessage errorMessage context
+    hPutStrLn stderr "Source:"
+    hPutStrLn stderr $ prettyPrintTokenPosition lineSplitSource startLine startCol endLine endCol
+    fail "Exiting unsuccessfully"
 
 convertToIO :: CompilerStatus a -> IO ([String], a)
 convertToIO (Valid compilerContext value) = return (toList (moduleDependencies compilerContext), value)
 convertToIO (Error errorMessage context) = do
+    writeErrorMessage errorMessage context
+    fail "Exiting unsuccessfully"
+convertToIO (PositionedError (startLine, startCol, endLine, endCol) errorMessage context) = do
+    writeErrorMessage errorMessage context
+    hPutStrLn stderr "Source:"
+    hPutStrLn stderr "Source not available for this error"
+    fail "Exiting unsuccessfully"
+
+writeErrorMessage errorMessage context = do
     hPutStrLn stderr "--COMPILATION FAILED--"
     hPutStrLn stderr "Reason:"
     hPutStrLn stderr errorMessage
     hPutStrLn stderr "Context:"
     hPutStrLn stderr context
-    fail "Exiting unsuccessfully"
 
 compilerStatusFromMaybe::String->Maybe a->CompilerStatus a
 compilerStatusFromMaybe _ (Just a) = return a
@@ -122,12 +146,10 @@ instance (Monad m) => Applicative (CompilerStatusT m) where
 
 instance (Monad m) => Monad (CompilerStatusT m) where
     return = pure
-    -- csaT >>= f = CompilerStatusT $ do
-        -- csa <- runCompilerStatusT csaT
-        -- csb <- runCompilerStatusT % (f ())
     csaT >>= f = CompilerStatusT $ do
         csa <- runCompilerStatusT csaT
         csb <- case csa of
+            PositionedError a b c -> return $ PositionedError a b c
             Error a b -> return $ Error a b
             Valid e a -> runCompilerStatusT $ f a
         return $ csa >> csb
