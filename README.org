@@ -6,7 +6,7 @@
 * Introduction
   NoSyn is a statically typed general purpose programming language designed on a principles of minimalism and extensibility.
 ** Operator Overloading
-   Like many contemptory languages, NoSyn allows the user to overload operators using a basic function syntax:
+   Like many contemporary languages, NoSyn allows the user to overload operators using a basic function syntax:
 #+BEGIN_SRC c++
 Nothing infix_:=_(Int a*, Int b) {
     assignValue(a, b);
