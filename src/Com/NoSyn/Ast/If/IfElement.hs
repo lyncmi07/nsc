@@ -32,17 +32,18 @@ data IfElement =
     deriving Show
 
 instance TargetCodeGeneratable IfElement where
-    generateD a (IfConstant b) = generateD a $ getContents b
-    generateD a (IfExpression b) = generateD a $ getContents b
-    generateD a (IfAliasDefinition b) = generateD a $ getContents b
-    generateD a (IfFunctionDefinition b) = generateD a $ getContents b
-    generateD a (IfParameter b) = generateD a $ getContents b
-    generateD a (IfProgram b) = generateD a $ getContents b
-    generateD a (IfPreProgram b) = generateD a $ getContents b
-    generateD a (IfProgramStmt b) = generateD a $ getContents b
-    generateD a (IfStatement b) = generateD a $ getContents b
-    generateD a (IfVariableDeclaration b) = generateD a $ getContents b
-    generateD a (IfParameters b) = generateD a $ getContents b
-    generateD a (IfBlockStatement b) = generateD a $ getContents b
-    generateD a (IfImportStatement b) = generateD a $ getContents b
-    generateD a (IfImportStatements b) = generateD a $ getContents b
+    generateD a spIfElement = case getContents spIfElement of
+        IfConstant b -> generateD a b
+        IfExpression b -> generateD a b
+        IfAliasDefinition b -> generateD a b
+        IfFunctionDefinition b -> generateD a b
+        IfParameter b -> generateD a b
+        IfProgram b -> generateD a b
+        IfPreProgram b -> generateD a b
+        IfProgramStmt b -> generateD a b
+        IfStatement b -> generateD a b
+        IfVariableDeclaration b -> generateD a b
+        IfParameters b -> generateD a b
+        IfBlockStatement b -> generateD a b
+        IfImportStatement b -> generateD a b
+        IfImportStatements b -> generateD a b

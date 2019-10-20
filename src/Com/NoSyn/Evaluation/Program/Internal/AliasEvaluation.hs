@@ -3,6 +3,7 @@ module Com.NoSyn.Evaluation.Program.Internal.AliasEvaluation (programAliasEvalua
 import Prelude hiding (getContents)
 import Com.NoSyn.Ast.If.Program
 import Com.NoSyn.Ast.If.AliasDefinition
+import Com.NoSyn.Ast.If.Block
 import Com.NoSyn.Ast.Traits.Listable as Listable
 import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Error.SourcePosition
@@ -14,8 +15,8 @@ import Com.NoSyn.Data.Types
 
 programAliasEvaluate::AliasEnvironment -> SourcePosition Program -> CompilerStatus AliasEnvironment
 programAliasEvaluate defaultEnvironment program =
-    let environmentWithNativeAliases = addNativeAliases (sourcePositionToList program) defaultEnvironment in
-    let noSynLookupTable = createNoSynTypeLookupTable (sourcePositionToList program) in
+    let environmentWithNativeAliases = addNativeAliases (toSourcePositionedList $ getContents program) defaultEnvironment in
+    let noSynLookupTable = createNoSynTypeLookupTable (toSourcePositionedList $ getContents  program) in
     createRealTypeLookupTable noSynLookupTable environmentWithNativeAliases
 
 addNativeAliases::[SourcePosition ProgramStmt] -> AliasEnvironment -> AliasEnvironment

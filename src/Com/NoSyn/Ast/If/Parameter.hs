@@ -8,6 +8,7 @@ import Com.NoSyn.Ast.Helpers.TypeCheckFunctions
 import Com.NoSyn.Data.Types
 import Com.NoSyn.Data.Variable
 import Com.NoSyn.Ast.If.Block
+import Com.NoSyn.Ast.Traits.Blockable
 import Com.NoSyn.Ast.Traits.Listable as Listable
 import Data.List
 import Data.Map
@@ -17,7 +18,7 @@ import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Error.SourcePosition
 import Com.NoSyn.Error.SourcePositionTraits
 
-type Parameters = Block (SourcePosition Parameter)
+type Parameters = Block Parameter
 
 data Parameter = 
     PConst Ident Ident
@@ -26,26 +27,30 @@ data Parameter =
     deriving Show
 
 instance EnvironmentUpdater Parameter where
-    updateEnvironment programEnvironment@(PE {variables = variableEnvironment}) param@(PConst paramType paramName) = do
-        verifiedType <- getNoSynType programEnvironment param
-        return (programEnvironment { variables = Data.Map.insert paramName (VConst verifiedType paramName) variableEnvironment})
-    updateEnvironment programEnvironment@(PE { variables = variableEnvironment}) param@(PPointer paramType paramName) = do
-        verifiedType <- getNoSynType programEnvironment param
-        return (programEnvironment { variables = Data.Map.insert paramName (VPointer verifiedType paramName) variableEnvironment})
-    updateEnvironment programEnvironment@(PE { variables = variableEnvironment}) param@(PVariadic paramType paramName) = do
-        verifiedType <- getNoSynType programEnvironment param
-        return (programEnvironment { variables = Data.Map.insert paramName (VVariadic verifiedType paramName) variableEnvironment})
+    updateEnvironment programEnvironment@(PE {variables = variableEnvironment}) spParam = let param = getContents spParam in
+        case param of
+            PConst paramType paramName -> do
+                verifiedType <- getNoSynType programEnvironment param
+                return (programEnvironment { variables = Data.Map.insert paramName (VConst verifiedType paramName) variableEnvironment})
+            PPointer paramType paramName -> do
+                verifiedType <- getNoSynType programEnvironment param
+                return (programEnvironment { variables = Data.Map.insert paramName (VPointer verifiedType paramName) variableEnvironment})
+            PVariadic paramType paramName -> do
+                verifiedType <- getNoSynType programEnvironment param
+                return (programEnvironment { variables = Data.Map.insert paramName (VVariadic verifiedType paramName) variableEnvironment})
 
 instance TargetCodeGeneratable Parameter where
-    generateD programEnvironment parameter@(PConst paramType paramName) = do
-        parameterDType <- getRealType programEnvironment parameter
-        return $ parameterDType ++ " " ++ paramName
-    generateD programEnvironment parameter@(PPointer paramType paramName) = do
-        parameterDType <- getRealType programEnvironment parameter
-        return $ parameterDType ++ "* " ++ paramName
-    generateD programEnvironment parameter@(PVariadic paramType paramName) = do
-        parameterDType <- getRealType programEnvironment parameter
-        return $ parameterDType ++ "[] " ++ paramName ++ " ..."
+    generateD programEnvironment spParameter = let parameter = getContents spParameter in
+        case parameter of
+            PConst paramType paramName -> do
+                parameterDType <- getRealType programEnvironment parameter
+                return $ parameterDType ++ " " ++ paramName
+            PPointer paramType paramName -> do
+                parameterDType <- getRealType programEnvironment parameter
+                return $ parameterDType ++ "* " ++ paramName
+            PVariadic paramType paramName -> do
+                parameterDType <- getRealType programEnvironment parameter
+                return $ parameterDType ++ "[] " ++ paramName ++ " ..."
 
 instance Typeable Parameter where
     getTypeNoCheck (PConst paramType _) = paramType
@@ -76,4 +81,4 @@ parameterToTuple aliasEnvironment spParameter = case getContents spParameter of
 
 parametersToTuples::AliasEnvironment -> SourcePosition Parameters -> CompilerStatus [(Ident, Variable)]
 parametersToTuples aliasEnvironment parameters =
-    sequence $ Prelude.map (parameterToTuple aliasEnvironment) (sourcePositionToList parameters)
+    sequence $ Prelude.map (parameterToTuple aliasEnvironment) (toSourcePositionedList $ getContents parameters)

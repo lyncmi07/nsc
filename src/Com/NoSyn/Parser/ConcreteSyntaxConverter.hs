@@ -55,20 +55,20 @@ convertExpression :: SPCExpression -> CompilerStatusT SourcePosition Expression
 convertExpression spcExpression = case getContents spcExpression of
     CEConst a -> let positionedN = convertConstant a in do
         n <- positionedN
-        return $ EConst (changeContents (runCompilerStatusT positionedN) n)
-    CEIdent a -> return $ EIdent a
+        lift $ changeContents spcExpression $ EConst (changeContents (runCompilerStatusT positionedN) n)
+    CEIdent a -> lift $ changeContents spcExpression  $ EIdent a
     CEBracketed a -> convertExpression a
     CEBracketOp bracketType a b -> 
         let positionedN = convertExpression a in do
         n <- positionedN
         m <- convertExpressionList b
-        return $ EBrackets bracketType (changeContents (runCompilerStatusT positionedN) n:m)
+        lift $ changeContents spcExpression $ EBrackets bracketType (changeContents (runCompilerStatusT positionedN) n:m)
     CEPrefixOp a b ->
         case getContents b of
             CEInfixOp _ _ _ -> convertExpression $ reorderPrefixOperator spcExpression
             _ -> let positionedN = convertExpression b in do
                 n <- positionedN
-                return $ EOp Prefix a [changeContents (runCompilerStatusT positionedN) n]
+                lift $ changeContents spcExpression  $ EOp Prefix a [changeContents (runCompilerStatusT positionedN) n]
     CEPostfixOp a b -> let positionedN = convertExpression b in do
         n <- positionedN
         lift $ changeContents spcExpression $ EOp Postfix a [changeContents (runCompilerStatusT positionedN) n]
@@ -77,7 +77,7 @@ convertExpression spcExpression = case getContents spcExpression of
         let positionedM = convertExpression b in do
         n <- positionedN
         m <- positionedM
-        return $ EOp Infix o ((changeContents (runCompilerStatusT positionedN) n):(changeContents (runCompilerStatusT positionedM) m):[])
+        lift $ changeContents spcExpression  $ EOp Infix o ((changeContents (runCompilerStatusT positionedN) n):(changeContents (runCompilerStatusT positionedM) m):[])
         where
             spcInfixOp = reverseOperatorOrder spcExpression
             (CEInfixOp o a b) = getContents spcInfixOp
@@ -141,7 +141,7 @@ convertFilledParameters spcFilledParameters = case getContents spcFilledParamete
 
 convertParameters :: SPCParameters -> CompilerStatusT SourcePosition Ifm1Parameter.Parameters
 convertParameters spcParameters = case getContents spcParameters of
-    CPEmpty -> return $ StandardBlock []
+    CPEmpty -> lift $ changeContents spcParameters $ StandardBlock []
     CPParams a -> let positionedN = convertFilledParameters a in do
         n <- positionedN
         lift $ changeContents spcParameters $ StandardBlock n
@@ -207,12 +207,12 @@ convertProgramStatement spcProgramStatement = case getContents spcProgramStateme
     CPSImportStatement a ->
         CompilerStatusT $ changeContents spcProgramStatement $ Error "COMPILER ERROR: Import statements should not be present in this context" (show $ CPSImportStatement a)
 convertProgram :: SPCProgram -> CompilerStatusT SourcePosition PreProgram
-convertProgram program = 
+convertProgram spcProgram = 
     let csN = convertImportStatements importStatements in
     let csM = convertProgramStatements programStatements in do
     n <- csN
     m <- csM
-    return $ PreProgram (changeContents (runCompilerStatusT csN) n) (changeContents (runCompilerStatusT csM) m)
+    lift $ changeContents spcProgram $ PreProgram (changeContents (runCompilerStatusT csN) n) (changeContents (runCompilerStatusT csM) m)
     where
         flattenProgramStatements x = case getContents x of
             CProgramEnd -> []
@@ -220,7 +220,7 @@ convertProgram program =
             CProgramFunction x xs -> x:(flattenProgramStatements xs)
         -- flattenProgramStatements CProgramEnd = []
         -- flattenProgramStatements (CProgram x xs) = x:(flattenProgramStatements xs)
-        flattenedStatements = flattenProgramStatements program
+        flattenedStatements = flattenProgramStatements spcProgram
         importStatements = filter importStatementPredicate flattenedStatements
         programStatements = filter (not.importStatementPredicate) flattenedStatements
         importStatementPredicate x = case getContents x of

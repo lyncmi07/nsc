@@ -27,7 +27,7 @@ data Expression =
     deriving Show
 
 instance TargetCodeGeneratable Expression where
-    generateD programEnvironment = (generateExpression programEnvironment).return
+    generateD = generateExpression
 instance Typeable Expression where
     getTypeNoCheck (EConst constant) = getTypeNoCheck constant
     getAlphaTypeName pg (EConst constant) = getAlphaTypeName pg constant
@@ -136,9 +136,10 @@ validateAndGenerateD::ProgramEnvironment -> Set Ident -> SourcePosition Expressi
 validateAndGenerateD programEnvironment returnTypes spExpr = case getContents spExpr of
     functionCall@(EFuncCall funcName paramExprs) -> do
         unaliasedNonPointerReturnTypes <- sequence [lookupAtomicNoSynType x (aliases programEnvironment) | x <- (Data.Set.toList returnTypes), backTake 3 x /= "PTR"]
-        possibleFunctions <- possibleFunctionsFromReturnTypes programEnvironment (Data.Set.fromList unaliasedNonPointerReturnTypes) funcName (length paramExprs)
+        possibleFunctions <- 
+            providePositionInfo spExpr $ possibleFunctionsFromReturnTypes programEnvironment (Data.Set.fromList unaliasedNonPointerReturnTypes) funcName (length paramExprs)
         let parameterSets = parameterSetsFromPossibleFunctions possibleFunctions paramExprs in
-                validateAndGenerateD' programEnvironment (Data.Set.fromList unaliasedNonPointerReturnTypes) parameterSets functionCall
+                validateAndGenerateD' programEnvironment (Data.Set.fromList unaliasedNonPointerReturnTypes) parameterSets spExpr
         where
             backTake x = reverse.(Prelude.take x).reverse
     EConst const -> do
@@ -155,30 +156,31 @@ validateAndGenerateD programEnvironment returnTypes spExpr = case getContents sp
             then return $ Right (alphaVariableType, varName)
             else Error ("Identifier '" ++ varName ++ "' given cannot be used in context") (show returnTypes)
 
-validateAndGenerateD'::ProgramEnvironment -> Set Ident -> [Set Ident] -> Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
-validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTypes functionCall@(EFuncCall funcName paramExpressions) = do
-    reducedParameterTypeEithers <- reduceParameterTypes programEnvironment possibleParameterTypes paramExpressions
-    possibleFunctions <-
-        let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
-            possibleFunctionsFromReturnAndParamTypes programEnvironment possibleReturnTypes funcName reducedParameterTypes
-    let reducedReturnTypes = Prelude.foldl (\typeSet (FO { returnType = nextType }) -> nextType `Set.insert` typeSet) Set.empty possibleFunctions in
-        let maybeFuncToGenerate = 
-                if (length possibleFunctions) == 1 then 
-                    Just $ head possibleFunctions 
-                else let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in 
-                    reduceOnPointerParameters programEnvironment possibleFunctions reducedParameterTypes in 
-            case maybeFuncToGenerate of
-                Just funcToGenerate ->
-                    let finalReducedParameterTypes = parameterSetsFromPossibleFunctions possibleFunctions paramExpressions in
-                    reduceParameterTypes programEnvironment finalReducedParameterTypes paramExpressions >>= 
-                        (\finalReducedParameterTypeEithers ->
-                            generateDFunctionCall programEnvironment funcName funcToGenerate finalReducedParameterTypeEithers paramExpressions >>=
-                                (foundFunctionReturn funcToGenerate))
-                _ -> let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
-                    if reductionWasMade possibleReturnTypes reducedReturnTypes possibleParameterTypes reducedParameterTypes then 
-                        validateAndGenerateD' programEnvironment reducedReturnTypes reducedParameterTypes functionCall 
-                    else 
-                        return $ Left reducedReturnTypes
+validateAndGenerateD'::ProgramEnvironment -> Set Ident -> [Set Ident] -> SourcePosition Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
+validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTypes spFunctionCall = case getContents spFunctionCall of
+    functionCall@(EFuncCall funcName paramExpressions) -> do
+        reducedParameterTypeEithers <- reduceParameterTypes programEnvironment possibleParameterTypes paramExpressions
+        possibleFunctions <-
+            let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
+                providePositionInfo spFunctionCall $ possibleFunctionsFromReturnAndParamTypes programEnvironment possibleReturnTypes funcName reducedParameterTypes
+        let reducedReturnTypes = Prelude.foldl (\typeSet (FO { returnType = nextType }) -> nextType `Set.insert` typeSet) Set.empty possibleFunctions in
+            let maybeFuncToGenerate = 
+                    if (length possibleFunctions) == 1 then 
+                        Just $ head possibleFunctions 
+                    else let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in 
+                        reduceOnPointerParameters programEnvironment possibleFunctions reducedParameterTypes in 
+                case maybeFuncToGenerate of
+                    Just funcToGenerate ->
+                        let finalReducedParameterTypes = parameterSetsFromPossibleFunctions possibleFunctions paramExpressions in
+                        reduceParameterTypes programEnvironment finalReducedParameterTypes paramExpressions >>= 
+                            (\finalReducedParameterTypeEithers ->
+                                generateDFunctionCall programEnvironment funcName funcToGenerate finalReducedParameterTypeEithers paramExpressions >>=
+                                    (foundFunctionReturn funcToGenerate))
+                    _ -> let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
+                        if reductionWasMade possibleReturnTypes reducedReturnTypes possibleParameterTypes reducedParameterTypes then 
+                            validateAndGenerateD' programEnvironment reducedReturnTypes reducedParameterTypes spFunctionCall
+                        else 
+                            return $ Left reducedReturnTypes
     where
         foundFunctionReturn functionOverload compileString = case (parentModule functionOverload) of
             (Just dependency) -> dependencyRequired dependency $ Right ((returnType functionOverload), compileString)

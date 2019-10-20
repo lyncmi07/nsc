@@ -12,27 +12,30 @@ import Com.NoSyn.Ast.Traits.Listable
 import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Error.SourcePosition
 
-type BlockStatement = Block (SourcePosition Statement)
+type BlockStatement = Block Statement
 data Statement =
     SVarDec (SourcePosition VariableDeclaration)
     | SExpression (SourcePosition Expression)
     deriving Show
 
 instance IfElementGeneratable Statement where
-    generateIfElement programEnvironment (SVarDec a) = do
-        ~(IfElement.IfVariableDeclaration b) <- generateIfElement programEnvironment a
-        return $ IfElement.IfStatement (return $ IfStatement.SVarDec b)
-    generateIfElement programEnvironment (SExpression a) = do
-        ~(IfElement.IfExpression b) <- generateIfElement programEnvironment a
-        return $ IfElement.IfStatement (return $ IfStatement.SExpression b)
+    generateIfElement programEnvironment spStatement = case getContents spStatement of
+        SVarDec a ->do
+            positionedVariableDeclaration <- generateIfElement programEnvironment a
+            ~(IfElement.IfVariableDeclaration b) <- return $ getContents positionedVariableDeclaration
+            return $ changeContents spStatement $ IfElement.IfStatement (return $ IfStatement.SVarDec b)
+        SExpression a -> do
+            positionedExpression <- generateIfElement programEnvironment a
+            ~(IfElement.IfExpression b) <- return $ getContents positionedExpression
+            return $ changeContents spStatement $ IfElement.IfStatement (return $ IfStatement.SExpression b)
 
 instance IfElementGeneratable BlockStatement where
-    generateIfElement programEnvironment blockStatements = do
+    generateIfElement programEnvironment spBlockStatements = do
         ifElements <- sequence $ map (generateIfElement programEnvironment) statementList
-        ifStatements <- extractIfStatements (map return ifElements)
-        return $ IfElement.IfBlockStatement (return $ SequentialBlock ifStatements)
+        ifStatements <- extractIfStatements ifElements
+        return $ changeContents spBlockStatements $ IfElement.IfBlockStatement (return $ SequentialBlock ifStatements)
         where
-            statementList = toList blockStatements
+            statementList = toSourcePositionedList $ getContents spBlockStatements
 
 extractIfStatements :: [SourcePosition IfElement.IfElement] -> CompilerStatus [SourcePosition IfStatement.Statement]
 extractIfStatements [] = return []

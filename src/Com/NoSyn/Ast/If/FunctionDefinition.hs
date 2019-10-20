@@ -23,24 +23,26 @@ data FunctionDefinition =
     deriving Show
 
 instance EnvironmentUpdater FunctionDefinition where
-    updateEnvironment programEnvironment (FDNoSyn funcName funcReturnType parameters _) =
-        updateEnvironment (programEnvironment { scopeReturnType = funcReturnType }) parameters
-    updateEnvironment programEnvironment _ = return programEnvironment
+    updateEnvironment programEnvironment spFunctionDef = case getContents spFunctionDef of
+        FDNoSyn funcName funcReturnType parameters _ ->
+            updateEnvironment (programEnvironment { scopeReturnType = funcReturnType }) parameters
+        otherwise -> return programEnvironment
 
 instance TargetCodeGeneratable FunctionDefinition where
-    generateD _ (FDNative _ _ _) = return ""
-    generateD programEnvironment func@(FDNoSyn funcName returnType parameters blockStatement) = do
-        generatedParameters <- generateD programEnvironment parameters
-        updatedProgramEnvironment <- updateEnvironment programEnvironment func
-        generatedBlockStatement <- generateD updatedProgramEnvironment blockStatement
-        dReturnType <- getRealType programEnvironment func
-        functionDName <- getDIdentifier programEnvironment func
-        return $ 
-            dReturnType 
-            ++ " " 
-            ++ functionDName
-            ++ "(" ++ generatedParameters ++ ")" 
-            ++ "{\n" ++ generatedBlockStatement ++ "\n}"
+    generateD programEnvironment spFunctionDef = case getContents spFunctionDef of
+        FDNative _ _ _ -> return ""
+        func@(FDNoSyn funcName returnType parameters blockStatement) -> do
+            generatedParameters <- generateD programEnvironment parameters
+            updatedProgramEnvironment <- updateEnvironment programEnvironment spFunctionDef
+            generatedBlockStatement <- generateD updatedProgramEnvironment blockStatement
+            dReturnType <- getRealType programEnvironment func
+            functionDName <- getDIdentifier programEnvironment func
+            return $ 
+                dReturnType 
+                ++ " " 
+                ++ functionDName
+                ++ "(" ++ generatedParameters ++ ")" 
+                ++ "{\n" ++ generatedBlockStatement ++ "\n}"
 
 instance DIdentifiable FunctionDefinition where
     getDIdentifier _ (FDNative funcName _ _) = return funcName

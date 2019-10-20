@@ -1,5 +1,6 @@
 module Com.NoSyn.Ast.If.PreProgram where
 
+import Prelude hiding (getContents)
 import Com.NoSyn.Ast.Traits.EnvironmentUpdater
 import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 import Com.NoSyn.Ast.If.ImportStatement
@@ -10,11 +11,13 @@ data PreProgram = PreProgram (SourcePosition ImportStatements) (SourcePosition P
     deriving Show
 
 instance TargetCodeGeneratable PreProgram where
-    generateD programEnvironment (PreProgram imports program) = do
-        importTargetCode <- generateD programEnvironment imports
-        programTargetCode <- generateD programEnvironment program
-        return $ importTargetCode ++ ";\n" ++ programTargetCode
+    generateD programEnvironment spPreProgram = case getContents spPreProgram of
+        PreProgram imports program -> do
+            importTargetCode <- generateD programEnvironment imports
+            programTargetCode <- generateD programEnvironment program
+            return $ importTargetCode ++ ";\n" ++ programTargetCode
 
 instance EnvironmentUpdater PreProgram where
-    updateEnvironment programEnvironment (PreProgram _ program)= do
-        updateEnvironment programEnvironment program
+    updateEnvironment programEnvironment spPreProgram = case getContents spPreProgram of
+        PreProgram _ program ->
+            updateEnvironment programEnvironment program

@@ -6,7 +6,7 @@ import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 import Com.NoSyn.Ast.Traits.EnvironmentUpdater
 import Com.NoSyn.Ast.Traits.Typeable
 import Com.NoSyn.Ast.Traits.Listable
-import Com.NoSyn.Ast.If.Block
+import Com.NoSyn.Ast.Traits.Blockable
 
 instance (TargetCodeGeneratable a) => TargetCodeGeneratable (SourcePosition a) where
     generateD programEnvironment a = generateD programEnvironment (getContents a)

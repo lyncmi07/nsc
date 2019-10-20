@@ -12,11 +12,12 @@ import Com.NoSyn.Environment.ProgramEnvironment
 import Com.NoSyn.Ast.If.VariableDeclaration
 import Com.NoSyn.Ast.Traits.Listable as Listable
 import Com.NoSyn.Ast.If.Program
+import Com.NoSyn.Ast.If.Block
 import Data.Map
 
 programVariableDeclarationEvaluate::AliasEnvironment -> SourcePosition Program -> CompilerStatus VariableEnvironment
 programVariableDeclarationEvaluate aliasEnvironment program = do
-    variableDeclarations <- programVariableDeclarationEvaluate' aliasEnvironment (sourcePositionToList program)
+    variableDeclarations <- programVariableDeclarationEvaluate' aliasEnvironment (toSourcePositionedList $ getContents program)
     return $ Data.Map.fromList variableDeclarations
 
 programVariableDeclarationEvaluate'::AliasEnvironment -> [SourcePosition ProgramStmt] -> CompilerStatus [(Ident, Variable)]

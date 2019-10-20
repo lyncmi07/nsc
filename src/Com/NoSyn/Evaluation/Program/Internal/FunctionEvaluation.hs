@@ -9,6 +9,7 @@ import Com.NoSyn.Environment.FunctionEnvironment
 import Com.NoSyn.Ast.If.Program
 import Com.NoSyn.Ast.If.FunctionDefinition
 import Com.NoSyn.Ast.If.Parameter
+import Com.NoSyn.Ast.If.Block
 import Com.NoSyn.Ast.Traits.Listable as Listable
 import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Error.SourcePosition
@@ -22,7 +23,7 @@ type Param = (Ident, Ident)
 
 programFunctionDefinitionEvaluate::AliasEnvironment -> SourcePosition Program -> CompilerStatus FunctionEnvironment
 programFunctionDefinitionEvaluate aliasEnvironment program =
-    programFunctionDefinitionEvaluate' aliasEnvironment (sourcePositionToList program) Data.Map.empty
+    programFunctionDefinitionEvaluate' aliasEnvironment (toSourcePositionedList $ getContents program) Data.Map.empty
 
 programFunctionDefinitionEvaluate'::AliasEnvironment->[SourcePosition ProgramStmt]->FunctionEnvironment->CompilerStatus FunctionEnvironment
 programFunctionDefinitionEvaluate' _ [] functionLookup = return functionLookup

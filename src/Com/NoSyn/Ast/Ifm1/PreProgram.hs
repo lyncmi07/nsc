@@ -1,5 +1,6 @@
 module Com.NoSyn.Ast.Ifm1.PreProgram where
 
+import Prelude hiding (getContents)
 import qualified Com.NoSyn.Ast.If.IfElement as IfElement
 import qualified Com.NoSyn.Ast.If.PreProgram as IfPreProgram
 import Com.NoSyn.Ast.Traits.IfElementGeneratable
@@ -11,8 +12,10 @@ data PreProgram = PreProgram (SourcePosition ImportStatements) (SourcePosition P
     deriving Show
 
 instance IfElementGeneratable PreProgram where
-    generateIfElement programEnvironment (PreProgram a b) = do
-        ~(IfElement.IfImportStatements importStatements) <- generateIfElement programEnvironment a
-        ~(IfElement.IfProgram program) <- generateIfElement programEnvironment b
-        -- return $ IfElement.IfPreProgram $ IfPreProgram.PreProgram (changeContents a importStatements) (changeContents b program)
-        return $ IfElement.IfPreProgram $ return $ IfPreProgram.PreProgram importStatements program
+    generateIfElement programEnvironment spPreProgram = case getContents spPreProgram of
+        PreProgram a b -> do
+            positionedImportStatements <- generateIfElement programEnvironment a
+            positionedProgram <- generateIfElement programEnvironment b
+            ~(IfElement.IfImportStatements importStatements) <- return $ getContents positionedImportStatements
+            ~(IfElement.IfProgram program) <- return $ getContents positionedProgram
+            return $ changeContents spPreProgram $ IfElement.IfPreProgram $ changeContents spPreProgram $ IfPreProgram.PreProgram importStatements program

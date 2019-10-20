@@ -1,6 +1,6 @@
 module Com.NoSyn.Ast.Ifm1.FunctionDefinition where
 
-import Prelude hiding (getContents )
+import Prelude hiding (getContents)
 import qualified Com.NoSyn.Ast.If.IfElement as IfElement
 import qualified Com.NoSyn.Ast.If.FunctionDefinition as IfFunctionDefinition
 import Com.NoSyn.Ast.Traits.IfElementGeneratable
@@ -19,19 +19,35 @@ data FunctionDefinition =
     deriving Show
 
 instance IfElementGeneratable FunctionDefinition where
-    generateIfElement programEnvironment (FDNative a b parameters) = do
-        ~(IfElement.IfParameters ifParameters) <- generateIfElement programEnvironment (getContents parameters)
-        return $ IfElement.IfFunctionDefinition $ return $ (IfFunctionDefinition.FDNative a b ifParameters)
-    generateIfElement programEnvironment (FDNoSyn funcName returnType parameters blockStatement) = do
-        ~(IfElement.IfParameters ifParameters) <- generateIfElement programEnvironment (getContents parameters)
-        ~(IfElement.IfBlockStatement ifBlockStatement) <- generateIfElement programEnvironment (getContents blockStatement)
-        return $ IfElement.IfFunctionDefinition $ return $ (IfFunctionDefinition.FDNoSyn (funcName++"_function") returnType ifParameters ifBlockStatement)
-    generateIfElement programEnvironment (FDOperatorOverload operatorType operatorString returnType parameters blockStatement) = do
-        ~(IfElement.IfParameters ifParameters) <- generateIfElement programEnvironment (getContents parameters)
-        ~(IfElement.IfBlockStatement ifBlockStatement) <- generateIfElement programEnvironment (getContents blockStatement)
-        namedOperators <- operatorStringConverter operatorString
-        return $ IfElement.IfFunctionDefinition $ return $ (IfFunctionDefinition.FDNoSyn ((show operatorType)++"_"++(concat namedOperators)++"_operator") returnType ifParameters ifBlockStatement)
-    generateIfElement programEnvironment (FDBracketOverload bracketType returnType parameters blockStatement) = do
-        ~(IfElement.IfParameters ifParameters) <- generateIfElement programEnvironment (getContents parameters)
-        ~(IfElement.IfBlockStatement ifBlockStatement) <- generateIfElement programEnvironment (getContents blockStatement)
-        return $ IfElement.IfFunctionDefinition $ return $ (IfFunctionDefinition.FDNoSyn ((show bracketType)++"_bracketop") returnType ifParameters ifBlockStatement)
+    generateIfElement programEnvironment spFunctionDef = case getContents spFunctionDef of
+        FDNative a b parameters -> do
+            positionedParameters <- generateIfElement programEnvironment parameters
+            ~(IfElement.IfParameters ifParameters) <- return $ getContents positionedParameters
+            return $ changeContents spFunctionDef $
+                IfElement.IfFunctionDefinition $
+                changeContents spFunctionDef $ (IfFunctionDefinition.FDNative a b ifParameters)
+        FDNoSyn funcName returnType parameters blockStatement -> do
+            positionedParameters <- generateIfElement programEnvironment parameters
+            positionedBlockStatement <- generateIfElement programEnvironment blockStatement
+            ~(IfElement.IfParameters ifParameters) <- return $ getContents positionedParameters
+            ~(IfElement.IfBlockStatement ifBlockStatement) <- return $ getContents positionedBlockStatement
+            return $ changeContents spFunctionDef $
+                IfElement.IfFunctionDefinition $
+                changeContents spFunctionDef $ (IfFunctionDefinition.FDNoSyn (funcName++"_function") returnType ifParameters ifBlockStatement)
+        FDOperatorOverload operatorType operatorString returnType parameters blockStatement -> do
+            positionedParameters <- generateIfElement programEnvironment parameters
+            positionedBlockStatement <- generateIfElement programEnvironment blockStatement
+            ~(IfElement.IfParameters ifParameters) <- return $ getContents positionedParameters
+            ~(IfElement.IfBlockStatement ifBlockStatement) <- return $ getContents positionedBlockStatement
+            namedOperators <- operatorStringConverter operatorString
+            return $ changeContents spFunctionDef $
+                IfElement.IfFunctionDefinition $ 
+                changeContents spFunctionDef $ (IfFunctionDefinition.FDNoSyn ((show operatorType)++"_"++(concat namedOperators)++"_operator") returnType ifParameters ifBlockStatement)
+        FDBracketOverload bracketType returnType parameters blockStatement -> do
+            positionedParameters <- generateIfElement programEnvironment parameters
+            positionedBlockStatement <- generateIfElement programEnvironment blockStatement
+            ~(IfElement.IfParameters ifParameters) <- return $ getContents positionedParameters
+            ~(IfElement.IfBlockStatement ifBlockStatement) <- return $ getContents positionedBlockStatement
+            return $ changeContents spFunctionDef $
+                IfElement.IfFunctionDefinition $
+                changeContents spFunctionDef $ (IfFunctionDefinition.FDNoSyn ((show bracketType)++"_bracketop") returnType ifParameters ifBlockStatement)

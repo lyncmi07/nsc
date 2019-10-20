@@ -1,9 +1,11 @@
 module Com.NoSyn.Ast.Ifm1.AliasDefinition where
 
+import Prelude hiding (getContents)
 import Com.NoSyn.Ast.Traits.IfElementGeneratable
 import Com.NoSyn.Data.Types
 import qualified Com.NoSyn.Ast.If.AliasDefinition as IfAliasDefinition
 import qualified Com.NoSyn.Ast.If.IfElement as IfElement
+import Com.NoSyn.Error.SourcePosition
 
 data AliasDefinition =
     ADNative Ident String
@@ -11,7 +13,8 @@ data AliasDefinition =
     deriving Show
 
 instance IfElementGeneratable AliasDefinition where
-    generateIfElement programEnvironment (ADNative aliasName aliasType) =
-        return $ IfElement.IfAliasDefinition $ return $ (IfAliasDefinition.ADNative aliasName aliasType)
-    generateIfElement programEnvironment (ADNoSyn aliasName aliasType) =
-        return $ IfElement.IfAliasDefinition $ return $ (IfAliasDefinition.ADNoSyn aliasName aliasType)
+    generateIfElement programEnvironment spAliasDef = case getContents spAliasDef of
+        ADNative aliasName aliasType ->
+            return $ changeContents spAliasDef $ IfElement.IfAliasDefinition $ return $ (IfAliasDefinition.ADNative aliasName aliasType)
+        ADNoSyn aliasName aliasType ->
+            return $ changeContents spAliasDef $ IfElement.IfAliasDefinition $ return $ (IfAliasDefinition.ADNoSyn aliasName aliasType)

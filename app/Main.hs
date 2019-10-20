@@ -26,35 +26,38 @@ import Com.NoSyn.Ast.If.PreProgram as IfPreProgram
 import Com.NoSyn.Ast.Ifm1.ImportStatement as Ifm1ImportStatement
 import Com.NoSyn.Ast.If.ImportStatement
 import Com.NoSyn.Ast.If.IfElement
+import Com.NoSyn.Ast.If.Block
 import Data.Foldable
 
 main = do
     args <- getArgs
     (headerText, programText) <- Prelude.getContents >>= return.splitInputs
-    -- putStrLn $ show (headerText, programText)
     (_, cst) <- convertToIO $ failOnNonFatalErrors programText (parse programText 0 1 [])
-    (_, ifm1Ast@(Ifm1PreProgram.PreProgram importStatments _)) <- convertToIOWithSourcePositions programText $ SourcePosition.getContents $ runCompilerStatusT $ convertProgram cst
-    (_, ifAst) <- convertToIOWithSourcePositions programText $ generateIfElement defaultProgramEnvironment ifm1Ast
-    if args == [] then compileProgram programText headerText (return ifAst) ifm1Ast
+    (_, positionedIfm1Ast) <- convertToIOWithSourcePositions programText $ 
+        let positionedIfAstResult = runCompilerStatusT $ convertProgram cst in do
+            ifm1Ast <- SourcePosition.getContents positionedIfAstResult
+            return $ changeContents positionedIfAstResult ifm1Ast
+    (_, positionedIfAst) <- convertToIOWithSourcePositions programText $ generateIfElement defaultProgramEnvironment positionedIfm1Ast
+    if args == [] then compileProgram programText headerText positionedIfAst positionedIfm1Ast
     else let (x:_) = args in
-        if x == "--headers" then createHeaders ifAst
+        if x == "--headers" then createHeaders positionedIfAst
         else putStrLn $ "Invalid argument: " ++ x
 
-compileProgram sourceCode headerText spInitialIfAst ifm1Ast = case SourcePosition.getContents spInitialIfAst of
+compileProgram sourceCode headerText spInitialIfAst spIfm1Ast = case SourcePosition.getContents spInitialIfAst of
     IfPreProgram spcIfPreProgram -> case SourcePosition.getContents spcIfPreProgram of
         IfPreProgram.PreProgram allImports _ -> do
             (_, initialProgramEnvironment) <- convertToIOWithSourcePositions sourceCode $ programEnvironmentEvaluateIfElement (SourcePosition.getContents spInitialIfAst)
             -- Now that the program environment has been populated the ifAst is generated again to correct any missing function calls from expressions
-            selectedImports <- return $ filteredHeaders headerText (Prelude.map SourcePosition.getContents $ sourcePositionToList allImports)
+            selectedImports <- return $ filteredHeaders headerText (Prelude.map SourcePosition.getContents $ toSourcePositionedList $ SourcePosition.getContents allImports)
             (_, programEnvironmentWithImports) <- convertToIOWithSourcePositions sourceCode $ addImportedFunctionsToEnvironment selectedImports initialProgramEnvironment
-            (_, ifAst) <- convertToIOWithSourcePositions sourceCode $ generateIfElement programEnvironmentWithImports ifm1Ast
+            (_, ifAst) <- convertToIOWithSourcePositions sourceCode $ generateIfElement programEnvironmentWithImports spIfm1Ast
             (dependencies, targetCode) <- convertToIOWithSourcePositions sourceCode $ generateD programEnvironmentWithImports ifAst
             putStrLn (concat $ intersperse "\n" dependencies)
             putStrLn "%%SOURCE%%"
             putStrLn targetCode
 
 createHeaders ifAst = do
-    (_, functionEnvironment) <- convertToIO $ functionEnvironmentEvaluateIfElement ifAst
+    (_, functionEnvironment) <- convertToIO $ functionEnvironmentEvaluateIfElement $ SourcePosition.getContents ifAst
     putStrLn $ serializeFunctionEnvironment functionEnvironment
 
 splitInputs standardInput = 

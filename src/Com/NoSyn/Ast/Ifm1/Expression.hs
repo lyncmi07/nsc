@@ -22,9 +22,9 @@ data Expression =
     deriving Show
 
 instance IfElementGeneratable Expression where
-    generateIfElement programEnvironment expression = do
-        ifExpression <- generateIfExpression programEnvironment (return expression)
-        return $ IfElement.IfExpression ifExpression
+    generateIfElement programEnvironment spExpression = do
+        ifExpression <- generateIfExpression programEnvironment spExpression
+        return $ changeContents spExpression $ IfElement.IfExpression ifExpression
 
 generateIfExpression :: ProgramEnvironment -> SourcePosition Expression -> CompilerStatus (SourcePosition IfExpression.Expression)
 generateIfExpression programEnvironment@(PE { functions = functions }) expression = case getContents expression of
@@ -32,7 +32,8 @@ generateIfExpression programEnvironment@(PE { functions = functions }) expressio
         ifParameters <- generateIfParameters parameters
         return $ changeContents expression $ IfExpression.EFuncCall (funcName ++ "_function") ifParameters
     EConst constant -> do
-        ~(IfElement.IfConstant ifConstant) <- generateIfElement programEnvironment constant
+        positionedIfConstant <- generateIfElement programEnvironment constant
+        ~(IfElement.IfConstant ifConstant) <- return $ getContents positionedIfConstant
         return $ changeContents expression $ IfExpression.EConst ifConstant
     EIdent ident -> do
         return $ changeContents expression $ IfExpression.EIdent ident

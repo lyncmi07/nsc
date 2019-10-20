@@ -33,6 +33,7 @@ instance Functor CompilerStatus where
 
 instance Applicative CompilerStatus where
     pure = Valid (CC {moduleDependencies = Data.Set.empty, nonFatalErrors = []})
+    (PositionedError a b c) <*> _ = PositionedError a b c
     (Error a b) <*> _ = Error a b
     (Valid cc f) <*> a = case fmap f a of
         Valid ccv b -> Valid (SetTheory.union ccv cc) b
@@ -74,6 +75,13 @@ convertToIO (PositionedError (startLine, startCol, endLine, endCol) errorMessage
     hPutStrLn stderr "Source not available for this error"
     fail "Exiting unsuccessfully"
 
+providePositionInfo :: SourcePosition.SourcePosition b -> CompilerStatus a -> CompilerStatus a
+providePositionInfo sourcePositionElement csa = 
+    let sourcePositionInfo = SourcePosition.getSourcePosition sourcePositionElement in case csa of
+        Valid _ _ -> csa
+        Error a b -> PositionedError sourcePositionInfo a b
+        PositionedError _ _ _ -> csa
+
 writeErrorMessage errorMessage context = do
     hPutStrLn stderr "--COMPILATION FAILED--"
     hPutStrLn stderr "Reason:"
@@ -105,7 +113,7 @@ prettyPrintNonFatalErrors :: [String] -> CompilerContext -> String
 prettyPrintNonFatalErrors sourceCodeLines (CC { nonFatalErrors = errors }) =
     concat [let relevantCode = sourceCodeLines !! (startLine - 1) in
                 "\nError occured from line " ++ (show startLine) ++ " col " ++ (show startColumn) ++ " to line " ++ (show endLine) ++ " col "  ++ (show endColumn) ++ ":\n"
-                ++ prettyPrintTokenPosition sourceCodeLines startLine startColumn endLine endColumn ++ "\n"
+                ++ prettyPrintTokenPosition sourceCodeLines startLine (startColumn - 1) endLine (endColumn - 1) ++ "\n"
                 ++ "Cause: " ++ errorMessage 
                 ++ "\n\n------------------------------"
             | (NFE errorMessage _ startLine startColumn endLine endColumn) <- reverse errors]
@@ -127,13 +135,13 @@ prettyPrintFirstOfMultiLine printerFunction sourceLines line startColumn =
 
 prettyPrintSingleLineAbovePosition sourceLines line startColumn endColumn =
     let codeLine = sourceLines !! (line - 1) in
-    (take (startColumn - 1) $ repeat ' ') ++ (take (endColumn - startColumn + 1) $ repeat 'v') ++ "\n"
+    (take (startColumn) $ repeat ' ') ++ (take (endColumn - startColumn) $ repeat 'v') ++ "\n"
     ++ codeLine
 
 prettyPrintSingleLinePosition sourceLines line startColumn endColumn = 
     let codeLine = sourceLines !! (line - 1) in
         codeLine ++ "\n"
-        ++ (take (startColumn - 1) $ repeat ' ') ++ (take (endColumn - startColumn + 1) $ repeat '^')
+        ++ (take (startColumn) $ repeat ' ') ++ (take (endColumn - startColumn + 1) $ repeat '^')
 
 newtype CompilerStatusT m a = CompilerStatusT { runCompilerStatusT :: m (CompilerStatus a) }
 
