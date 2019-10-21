@@ -24,7 +24,7 @@ instance (EnvironmentUpdater a) => EnvironmentUpdater (Block a) where
         StandardBlock m -> do
             updatedProgramEnvironments <- sequence $ map (updateEnvironment programEnvironment) m
             let differenceProgramEnvironments = map (\x -> difference x programEnvironment) updatedProgramEnvironments in
-                foldM (\x y -> concatenate (Error "Cannot override program environment with new definitions" (show (x, y))) x y) programEnvironment differenceProgramEnvironments
+                foldM (\x y -> concatenate (PositionedError (getSourcePosition spBlock) "Cannot override program environment with new definitions" (show (x, y))) x y) programEnvironment differenceProgramEnvironments
         SequentialBlock m ->
             foldM updateEnvironment programEnvironment m
 

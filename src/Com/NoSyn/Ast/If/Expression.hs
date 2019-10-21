@@ -113,14 +113,14 @@ generateExpression::ProgramEnvironment -> SourcePosition Expression -> CompilerS
 generateExpression programEnvironment spExpr = case getContents spExpr of
     functionCall@(EFuncCall _ _) -> do
         generatedExpression <- validateAndGenerateD programEnvironment (Set.singleton "Nothing") spExpr
-        either (\_ -> Error ("Expression '" ++ (show functionCall) ++ "' is ambiguous") (show functionCall)) (\(_,x) -> return x) generatedExpression
-    EConst a -> Error "Constant expressions cannot be used in this context" (show a)
-    EIdent a -> Error "Identifier expressions cannot be used in this context" (show a)
+        either (\_ -> PositionedError (getSourcePosition spExpr) ("Expression '" ++ (show functionCall) ++ "' is ambiguous") (show functionCall)) (\(_,x) -> return x) generatedExpression
+    EConst a -> PositionedError (getSourcePosition spExpr) "Constant expressions cannot be used in this context" (show a)
+    EIdent a -> PositionedError (getSourcePosition spExpr) "Identifier expressions cannot be used in this context" (show a)
 
 generateExpressionWithReturnType::ProgramEnvironment -> Ident -> SourcePosition Expression -> CompilerStatus String
-generateExpressionWithReturnType programEnvironment returnType expression = do
-    generatedExpression <- validateAndGenerateD programEnvironment (Set.singleton returnType) expression
-    either (\_ -> Error ("Expression " ++ (show expression) ++ "is ambiguous") (show expression)) (\(_,x) -> return x) generatedExpression
+generateExpressionWithReturnType programEnvironment returnType spExpression = do
+    generatedExpression <- validateAndGenerateD programEnvironment (Set.singleton returnType) spExpression
+    either (\_ -> PositionedError (getSourcePosition spExpression) ("Expression " ++ (show $ getContents spExpression) ++ "is ambiguous") (show $ getContents spExpression)) (\(_,x) -> return x) generatedExpression
 
 generateExpressionForConstParameter::ProgramEnvironment -> String -> SourcePosition Expression -> CompilerStatus String
 generateExpressionForConstParameter programEnvironment generatedExpression spExpr = case getContents spExpr of
@@ -147,14 +147,14 @@ validateAndGenerateD programEnvironment returnTypes spExpr = case getContents sp
         generatedConstant <- generateD programEnvironment const
         if constantType `Set.member` returnTypes
             then return $ Right (constantType, generatedConstant)
-            else Error ("Constant '" ++ generatedConstant ++ "' given cannot be used in context") (show returnTypes)
+            else PositionedError (getSourcePosition spExpr) ("Constant '" ++ generatedConstant ++ "' given cannot be used in context") (show returnTypes)
     EIdent varName -> do
         variable <- lookupVariableType programEnvironment varName
         variableType <- getNoSynType programEnvironment variable
         alphaVariableType <- getAlphaTypeName (aliases programEnvironment) variable
         if variableType `Set.member` returnTypes
             then return $ Right (alphaVariableType, varName)
-            else Error ("Identifier '" ++ varName ++ "' given cannot be used in context") (show returnTypes)
+            else PositionedError (getSourcePosition spExpr) ("Identifier '" ++ varName ++ "' given cannot be used in context") (show returnTypes)
 
 validateAndGenerateD'::ProgramEnvironment -> Set Ident -> [Set Ident] -> SourcePosition Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
 validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTypes spFunctionCall = case getContents spFunctionCall of
@@ -174,8 +174,9 @@ validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTy
                         let finalReducedParameterTypes = parameterSetsFromPossibleFunctions possibleFunctions paramExpressions in
                         reduceParameterTypes programEnvironment finalReducedParameterTypes paramExpressions >>= 
                             (\finalReducedParameterTypeEithers ->
-                                generateDFunctionCall programEnvironment funcName funcToGenerate finalReducedParameterTypeEithers paramExpressions >>=
-                                    (foundFunctionReturn funcToGenerate))
+                                providePositionInfo spFunctionCall $
+                                    generateDFunctionCall programEnvironment funcName funcToGenerate finalReducedParameterTypeEithers paramExpressions >>=
+                                        (foundFunctionReturn funcToGenerate))
                     _ -> let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
                         if reductionWasMade possibleReturnTypes reducedReturnTypes possibleParameterTypes reducedParameterTypes then 
                             validateAndGenerateD' programEnvironment reducedReturnTypes reducedParameterTypes spFunctionCall
@@ -233,8 +234,8 @@ zipVariablesToParameterTypesAndExpressions ((_, (VVariadic _ _)):[]) [] [] = ret
 zipVariablesToParameterTypesAndExpressions (x@(_, paramVar@(VVariadic _ _)):[]) (y:ys) (z:zs) = do
     rest <- zipVariablesToParameterTypesAndExpressions (x:[]) ys zs
     return $ (x, y, z):rest
-zipVariablesToParameterTypesAndExpressions xs@((x@(_, (VVariadic _ _)):_)) ys zs = 
-    Error "Variadic parameters must only be placed at the end of a parameter list" (show (xs, ys, zs))
+zipVariablesToParameterTypesAndExpressions xs@((x@(_, (VVariadic _ _)):_)) ys (z:zs) = 
+    PositionedError (getSourcePosition z) "Variadic parameters must only be placed at the end of a parameter list" (show (xs, ys, z:zs))
 zipVariablesToParameterTypesAndExpressions (x:xs) (y:ys) (z:zs) = do
     rest <- zipVariablesToParameterTypesAndExpressions xs ys zs
     return $ (x, y, z):rest
@@ -246,7 +247,7 @@ generateExpressionForPointerParameter programEnvironment generatedExpression spE
         case variable of
             (VPointer _ _) -> return generatedExpression
             (VConst _ _) -> return $ "&" ++ generatedExpression
-generateExpressionForPointerParameter _ _ expr = Error ((show expr) ++ " cannot be referenced in a pointer context") (show expr)
+    expr -> PositionedError (getSourcePosition spExp) ((show expr) ++ " cannot be referenced in a pointer context") (show expr)
 
 generateDFunctionCall::ProgramEnvironment -> Ident -> FunctionOverload -> [Either (Set Ident) (Ident, String)] -> [SourcePosition Expression] -> CompilerStatus String
 generateDFunctionCall programEnvironment funcName functionOverload paramTypeEithers parameterExpressions = do

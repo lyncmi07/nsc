@@ -177,7 +177,7 @@ returnCs :: a -> Cs a
 returnCs a = \s _ _ _ -> Valid empty a
 
 failCs :: String -> Cs a
-failCs err = \s currentCol l tokenPositions -> Error err (show (l, currentCol))
+failCs err = \s currentCol l tokenmPositions -> PositionedError (l, currentCol, l, currentCol) err "Parsing failure"
 
 -- addSourcePosition :: TokenLength a => a -> Cs a
 addSourcePosition a = \s currentCol currentLine tokenPositions ->
