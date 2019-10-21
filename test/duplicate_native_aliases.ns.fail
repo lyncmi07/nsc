@@ -1,0 +1,8 @@
+%%SOURCE%%
+
+native alias Hello = `hello`;
+native alias Hello = `hello`;
+
+Int main() {
+    0;
+}

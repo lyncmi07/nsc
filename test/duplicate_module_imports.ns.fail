@@ -1,0 +1,8 @@
+%%SOURCE%%
+
+import another.module;
+import another.module;
+
+Nothing main() {
+
+}

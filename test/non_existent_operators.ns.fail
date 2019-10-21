@@ -1,0 +1,11 @@
+%%SOURCE%%
+
+import another.module;
+
+Nothing infix_:=_(Int a, Int b) {
+
+}
+
+Nothing main() {
+    10 ++ 10;
+}

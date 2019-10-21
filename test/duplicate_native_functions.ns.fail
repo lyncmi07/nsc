@@ -1,0 +1,9 @@
+%%SOURCE%%
+
+native Nothing assignment(Int* a, Int b);
+native Nothing assignment(Int* a, Int b);
+
+Nothing main() {
+    Int a;
+    assignment(a, 10);
+}
