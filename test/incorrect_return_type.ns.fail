@@ -1,0 +1,9 @@
+%%SOURCE%%
+
+Int foo() {
+    hello();
+}
+
+String hello() {
+    "HELLO";
+}

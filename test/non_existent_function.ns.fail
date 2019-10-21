@@ -1,0 +1,9 @@
+%%SOURCE%%
+
+Nothing main() {
+    foo(bar());
+}
+
+Nothing foo(Int a) {
+    
+}

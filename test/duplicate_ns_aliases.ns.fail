@@ -1,0 +1,8 @@
+%%SOURCE%%
+
+alias AnotherInt = Int;
+alias AnotherInt = Int;
+
+Int main() {
+    0;
+}
