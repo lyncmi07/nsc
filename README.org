@@ -1,7 +1,7 @@
 #+STARTUP: showall
 #+TITLE: The NoSyn Programming Language
 
-[[http://www.supermarinesoftware.com/nsc/test_status][Test Status]]
+[[https://travis-ci.org/lyncmi07/nsc.svg?branch=master]]
 
 * Introduction
   NoSyn is a statically typed general purpose programming language designed on a principles of minimalism and extensibility.

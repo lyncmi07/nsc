@@ -11,6 +11,7 @@ test/*
 !test/*.ns
 !test/*.ns.fail
 !test/*.ns.disable
+!test/*.ns.fail.disable
 documents/*.pdf
 documents/*.html
 *.aux

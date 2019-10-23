@@ -4,6 +4,7 @@ stack install
 
 for i in $(find ./test/*.ns)
 do
+    echo "Running test $i"
     if cat $i | no-syn-exe ; then
         echo "$?"
     else
