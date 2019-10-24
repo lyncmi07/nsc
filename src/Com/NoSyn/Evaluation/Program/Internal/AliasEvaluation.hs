@@ -1,32 +1,42 @@
 module Com.NoSyn.Evaluation.Program.Internal.AliasEvaluation (programAliasEvaluate) where
 
+import Prelude hiding (getContents)
 import Com.NoSyn.Ast.If.Program
 import Com.NoSyn.Ast.If.AliasDefinition
+import Com.NoSyn.Ast.If.Block
 import Com.NoSyn.Ast.Traits.Listable as Listable
 import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Error.SourcePosition
+import Com.NoSyn.Error.SourcePositionTraits
 import Data.Map.Ordered
 import Data.Set
 import Com.NoSyn.Environment.AliasEnvironment
 import Com.NoSyn.Data.Types
 
-programAliasEvaluate::AliasEnvironment -> Program -> CompilerStatus AliasEnvironment
+programAliasEvaluate::AliasEnvironment -> SourcePosition Program -> CompilerStatus AliasEnvironment
 programAliasEvaluate defaultEnvironment program =
-    let environmentWithNativeAliases = addNativeAliases (Listable.toList program) defaultEnvironment in
-    let noSynLookupTable = createNoSynTypeLookupTable (Listable.toList program) in
+    let environmentWithNativeAliases = addNativeAliases (toSourcePositionedList $ getContents program) defaultEnvironment in
+    let noSynLookupTable = createNoSynTypeLookupTable (toSourcePositionedList $ getContents  program) in
     createRealTypeLookupTable noSynLookupTable environmentWithNativeAliases
 
-addNativeAliases::[ProgramStmt] -> AliasEnvironment -> AliasEnvironment
+addNativeAliases::[SourcePosition ProgramStmt] -> AliasEnvironment -> AliasEnvironment
 addNativeAliases [] aliasEnvironment = aliasEnvironment
-addNativeAliases ((PSAliasDef (ADNative aliasName aliasType)):xs) aliasEnvironment =
-    let updatedAliasEnvironment = (aliasName, aliasType) |< aliasEnvironment in
-    addNativeAliases xs updatedAliasEnvironment
-addNativeAliases (_:xs) aliasEnvironment = addNativeAliases xs aliasEnvironment
-
-createNoSynTypeLookupTable::[ProgramStmt] -> OMap Ident Ident
+addNativeAliases (spProgramStmt:xs) aliasEnvironment = case getContents spProgramStmt of
+    PSAliasDef aliasDef -> case getContents aliasDef of
+        ADNative aliasName aliasType ->
+            let updatedAliasEnvironment = (aliasName, aliasType) |< aliasEnvironment in
+                addNativeAliases xs updatedAliasEnvironment
+        otherwise -> addNativeAliases xs aliasEnvironment
+    otherwise -> addNativeAliases xs aliasEnvironment
+    
+createNoSynTypeLookupTable::[SourcePosition ProgramStmt] -> OMap Ident Ident
 createNoSynTypeLookupTable [] = Data.Map.Ordered.empty
-createNoSynTypeLookupTable ((PSAliasDef (ADNoSyn aliasName aliasType)):xs) =
-    (aliasName, aliasType) |< (createNoSynTypeLookupTable xs)
-createNoSynTypeLookupTable (_:xs) = createNoSynTypeLookupTable xs
+createNoSynTypeLookupTable (spProgramStmt:xs) = case getContents spProgramStmt of
+    PSAliasDef aliasDef -> case getContents aliasDef of
+        ADNoSyn aliasName aliasType ->
+            (aliasName, aliasType) |< (createNoSynTypeLookupTable xs)
+        otherwise -> createNoSynTypeLookupTable xs
+    otherwise -> createNoSynTypeLookupTable xs
 
 createRealTypeLookupTable::OMap Ident Ident -> AliasEnvironment -> CompilerStatus AliasEnvironment
 createRealTypeLookupTable noSynLookupTable realLookupTable

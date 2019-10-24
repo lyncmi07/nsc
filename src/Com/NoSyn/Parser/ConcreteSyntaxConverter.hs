@@ -16,195 +16,247 @@ import Com.NoSyn.Ast.Traits.Listable
 import Com.NoSyn.Ast.If.ImportStatement as IfImportStatement
 import Com.NoSyn.Ast.Ifm1.ImportStatement as Ifm1ImportStatement
 import Com.NoSyn.Ast.Ifm1.PreProgram
+import Prelude hiding (getContents)
+import Control.Monad.Trans.Class
 
 import Com.NoSyn.Parser.ConcreteSyntaxTree
 
+import Com.NoSyn.Error.SourcePosition
 import Com.NoSyn.Error.CompilerStatus
 import Com.NoSyn.Data.Operators
 
-convertConstant :: CConstant -> CompilerStatus Ifm1Constant.Constant
-convertConstant (CCString a) = return $ Ifm1Constant.IfConstant $ CString a
-convertConstant (CCInt a) = return $ Ifm1Constant.IfConstant $ CInt a
-convertConstant (CCDouble a) = return $ Ifm1Constant.IfConstant $ CDouble a
-convertConstant (CCChar a) = return $ Ifm1Constant.IfConstant $ CChar a
+convertConstant :: SPCConstant -> CompilerStatusT SourcePosition Ifm1Constant.Constant
+convertConstant spcConstant = case getContents spcConstant of
+    CCString a -> 
+        lift $ changeContents spcConstant $ Ifm1Constant.IfConstant $ changeContents spcConstant $ CString a
+    CCInt a ->
+        lift $ changeContents spcConstant $ Ifm1Constant.IfConstant $ changeContents spcConstant $ CInt a
+    CCDouble a ->
+        lift $ changeContents spcConstant $ Ifm1Constant.IfConstant $ changeContents spcConstant $ CDouble a
+    CCChar a ->
+        lift $ changeContents spcConstant $ Ifm1Constant.IfConstant $ changeContents spcConstant $ CChar a
 
-convertFilledExpressionList :: CFilledExpressionList -> CompilerStatus [Expression]
-convertFilledExpressionList (CMultiExpression x xs) = do
-    n <- convertExpression x
-    m <- convertFilledExpressionList xs
-    return $ n:m
-convertFilledExpressionList (CFinalExpression x) = sequence $ [convertExpression x]
+convertFilledExpressionList :: SPCFilledExpressionList -> CompilerStatusT SourcePosition [SourcePosition Expression]
+convertFilledExpressionList spcFilledExpressionList = case getContents spcFilledExpressionList of
+    CMultiExpression x xs -> let positionedN = convertExpression x in do
+        n <- positionedN
+        m <- convertFilledExpressionList xs
+        lift $ changeContents spcFilledExpressionList $ (changeContents (runCompilerStatusT positionedN) n):m
+    CFinalExpression x -> let positionedN = convertExpression x in do
+        n <- positionedN
+        lift $ changeContents spcFilledExpressionList $ [changeContents (runCompilerStatusT positionedN) n]
 
-convertExpressionList :: CExpressionList -> CompilerStatus [Expression]
-convertExpressionList CListEmpty = return []
-convertExpressionList (CListNonEmpty a) = convertFilledExpressionList a
+convertExpressionList :: SPCExpressionList -> CompilerStatusT SourcePosition [SourcePosition Expression]
+convertExpressionList spcExpressionList = case getContents spcExpressionList of
+    CListEmpty -> return []
+    CListNonEmpty a -> convertFilledExpressionList a
 
-convertExpression :: CExpression -> CompilerStatus Expression
-convertExpression (CEConst a) = do
-    n <- convertConstant a
-    return $ EConst n
-convertExpression (CEIdent a) = return $ EIdent a
-convertExpression (CEBracketed a) = convertExpression a
-convertExpression (CEBracketOp bracketType a b) = do
-    n <- convertExpression a
-    m <- convertExpressionList b
-    return $ EBrackets bracketType (n:m)
-convertExpression prefixOp@(CEPrefixOp a b) =
-    case b of
-        (CEInfixOp _ _ _) -> convertExpression $ reorderPrefixOperator prefixOp
-        _ -> do
-            n <- convertExpression b
-            return $ EOp Prefix a [n]
-convertExpression (CEPostfixOp a b) = do
-    n <- convertExpression b
-    return $ EOp Postfix a [n]
-convertExpression reversedInfix@(CEInfixOp _ _ _)= do
-    n <- convertExpression a
-    m <- convertExpression b
-    return $ EOp Infix o (n:m:[])
-    where
-        (CEInfixOp o a b) = reverseOperatorOrder reversedInfix
+convertExpression :: SPCExpression -> CompilerStatusT SourcePosition Expression
+convertExpression spcExpression = case getContents spcExpression of
+    CEConst a -> let positionedN = convertConstant a in do
+        n <- positionedN
+        lift $ changeContents spcExpression $ EConst (changeContents (runCompilerStatusT positionedN) n)
+    CEIdent a -> lift $ changeContents spcExpression  $ EIdent a
+    CEBracketed a -> convertExpression a
+    CEBracketOp bracketType a b -> 
+        let positionedN = convertExpression a in do
+        n <- positionedN
+        m <- convertExpressionList b
+        lift $ changeContents spcExpression $ EBrackets bracketType (changeContents (runCompilerStatusT positionedN) n:m)
+    CEPrefixOp a b ->
+        case getContents b of
+            CEInfixOp _ _ _ -> convertExpression $ reorderPrefixOperator spcExpression
+            _ -> let positionedN = convertExpression b in do
+                n <- positionedN
+                lift $ changeContents spcExpression  $ EOp Prefix a [changeContents (runCompilerStatusT positionedN) n]
+    CEPostfixOp a b -> let positionedN = convertExpression b in do
+        n <- positionedN
+        lift $ changeContents spcExpression $ EOp Postfix a [changeContents (runCompilerStatusT positionedN) n]
+    CEInfixOp _ _ _ ->
+        let positionedN = convertExpression a in
+        let positionedM = convertExpression b in do
+        n <- positionedN
+        m <- positionedM
+        lift $ changeContents spcExpression  $ EOp Infix o ((changeContents (runCompilerStatusT positionedN) n):(changeContents (runCompilerStatusT positionedM) m):[])
+        where
+            spcInfixOp = reverseOperatorOrder spcExpression
+            (CEInfixOp o a b) = getContents spcInfixOp
 
-reorderPrefixOperator :: CExpression -> CExpression
-reorderPrefixOperator (CEPrefixOp a b) = reorderPrefixOperator' a b
+reorderPrefixOperator :: SPCExpression -> SourcePosition CExpression
+reorderPrefixOperator spcExpression = case getContents spcExpression of
+    CEPrefixOp a b -> reorderPrefixOperator' a b
 
-reorderPrefixOperator' :: String -> CExpression -> CExpression
-reorderPrefixOperator' prefixOp (CEInfixOp a b c) =
-    (CEInfixOp a (reorderPrefixOperator' prefixOp b) c)
-reorderPrefixOperator' prefixOp nonInfixExp = (CEPrefixOp prefixOp nonInfixExp)
+reorderPrefixOperator' :: String -> SourcePosition CExpression -> SourcePosition CExpression
+reorderPrefixOperator' prefixOp spcExpression = case getContents spcExpression of
+    CEInfixOp a b c -> changeContents spcExpression $ CEInfixOp a (reorderPrefixOperator' prefixOp b) c
+    otherwise -> changeContents spcExpression $ CEPrefixOp prefixOp spcExpression
 
 
-reverseOperatorOrder :: CExpression -> CExpression
+reverseOperatorOrder :: SPCExpression -> SourcePosition CExpression
 reverseOperatorOrder a =
     let flattenedExpressions = flattenInfixExpression a in
-    createLeftOrderedInfixExpression flattenedExpressions
+    createLeftOrderedInfixExpression $ getContents flattenedExpressions
 
-flattenInfixExpression :: CExpression -> [(String, CExpression)]
-flattenInfixExpression (CEInfixOp o a b) =
-    (o, a):(flattenInfixExpression b)
-flattenInfixExpression a = [("", a)]
+flattenInfixExpression :: SPCExpression -> SourcePosition [(String, SourcePosition CExpression)]
+flattenInfixExpression spcExpression = case getContents spcExpression of
+    CEInfixOp o a b -> changeContents spcExpression $ (o, a) : (getContents $ flattenInfixExpression b)
+    otherwise -> changeContents spcExpression $ ("", spcExpression):[]
 
 createLeftOrderedInfixExpression (x:xs) = createLeftOrderedInfixExpression' x xs
-createLeftOrderedInfixExpression' :: (String, CExpression) -> [(String, CExpression)] -> CExpression
-createLeftOrderedInfixExpression' (o, a) ((_, b):[]) = CEInfixOp o a b
+createLeftOrderedInfixExpression' :: (String, SourcePosition CExpression) -> [(String, SourcePosition CExpression)] -> SourcePosition CExpression
+createLeftOrderedInfixExpression' (o, a) ((_, b):[]) = changeContents a $ CEInfixOp o a b
 createLeftOrderedInfixExpression' (o, a) ((on, b):xs) =
-    createLeftOrderedInfixExpression' (on, CEInfixOp o a b) xs
+    createLeftOrderedInfixExpression' (on, changeContents a $ CEInfixOp o a b) xs
 
-convertVariableDeclaration :: CVariableDeclaration -> CompilerStatus Ifm1VariableDeclaration.VariableDeclaration
-convertVariableDeclaration (CVarDec a b) = return $ Ifm1VariableDeclaration.IfVariableDeclaration $ VDec a b
+convertVariableDeclaration :: SPCVariableDeclaration -> CompilerStatusT SourcePosition Ifm1VariableDeclaration.VariableDeclaration
+convertVariableDeclaration spcVariableDeclaration = case getContents spcVariableDeclaration of
+    CVarDec a b -> 
+        lift $ changeContents spcVariableDeclaration $ Ifm1VariableDeclaration.IfVariableDeclaration $ changeContents spcVariableDeclaration $ VDec a b
 
-convertStatement :: CStatement -> CompilerStatus Statement
-convertStatement (CSExpression a) = do
-    n <- convertExpression a
-    return $ SExpression n
-convertStatement (CSVarDec a) = do
-    n <- convertVariableDeclaration a
-    return $ SVarDec n
+convertStatement :: SPCStatement -> CompilerStatusT SourcePosition Statement
+convertStatement spcStatement = case getContents spcStatement of
+    CSExpression a -> let positionedN = convertExpression a in do
+        n <- positionedN
+        lift $ changeContents spcStatement $ SExpression $ changeContents (runCompilerStatusT positionedN) n
+    CSVarDec a -> let positionedN = convertVariableDeclaration a in do
+        n <- positionedN
+        lift $ changeContents spcStatement $ SVarDec $ changeContents (runCompilerStatusT positionedN) n
 
+convertParameter :: SPCParameter -> CompilerStatusT SourcePosition Ifm1Parameter.Parameter
+convertParameter spcParameter = case getContents spcParameter of
+    CParam a b -> lift $ changeContents spcParameter $ Ifm1Parameter.IfParameter $ changeContents spcParameter $ PConst a b
+    CPointerParam a b -> lift $ changeContents spcParameter $ Ifm1Parameter.IfParameter $ changeContents spcParameter $ PPointer a b
+    CVariadicParam a b -> lift $ changeContents spcParameter $ Ifm1Parameter.IfParameter $ changeContents spcParameter $ PVariadic a b
 
-convertParameter :: CParameter -> CompilerStatus Ifm1Parameter.Parameter
-convertParameter (CParam a b) = return $ Ifm1Parameter.IfParameter $ PConst a b
-convertParameter (CPointerParam a b) = return $ Ifm1Parameter.IfParameter $ PPointer a b
-convertParameter (CVariadicParam a b) = return $ Ifm1Parameter.IfParameter $ PVariadic a b
+convertFilledParameters :: SPCFilledParameters -> CompilerStatusT SourcePosition [SourcePosition Ifm1Parameter.Parameter]
+convertFilledParameters spcFilledParameters = case getContents spcFilledParameters of
+    CMultiParam x xs -> 
+        let positionedN = convertParameter x in do
+        n <- positionedN
+        m <- convertFilledParameters xs
+        lift $ changeContents spcFilledParameters $ (changeContents (runCompilerStatusT positionedN) n):m
+    CFinalParam a -> let positionedN = convertParameter a in do
+        n <- positionedN
+        lift $ changeContents a $ [changeContents (runCompilerStatusT positionedN) n]
 
-convertFilledParameters :: CFilledParameters -> CompilerStatus [Ifm1Parameter.Parameter]
-convertFilledParameters (CMultiParam x xs) = do
-    n <- convertParameter x
-    m <- convertFilledParameters xs
-    return $ n:m
-convertFilledParameters (CFinalParam a) = sequence $ [convertParameter a]
+convertParameters :: SPCParameters -> CompilerStatusT SourcePosition Ifm1Parameter.Parameters
+convertParameters spcParameters = case getContents spcParameters of
+    CPEmpty -> lift $ changeContents spcParameters $ StandardBlock []
+    CPParams a -> let positionedN = convertFilledParameters a in do
+        n <- positionedN
+        lift $ changeContents spcParameters $ StandardBlock n
 
-convertParameters :: CParameters -> CompilerStatus Ifm1Parameter.Parameters
-convertParameters CPEmpty = return $ StandardBlock []
-convertParameters (CPParams a) = do
-    n <- convertFilledParameters a
-    return $ StandardBlock n
+convertFilledBlock :: SPCFilledBlock -> CompilerStatusT SourcePosition [SourcePosition Statement]
+convertFilledBlock spcFilledBlock = case getContents spcFilledBlock of
+    CMultiStatement x xs -> let positionedN = convertStatement x in
+        let positionedM = convertFilledBlock xs in do
+        n <- positionedN
+        m <- positionedM
+        lift $ changeContents spcFilledBlock $ (changeContents (runCompilerStatusT positionedN) n):m
+    CFinalStatement x -> let positionedStatement = convertStatement x in do
+        statement <- positionedStatement
+        lift $ changeContents x $ [changeContents (runCompilerStatusT positionedStatement) statement]
 
-convertFilledBlock :: CFilledBlock -> CompilerStatus [Statement]
-convertFilledBlock (CMultiStatement x xs) = do
-    n <- convertStatement x
-    m <- convertFilledBlock xs
-    return $ n:m
-convertFilledBlock (CFinalStatement x) = sequence [convertStatement x]
+convertBlockStatement :: SPCBlockStatement -> CompilerStatusT SourcePosition BlockStatement
+convertBlockStatement spcBlockStatement = case getContents spcBlockStatement of
+    CBlockEmpty -> lift $ changeContents spcBlockStatement $ SequentialBlock []
+    CFilledBlock a -> let positionedN = convertFilledBlock a in do
+        n <- positionedN
+        lift $ changeContents spcBlockStatement $ SequentialBlock n
 
-convertBlockStatement :: CBlockStatement -> CompilerStatus BlockStatement
-convertBlockStatement CBlockEmpty = return $ SequentialBlock []
-convertBlockStatement (CFilledBlock a) = do
-    n <- convertFilledBlock a
-    return $ SequentialBlock n
+convertFunctionDefinition :: SPCFunctionDefinition -> CompilerStatusT SourcePosition FunctionDefinition
+convertFunctionDefinition spcFunctionDefinition = case getContents spcFunctionDefinition of
+    CFuncDefNative b a c -> let positionedN = convertParameters c in do
+        n <- positionedN
+        lift $ changeContents spcFunctionDefinition $ FDNative a b $ changeContents (runCompilerStatusT positionedN) n
+    CFuncDef b a c d -> let positionedN = convertParameters c in
+        let positionedM = convertBlockStatement d in do
+        n <- positionedN
+        m <- positionedM
+        lift $ changeContents spcFunctionDefinition $
+            FDNoSyn a b (changeContents (runCompilerStatusT positionedN) n) (changeContents (runCompilerStatusT positionedM) m)
+    COpOverloadDef a b c d e -> let positionedN = convertParameters d in
+        let positionedM = convertBlockStatement e in do
+        n <- positionedN
+        m <- positionedM
+        lift $ changeContents spcFunctionDefinition $
+            FDOperatorOverload b c a (changeContents (runCompilerStatusT positionedN) n) (changeContents (runCompilerStatusT positionedM) m)
+    CBracketOpOverloadDef a b c d -> let positionedN = convertParameters c in
+        let positionedM = convertBlockStatement d in do
+        n <- positionedN
+        m <- positionedM
+        lift $ changeContents spcFunctionDefinition $
+            FDBracketOverload b a (changeContents (runCompilerStatusT positionedN) n) (changeContents (runCompilerStatusT positionedM) m)
 
-convertFunctionDefinition :: CFunctionDefinition -> CompilerStatus FunctionDefinition
-convertFunctionDefinition (CFuncDefNative b a c) = do
-    n <- convertParameters c
-    return $ FDNative a b n
-convertFunctionDefinition (CFuncDef b a c d) = do
-    n <- convertParameters c
-    m <- convertBlockStatement d
-    return $ FDNoSyn a b n m
-convertFunctionDefinition (COpOverloadDef a b c d e) = do
-    n <- convertParameters d
-    m <- convertBlockStatement e
-    return $ FDOperatorOverload b c a n m
-convertFunctionDefinition (CBracketOpOverloadDef a b c d) = do
-    n <- convertParameters c
-    m <- convertBlockStatement d
-    return $ FDBracketOverload b a n m
+convertAliasDefinition :: SPCAliasDefinition -> CompilerStatusT SourcePosition AliasDefinition
+convertAliasDefinition spcAliasDefinition = case getContents spcAliasDefinition of
+    CAliasDef a b -> lift $ changeContents spcAliasDefinition $ ADNoSyn a b
+    CNativeAliasDef a b -> lift $ changeContents spcAliasDefinition $ ADNative a b
 
-convertAliasDefinition :: CAliasDefinition -> CompilerStatus AliasDefinition
-convertAliasDefinition (CAliasDef a b) = return $ ADNoSyn a b
-convertAliasDefinition (CNativeAliasDef a b) = return $ ADNative a b
-
-convertProgramStatement :: CProgramStatement -> CompilerStatus ProgramStmt
-convertProgramStatement (CPSVarDec a) = do
-    n <- convertVariableDeclaration a
-    return $ PSVarDec n
-convertProgramStatement (CPSFuncDef a) = do
-    n <- convertFunctionDefinition a
-    return $ PSFuncDef n
-convertProgramStatement (CPSAliasDef a) = do
-    n <- convertAliasDefinition a
-    return $ PSAliasDef n
-convertProgramStatement (CPSImportStatement a) = 
-    Error "COMPILER ERROR: Import statements should not be present in this context" (show (CPSImportStatement a))
-
-convertProgram :: CProgram -> CompilerStatus PreProgram
-convertProgram program = do
-    convertedImportStatements <- convertImportStatements importStatements
-    convertedProgramStatements <- convertProgramStatements programStatements
-    return $ PreProgram convertedImportStatements convertedProgramStatements
+convertProgramStatement :: SPCProgramStatement -> CompilerStatusT SourcePosition ProgramStmt
+convertProgramStatement spcProgramStatement = case getContents spcProgramStatement of
+    CPSVarDec a -> let positionedN = convertVariableDeclaration a in do
+        n <- positionedN
+        lift $ changeContents spcProgramStatement $ PSVarDec $ changeContents (runCompilerStatusT positionedN) n
+    CPSFuncDef a -> let positionedN = convertFunctionDefinition a in do
+        n <- positionedN
+        lift $ changeContents spcProgramStatement $ PSFuncDef $ changeContents (runCompilerStatusT positionedN) n
+    CPSAliasDef a -> let positionedN = convertAliasDefinition a in do
+        n <- positionedN
+        lift $ changeContents spcProgramStatement $ PSAliasDef $ changeContents (runCompilerStatusT positionedN) n
+    CPSImportStatement a ->
+        CompilerStatusT $ changeContents spcProgramStatement $ Error "COMPILER ERROR: Import statements should not be present in this context" (show $ CPSImportStatement a)
+convertProgram :: SPCProgram -> CompilerStatusT SourcePosition PreProgram
+convertProgram spcProgram = 
+    let csN = convertImportStatements importStatements in
+    let csM = convertProgramStatements programStatements in do
+    n <- csN
+    m <- csM
+    lift $ changeContents spcProgram $ PreProgram (changeContents (runCompilerStatusT csN) n) (changeContents (runCompilerStatusT csM) m)
     where
-        flattenProgramStatements CProgramEnd = []
-        flattenProgramStatements (CProgram x xs) = x:(flattenProgramStatements xs)
-        flattenedStatements = flattenProgramStatements program
+        flattenProgramStatements x = case getContents x of
+            CProgramEnd -> []
+            CProgram x xs -> x:(flattenProgramStatements xs)
+            CProgramFunction x xs -> x:(flattenProgramStatements xs)
+        -- flattenProgramStatements CProgramEnd = []
+        -- flattenProgramStatements (CProgram x xs) = x:(flattenProgramStatements xs)
+        flattenedStatements = flattenProgramStatements spcProgram
         importStatements = filter importStatementPredicate flattenedStatements
         programStatements = filter (not.importStatementPredicate) flattenedStatements
-        importStatementPredicate x = case x of
+        importStatementPredicate x = case getContents x of
             (CPSImportStatement _) -> True
             _ -> False
 
-convertImportStatements :: [CProgramStatement] -> CompilerStatus Ifm1ImportStatement.ImportStatements
-convertImportStatements importStatements = do
-    ifm1ImportStatements <- sequence $ map convertImportStatement importStatements
-    return $ StandardBlock ifm1ImportStatements
+convertImportStatements :: [SPCProgramStatement] -> CompilerStatusT SourcePosition Ifm1ImportStatement.ImportStatements
+convertImportStatements importStatements = let positionedStatements = map convertImportStatement importStatements in do
+    ifm1ImportStatements <- sequence positionedStatements
+    lift $ changeContents (sequence importStatements) $ StandardBlock (map (uncurry changeContents) $ zip (map runCompilerStatusT positionedStatements) ifm1ImportStatements)
 
-convertProgramStatements :: [CProgramStatement] -> CompilerStatus Program
-convertProgramStatements programStatements = do
-    ifm1ProgramStatements <- sequence $ map convertProgramStatement programStatements
-    return $ StandardBlock ifm1ProgramStatements
+convertProgramStatements :: [SPCProgramStatement] -> CompilerStatusT SourcePosition Program
+convertProgramStatements programStatements = let positionedStatements = map convertProgramStatement programStatements in do
+    ifm1ProgramStatements <- sequence positionedStatements
+    lift $ changeContents (sequence programStatements) $ StandardBlock (map (uncurry changeContents) $ zip (map runCompilerStatusT positionedStatements) ifm1ProgramStatements)
 
-convertImportStatement :: CProgramStatement -> CompilerStatus Ifm1ImportStatement.ImportStatement
-convertImportStatement (CPSImportStatement a) = convertImportStatement' a
-convertImportStatement a = Error "COMPILER ERROR: Only import statements should be present in this context" (show a)
+convertImportStatement :: SPCProgramStatement -> CompilerStatusT SourcePosition Ifm1ImportStatement.ImportStatement
+convertImportStatement spcProgramStatement = case getContents spcProgramStatement of
+    CPSImportStatement a -> convertImportStatement' a
+    otherwise -> CompilerStatusT $ changeContents spcProgramStatement $ Error "COMPILER ERROR: Only import statements should be present in this context" (show spcProgramStatement)
 
-convertImportStatement' (CNSImport a) = do
-    n <- convertModuleName a
-    return $ Ifm1ImportStatement.IfImportStatement $ NSImport n
-convertImportStatement' (CNativeImport a) = do
-    n <- convertModuleName a
-    return $ Ifm1ImportStatement.IfImportStatement $ NativeImport n
+convertImportStatement' spcImportStatement = case getContents spcImportStatement of
+    CNSImport a -> do
+        n <- convertModuleName a
+        lift $ changeContents spcImportStatement $ 
+            Ifm1ImportStatement.IfImportStatement $ changeContents spcImportStatement $ NSImport n
+    CNativeImport a -> do
+        n <- convertModuleName a
+        lift $ changeContents spcImportStatement $ 
+            Ifm1ImportStatement.IfImportStatement $ changeContents spcImportStatement $ NativeImport n
 
-convertModuleName :: CModuleName -> CompilerStatus [String]
-convertModuleName (CModuleIdent moduleName) = return [moduleName]
-convertModuleName (CPackage parentPackage childPackage) = do
-    rest <- convertModuleName childPackage
-    return $ parentPackage:rest
+convertModuleName :: SPCModuleName -> CompilerStatusT SourcePosition [SourcePosition String]
+convertModuleName spModuleName = case getContents spModuleName of
+    CModuleIdent moduleName -> lift $ changeContents spModuleName [changeContents spModuleName moduleName]
+    CPackage parentPackage childPackage -> 
+        let positionedRestModuleNames = runCompilerStatusT $ convertModuleName childPackage in do
+        rest <- CompilerStatusT positionedRestModuleNames
+        lift $ changeContents spModuleName $ (headContents spModuleName positionedRestModuleNames parentPackage):rest
+

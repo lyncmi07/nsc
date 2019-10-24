@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module Com.NoSyn.Ast.Ifm1.Program where
 
+import Prelude hiding (getContents)
 import qualified Com.NoSyn.Ast.If.IfElement as IfElement
 import qualified Com.NoSyn.Ast.If.Program as IfProgram
 import Com.NoSyn.Data.Types
@@ -9,39 +10,44 @@ import Com.NoSyn.Ast.Ifm1.VariableDeclaration
 import Com.NoSyn.Ast.Ifm1.AliasDefinition
 import Com.NoSyn.Ast.Ifm1.FunctionDefinition
 import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Error.SourcePosition
 import Com.NoSyn.Ast.If.Block
 import Com.NoSyn.Ast.Traits.Listable
 
 type Program = Block ProgramStmt
 data ProgramStmt =
-    PSAliasDef AliasDefinition
-    | PSFuncDef FunctionDefinition
-    | PSVarDec VariableDeclaration
+    PSAliasDef (SourcePosition AliasDefinition)
+    | PSFuncDef (SourcePosition FunctionDefinition)
+    | PSVarDec (SourcePosition VariableDeclaration)
     deriving Show
 
 instance IfElementGeneratable ProgramStmt where
-    generateIfElement programEnvironment (PSAliasDef a) = do
-        ~(IfElement.IfAliasDefinition b) <- generateIfElement programEnvironment a
-        return $ IfElement.IfProgramStmt (IfProgram.PSAliasDef b)
-    generateIfElement programEnvironment (PSVarDec a) = do
-        ~(IfElement.IfVariableDeclaration b) <- generateIfElement programEnvironment a
-        return $ IfElement.IfProgramStmt (IfProgram.PSVarDec b)
-    generateIfElement programEnvironment (PSFuncDef a) = do
-        ~(IfElement.IfFunctionDefinition b) <- generateIfElement programEnvironment a
-        return $ IfElement.IfProgramStmt (IfProgram.PSFuncDef b)
-
+    generateIfElement programEnvironment spProgramStmt = case getContents spProgramStmt of
+        PSAliasDef a -> do
+            positionedAliasDef <- generateIfElement programEnvironment a
+            let ~(IfElement.IfAliasDefinition b) = getContents positionedAliasDef
+            return $ changeContents spProgramStmt $ IfElement.IfProgramStmt $ changeContents a (IfProgram.PSAliasDef b)
+        PSVarDec a -> do
+            positionedVarDec <- generateIfElement programEnvironment a
+            let ~(IfElement.IfVariableDeclaration b) = getContents positionedVarDec
+            return $ changeContents spProgramStmt $ IfElement.IfProgramStmt $ changeContents a (IfProgram.PSVarDec b)
+        PSFuncDef a -> do
+            positionedFunctionDef <- generateIfElement programEnvironment a
+            let ~(IfElement.IfFunctionDefinition b) = getContents positionedFunctionDef
+            return $ changeContents spProgramStmt $ IfElement.IfProgramStmt $ changeContents a (IfProgram.PSFuncDef b)
 
 instance IfElementGeneratable Program where
-    generateIfElement programEnvironment program = do
+    generateIfElement programEnvironment spProgram = do
         ifElements <- sequence $ map (generateIfElement programEnvironment) programStmtList
         ifProgramStmts <- extractIfProgramStatements ifElements
-        return $ IfElement.IfProgram (StandardBlock ifProgramStmts)
+        return $ changeContents spProgram $ IfElement.IfProgram $ return $ (StandardBlock ifProgramStmts)
         where
-            programStmtList = toList program
+            programStmtList = toSourcePositionedList $ getContents spProgram
 
-extractIfProgramStatements :: [IfElement.IfElement] -> CompilerStatus [IfProgram.ProgramStmt]
+extractIfProgramStatements :: [SourcePosition IfElement.IfElement] -> CompilerStatus [SourcePosition IfProgram.ProgramStmt]
 extractIfProgramStatements [] = return []
-extractIfProgramStatements ((IfElement.IfProgramStmt x):xs) = do
-    xsm <- extractIfProgramStatements xs
-    return $ x:xsm
-extractIfProgramStatements a = Error "Unexpected non-ProgramStatement" (show a)
+extractIfProgramStatements (spProgramStmt:xs) = case getContents spProgramStmt of
+    IfElement.IfProgramStmt x -> do
+        xsm <- extractIfProgramStatements xs
+        return $ x:xsm
+    otherwise -> PositionedError (getSourcePosition spProgramStmt) "Unexpected non-ProgramStatement" (show $ getContents spProgramStmt)
