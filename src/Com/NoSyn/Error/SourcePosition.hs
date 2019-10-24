@@ -50,30 +50,3 @@ instance Monad SourcePosition where
     spa >>= f = let spb = f (getContents spa) in
         changeContents (combineSourcePositions spa spb) (getContents spb)
     return = pure
-
-newtype SourcePositionT m a = SourcePositionT { runSourcePositionT :: m (SourcePosition a) }
-
-instance MonadTrans SourcePositionT where
-    lift = SourcePositionT . fmap return
-
-mapSourcePositionT :: (m (SourcePosition a) -> n (SourcePosition b))  -> SourcePositionT m a -> SourcePositionT n b
-mapSourcePositionT f = SourcePositionT . f . runSourcePositionT
-
-instance (Functor m) => Functor (SourcePositionT m) where
-    fmap f = mapSourcePositionT (fmap (fmap f))
-
-instance (Monad m) => Applicative (SourcePositionT m) where
-    pure = SourcePositionT . return . return
-    spfT <*> spaT = SourcePositionT $ do
-        spf <- runSourcePositionT spfT
-        spa <- runSourcePositionT spaT
-        return $ spf <*> spa
-
-instance (Monad m) => Monad (SourcePositionT m) where
-    return = SourcePositionT . return . return
-    spaT >>= f = SourcePositionT $ do
-        spa <- runSourcePositionT spaT
-        spb <- runSourcePositionT $ (f (getContents spa))
-        return $ spa >> spb
-
-
