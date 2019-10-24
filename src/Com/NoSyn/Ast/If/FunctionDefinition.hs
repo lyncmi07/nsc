@@ -48,7 +48,7 @@ instance DIdentifiable FunctionDefinition where
     getDIdentifier _ (FDNative funcName _ _) = return funcName
     getDIdentifier programEnvironment func@(FDNoSyn funcName returnType parameters _) = do
         noSynReturnType <- getNoSynType programEnvironment func
-        parameterNoSynTypes <- sequence $ Prelude.map ((getAlphaTypeName (aliases programEnvironment))) (sourcePositionToList parameters)
+        parameterNoSynTypes <- sequence $ Prelude.map (getAlphaTypeName (aliases programEnvironment)) (sourcePositionToList parameters)
         return $ funcName
             ++ "_"
             ++ noSynReturnType

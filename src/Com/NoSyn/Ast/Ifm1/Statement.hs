@@ -22,11 +22,11 @@ instance IfElementGeneratable Statement where
     generateIfElement programEnvironment spStatement = case getContents spStatement of
         SVarDec a ->do
             positionedVariableDeclaration <- generateIfElement programEnvironment a
-            ~(IfElement.IfVariableDeclaration b) <- return $ getContents positionedVariableDeclaration
+            let ~(IfElement.IfVariableDeclaration b) = getContents positionedVariableDeclaration
             return $ changeContents spStatement $ IfElement.IfStatement (return $ IfStatement.SVarDec b)
         SExpression a -> do
             positionedExpression <- generateIfElement programEnvironment a
-            ~(IfElement.IfExpression b) <- return $ getContents positionedExpression
+            let ~(IfElement.IfExpression b) = getContents positionedExpression
             return $ changeContents spStatement $ IfElement.IfStatement (return $ IfStatement.SExpression b)
 
 instance IfElementGeneratable BlockStatement where

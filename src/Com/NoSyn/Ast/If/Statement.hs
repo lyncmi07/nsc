@@ -22,15 +22,12 @@ data Statement =
 
 instance TargetCodeGeneratable Statement where
     generateD programEnvironment spStatement = case getContents spStatement of
-        SVarDec varDec -> 
-            generateD programEnvironment varDec
-        SExpression expr ->
-            generateD programEnvironment expr
+        SVarDec varDec -> generateD programEnvironment varDec
+        SExpression expr -> generateD programEnvironment expr
             
 instance EnvironmentUpdater Statement where
     updateEnvironment programEnvironment spStatement  = case getContents spStatement of
-        SVarDec varDec ->
-            updateEnvironment programEnvironment varDec
+        SVarDec varDec -> updateEnvironment programEnvironment varDec
         SExpression _ -> return programEnvironment
 instance Blockable Statement where
     blockSeparator _ = ";\n"

@@ -25,15 +25,15 @@ instance IfElementGeneratable ProgramStmt where
     generateIfElement programEnvironment spProgramStmt = case getContents spProgramStmt of
         PSAliasDef a -> do
             positionedAliasDef <- generateIfElement programEnvironment a
-            ~(IfElement.IfAliasDefinition b) <- return $ getContents positionedAliasDef
+            let ~(IfElement.IfAliasDefinition b) = getContents positionedAliasDef
             return $ changeContents spProgramStmt $ IfElement.IfProgramStmt $ changeContents a (IfProgram.PSAliasDef b)
         PSVarDec a -> do
             positionedVarDec <- generateIfElement programEnvironment a
-            ~(IfElement.IfVariableDeclaration b) <- return $ getContents positionedVarDec
+            let ~(IfElement.IfVariableDeclaration b) = getContents positionedVarDec
             return $ changeContents spProgramStmt $ IfElement.IfProgramStmt $ changeContents a (IfProgram.PSVarDec b)
         PSFuncDef a -> do
             positionedFunctionDef <- generateIfElement programEnvironment a
-            ~(IfElement.IfFunctionDefinition b) <- return $ getContents positionedFunctionDef
+            let ~(IfElement.IfFunctionDefinition b) = getContents positionedFunctionDef
             return $ changeContents spProgramStmt $ IfElement.IfProgramStmt $ changeContents a (IfProgram.PSFuncDef b)
 
 instance IfElementGeneratable Program where

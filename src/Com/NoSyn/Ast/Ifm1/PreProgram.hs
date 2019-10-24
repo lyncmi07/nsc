@@ -16,6 +16,6 @@ instance IfElementGeneratable PreProgram where
         PreProgram a b -> do
             positionedImportStatements <- generateIfElement programEnvironment a
             positionedProgram <- generateIfElement programEnvironment b
-            ~(IfElement.IfImportStatements importStatements) <- return $ getContents positionedImportStatements
-            ~(IfElement.IfProgram program) <- return $ getContents positionedProgram
+            let ~(IfElement.IfImportStatements importStatements) = getContents positionedImportStatements
+            let ~(IfElement.IfProgram program) = getContents positionedProgram
             return $ changeContents spPreProgram $ IfElement.IfPreProgram $ changeContents spPreProgram $ IfPreProgram.PreProgram importStatements program

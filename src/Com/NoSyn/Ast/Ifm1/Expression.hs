@@ -33,7 +33,7 @@ generateIfExpression programEnvironment@(PE { functions = functions }) expressio
         return $ changeContents expression $ IfExpression.EFuncCall (funcName ++ "_function") ifParameters
     EConst constant -> do
         positionedIfConstant <- generateIfElement programEnvironment constant
-        ~(IfElement.IfConstant ifConstant) <- return $ getContents positionedIfConstant
+        let ~(IfElement.IfConstant ifConstant) = getContents positionedIfConstant
         return $ changeContents expression $ IfExpression.EConst ifConstant
     EIdent ident -> do
         return $ changeContents expression $ IfExpression.EIdent ident
