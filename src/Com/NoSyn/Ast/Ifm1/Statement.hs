@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module Com.NoSyn.Ast.Ifm1.Statement where
 
+import Prelude hiding (getContents)
 import qualified Com.NoSyn.Ast.If.IfElement as IfElement
 import qualified Com.NoSyn.Ast.If.Statement as IfStatement
 import Com.NoSyn.Ast.If.Block
@@ -9,32 +10,37 @@ import Com.NoSyn.Ast.Ifm1.Expression
 import Com.NoSyn.Ast.Ifm1.VariableDeclaration
 import Com.NoSyn.Ast.Traits.Listable
 import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Error.SourcePosition
 
 type BlockStatement = Block Statement
 data Statement =
-    SVarDec VariableDeclaration
-    | SExpression Expression
+    SVarDec (SourcePosition VariableDeclaration)
+    | SExpression (SourcePosition Expression)
     deriving Show
 
 instance IfElementGeneratable Statement where
-    generateIfElement programEnvironment (SVarDec a) = do
-        ~(IfElement.IfVariableDeclaration b) <- generateIfElement programEnvironment a
-        return $ IfElement.IfStatement (IfStatement.SVarDec b)
-    generateIfElement programEnvironment (SExpression a) = do
-        ~(IfElement.IfExpression b) <- generateIfElement programEnvironment a
-        return $ IfElement.IfStatement (IfStatement.SExpression b)
+    generateIfElement programEnvironment spStatement = case getContents spStatement of
+        SVarDec a ->do
+            positionedVariableDeclaration <- generateIfElement programEnvironment a
+            let ~(IfElement.IfVariableDeclaration b) = getContents positionedVariableDeclaration
+            return $ changeContents spStatement $ IfElement.IfStatement (return $ IfStatement.SVarDec b)
+        SExpression a -> do
+            positionedExpression <- generateIfElement programEnvironment a
+            let ~(IfElement.IfExpression b) = getContents positionedExpression
+            return $ changeContents spStatement $ IfElement.IfStatement (return $ IfStatement.SExpression b)
 
 instance IfElementGeneratable BlockStatement where
-    generateIfElement programEnvironment blockStatements = do
+    generateIfElement programEnvironment spBlockStatements = do
         ifElements <- sequence $ map (generateIfElement programEnvironment) statementList
         ifStatements <- extractIfStatements ifElements
-        return $ IfElement.IfBlockStatement (SequentialBlock ifStatements)
+        return $ changeContents spBlockStatements $ IfElement.IfBlockStatement (return $ SequentialBlock ifStatements)
         where
-            statementList = toList blockStatements
+            statementList = toSourcePositionedList $ getContents spBlockStatements
 
-extractIfStatements :: [IfElement.IfElement] -> CompilerStatus [IfStatement.Statement]
+extractIfStatements :: [SourcePosition IfElement.IfElement] -> CompilerStatus [SourcePosition IfStatement.Statement]
 extractIfStatements [] = return []
-extractIfStatements ((IfElement.IfStatement x):xs) = do
-    xsm <- extractIfStatements xs
-    return $ x:xsm
+extractIfStatements (spX:xs) = case getContents spX of
+    IfElement.IfStatement x -> do
+        xsm <- extractIfStatements xs
+        return $ x:xsm
 extractIfStatements a = Error "Unexpected non-statement" (show a)

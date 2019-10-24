@@ -4,6 +4,7 @@ import Com.NoSyn.Parser.Token
 import Text.Ascii
 import Com.NoSyn.Data.Operators
 import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Parser.TokenLength
 
 digits = ['0','1','2','3','4','5','6','7','8','9']
 
@@ -13,7 +14,7 @@ monadicLexer continueParse programSource = \originCol originLine originTokenPosi
         continueParse token restOfProgram newCol newLine newTokenPositions
 
 lexer :: String -> Column -> LineNumber -> [(LineNumber, Column, LineNumber, Column)] -> (Token, String, Column, LineNumber, [(LineNumber, Column, LineNumber, Column)])
-lexer [] = \currentCol line tokenPositions -> (TokenEOF, "", currentCol, line, tokenPositions)
+lexer [] = \currentCol line tokenPositions -> (TokenEOF, "", currentCol, line, tokenPositions ++ [(line, currentCol, line, currentCol)])
 lexer ('/':xs) = \currentCol -> lexMaybeComment xs (currentCol + 1)
 lexer ('\n':xs) = \_ line -> lexer xs 0 (line + 1)
 lexer (x:xs)

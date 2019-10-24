@@ -1,5 +1,6 @@
 module Com.NoSyn.Ast.If.Expression where
 
+import Prelude hiding (getContents)
 import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 import Data.List
 import Data.Set as Set
@@ -7,6 +8,8 @@ import Data.Map as Map
 import Data.Map.Ordered as OrderMap
 import Data.Either
 import Com.NoSyn.Error.CompilerStatus
+import Com.NoSyn.Error.SourcePosition
+import Com.NoSyn.Error.SourcePositionTraits
 import Com.NoSyn.Environment.ProgramEnvironment
 import Com.NoSyn.Ast.Helpers.TypeCheckFunctions
 import Com.NoSyn.Ast.Traits.Typeable
@@ -18,8 +21,8 @@ import Com.NoSyn.Environment.FunctionEnvironment
 import Data.Set
 
 data Expression =
-    EFuncCall Ident [Expression]
-    | EConst Constant
+    EFuncCall Ident [SourcePosition Expression]
+    | EConst (SourcePosition Constant)
     | EIdent Ident
     deriving Show
 
@@ -29,17 +32,17 @@ instance Typeable Expression where
     getTypeNoCheck (EConst constant) = getTypeNoCheck constant
     getAlphaTypeName pg (EConst constant) = getAlphaTypeName pg constant
 
-parameterSetsFromPossibleFunctions::[FunctionOverload] -> [Expression] -> [Set Ident]
+parameterSetsFromPossibleFunctions::[FunctionOverload] -> [SourcePosition Expression] -> [Set Ident]
 parameterSetsFromPossibleFunctions [] parameterExpressions = Prelude.take (length parameterExpressions) $ repeat Set.empty
 parameterSetsFromPossibleFunctions possibleFunctions@(FO { parameters = paramMap }:_) parameterExpressions =
     let initialParameterTypeSets = Prelude.take (length parameterExpressions) $ repeat Set.empty in
     parameterSetsFromPossibleFunctions' possibleFunctions initialParameterTypeSets parameterExpressions
 
-parameterSetsFromPossibleFunctions'::[FunctionOverload] -> [Set Ident] -> [Expression] -> [Set Ident]
+parameterSetsFromPossibleFunctions'::[FunctionOverload] -> [Set Ident] -> [SourcePosition Expression] -> [Set Ident]
 parameterSetsFromPossibleFunctions' [] finalParameterSets _ = finalParameterSets
 parameterSetsFromPossibleFunctions' (functionOverload:xs) currentParameterSets parameterExpressions =
     let overloadParameters = OrderMap.assocs (parameters functionOverload) in
-    let updatedParameterSets = addOverloadTypesToTypeSets overloadParameters currentParameterSets parameterExpressions in
+    let updatedParameterSets = addOverloadTypesToTypeSets overloadParameters currentParameterSets (getContents $ sequence parameterExpressions) in
     parameterSetsFromPossibleFunctions' xs updatedParameterSets parameterExpressions
     where
         addOverloadTypesToTypeSets _ [] _ = []
@@ -106,74 +109,79 @@ validFunctionPredicate' pg (x@(_, paramVariable@(VVariadic paramType _)):[]) (y:
         Valid _ x -> x && ((length ys) == 0)
         _ -> False
 
-generateExpression::ProgramEnvironment -> Expression -> CompilerStatus String
-generateExpression programEnvironment functionCall@(EFuncCall _ _) = do
-    generatedExpression <- validateAndGenerateD programEnvironment (Set.singleton "Nothing") functionCall
-    either (\_ -> Error ("Expression '" ++ (show functionCall) ++ "' is ambiguous") (show functionCall)) (\(_,x) -> return x) generatedExpression
-generateExpression _ (EConst a) = Error "Constant expressions cannot be used in this context" (show a)
-generateExpression _ (EIdent a) = Error "Identifier expressions cannot be used in this context" (show a)
+generateExpression::ProgramEnvironment -> SourcePosition Expression -> CompilerStatus String
+generateExpression programEnvironment spExpr = case getContents spExpr of
+    functionCall@(EFuncCall _ _) -> do
+        generatedExpression <- validateAndGenerateD programEnvironment (Set.singleton "Nothing") spExpr
+        either (\_ -> PositionedError (getSourcePosition spExpr) ("Expression '" ++ (show functionCall) ++ "' is ambiguous") (show functionCall)) (\(_,x) -> return x) generatedExpression
+    EConst a -> PositionedError (getSourcePosition spExpr) "Constant expressions cannot be used in this context" (show a)
+    EIdent a -> PositionedError (getSourcePosition spExpr) "Identifier expressions cannot be used in this context" (show a)
 
-generateExpressionWithReturnType::ProgramEnvironment -> Ident -> Expression -> CompilerStatus String
-generateExpressionWithReturnType programEnvironment returnType expression = do
-    generatedExpression <- validateAndGenerateD programEnvironment (Set.singleton returnType) expression
-    either (\_ -> Error ("Expression " ++ (show expression) ++ "is ambiguous") (show expression)) (\(_,x) -> return x) generatedExpression
+generateExpressionWithReturnType::ProgramEnvironment -> Ident -> SourcePosition Expression -> CompilerStatus String
+generateExpressionWithReturnType programEnvironment returnType spExpression = do
+    generatedExpression <- validateAndGenerateD programEnvironment (Set.singleton returnType) spExpression
+    either (\_ -> PositionedError (getSourcePosition spExpression) ("Expression " ++ (show $ getContents spExpression) ++ "is ambiguous") (show $ getContents spExpression)) (\(_,x) -> return x) generatedExpression
 
-generateExpressionForConstParameter::ProgramEnvironment -> String -> Expression -> CompilerStatus String
-generateExpressionForConstParameter programEnvironment generatedExpression (EIdent varName) = do
-    variable <- lookupVariableType programEnvironment varName
-    case variable of
-        (VPointer _ _) -> return $ "*" ++ generatedExpression
-        (VConst _ _) -> return generatedExpression
-        (VVariadic _ _) -> return generatedExpression
-generateExpressionForConstParameter _ generatedExpression _ = return generatedExpression
+generateExpressionForConstParameter::ProgramEnvironment -> String -> SourcePosition Expression -> CompilerStatus String
+generateExpressionForConstParameter programEnvironment generatedExpression spExpr = case getContents spExpr of
+    EIdent varName -> do
+        variable <- lookupVariableType programEnvironment varName
+        case variable of
+            (VPointer _ _) -> return $ "*" ++ generatedExpression
+            (VConst _ _) -> return generatedExpression
+            (VVariadic _ _) -> return generatedExpression
+    otherwise -> return generatedExpression
 
-validateAndGenerateD::ProgramEnvironment -> Set Ident -> Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
-validateAndGenerateD programEnvironment returnTypes functionCall@(EFuncCall funcName paramExprs) = do
-    unaliasedNonPointerReturnTypes <- sequence [lookupAtomicNoSynType x (aliases programEnvironment) | x <- (Data.Set.toList returnTypes), backTake 3 x /= "PTR"]
-    possibleFunctions <- possibleFunctionsFromReturnTypes programEnvironment (Data.Set.fromList unaliasedNonPointerReturnTypes) funcName (length paramExprs)
-    let parameterSets = parameterSetsFromPossibleFunctions possibleFunctions paramExprs in
-            validateAndGenerateD' programEnvironment (Data.Set.fromList unaliasedNonPointerReturnTypes) parameterSets functionCall
-    where
-        backTake x = reverse.(Prelude.take x).reverse
-        
-validateAndGenerateD programEnvironment returnTypes (EConst const) = do
-    constantType <- getNoSynType programEnvironment const
-    generatedConstant <- generateD programEnvironment const
-    if constantType `Set.member` returnTypes
-        then return $ Right (constantType, generatedConstant)
-        else Error ("Constant '" ++ generatedConstant ++ "' given cannot be used in context") (show returnTypes)
-validateAndGenerateD programEnvironment returnTypes (EIdent varName) = do
-    variable <- lookupVariableType programEnvironment varName
-    variableType <- getNoSynType programEnvironment variable
-    alphaVariableType <- getAlphaTypeName (aliases programEnvironment) variable
-    if variableType `Set.member` returnTypes
-        then return $ Right (alphaVariableType, varName)
-        else Error ("Identifier '" ++ varName ++ "' given cannot be used in context") (show returnTypes)
+validateAndGenerateD::ProgramEnvironment -> Set Ident -> SourcePosition Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
+validateAndGenerateD programEnvironment returnTypes spExpr = case getContents spExpr of
+    functionCall@(EFuncCall funcName paramExprs) -> do
+        unaliasedNonPointerReturnTypes <- sequence [lookupAtomicNoSynType x (aliases programEnvironment) | x <- (Data.Set.toList returnTypes), backTake 3 x /= "PTR"]
+        possibleFunctions <- 
+            providePositionInfo spExpr $ possibleFunctionsFromReturnTypes programEnvironment (Data.Set.fromList unaliasedNonPointerReturnTypes) funcName (length paramExprs)
+        let parameterSets = parameterSetsFromPossibleFunctions possibleFunctions paramExprs in
+                validateAndGenerateD' programEnvironment (Data.Set.fromList unaliasedNonPointerReturnTypes) parameterSets spExpr
+        where
+            backTake x = reverse.(Prelude.take x).reverse
+    EConst const -> do
+        constantType <- getNoSynType programEnvironment const
+        generatedConstant <- generateD programEnvironment const
+        if constantType `Set.member` returnTypes
+            then return $ Right (constantType, generatedConstant)
+            else PositionedError (getSourcePosition spExpr) ("Constant '" ++ generatedConstant ++ "' given cannot be used in context") (show returnTypes)
+    EIdent varName -> do
+        variable <- lookupVariableType programEnvironment varName
+        variableType <- getNoSynType programEnvironment variable
+        alphaVariableType <- getAlphaTypeName (aliases programEnvironment) variable
+        if variableType `Set.member` returnTypes
+            then return $ Right (alphaVariableType, varName)
+            else PositionedError (getSourcePosition spExpr) ("Identifier '" ++ varName ++ "' given cannot be used in context") (show returnTypes)
 
-validateAndGenerateD'::ProgramEnvironment -> Set Ident -> [Set Ident] -> Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
-validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTypes functionCall@(EFuncCall funcName paramExpressions) = do
-    reducedParameterTypeEithers <- reduceParameterTypes programEnvironment possibleParameterTypes paramExpressions
-    possibleFunctions <-
-        let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
-            possibleFunctionsFromReturnAndParamTypes programEnvironment possibleReturnTypes funcName reducedParameterTypes
-    let reducedReturnTypes = Prelude.foldl (\typeSet (FO { returnType = nextType }) -> nextType `Set.insert` typeSet) Set.empty possibleFunctions in
-        let maybeFuncToGenerate = 
-                if (length possibleFunctions) == 1 then 
-                    Just $ head possibleFunctions 
-                else let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in 
-                    reduceOnPointerParameters programEnvironment possibleFunctions reducedParameterTypes in 
-            case maybeFuncToGenerate of
-                Just funcToGenerate ->
-                    let finalReducedParameterTypes = parameterSetsFromPossibleFunctions possibleFunctions paramExpressions in
-                    reduceParameterTypes programEnvironment finalReducedParameterTypes paramExpressions >>= 
-                        (\finalReducedParameterTypeEithers ->
-                            generateDFunctionCall programEnvironment funcName funcToGenerate finalReducedParameterTypeEithers paramExpressions >>=
-                                (foundFunctionReturn funcToGenerate))
-                _ -> let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
-                    if reductionWasMade possibleReturnTypes reducedReturnTypes possibleParameterTypes reducedParameterTypes then 
-                        validateAndGenerateD' programEnvironment reducedReturnTypes reducedParameterTypes functionCall 
-                    else 
-                        return $ Left reducedReturnTypes
+validateAndGenerateD'::ProgramEnvironment -> Set Ident -> [Set Ident] -> SourcePosition Expression -> CompilerStatus (Either (Set Ident) (Ident, String))
+validateAndGenerateD' programEnvironment possibleReturnTypes possibleParameterTypes spFunctionCall = case getContents spFunctionCall of
+    functionCall@(EFuncCall funcName paramExpressions) -> do
+        reducedParameterTypeEithers <- reduceParameterTypes programEnvironment possibleParameterTypes paramExpressions
+        possibleFunctions <-
+            let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
+                providePositionInfo spFunctionCall $ possibleFunctionsFromReturnAndParamTypes programEnvironment possibleReturnTypes funcName reducedParameterTypes
+        let reducedReturnTypes = Prelude.foldl (\typeSet (FO { returnType = nextType }) -> nextType `Set.insert` typeSet) Set.empty possibleFunctions in
+            let maybeFuncToGenerate = 
+                    if (length possibleFunctions) == 1 then 
+                        Just $ head possibleFunctions 
+                    else let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in 
+                        reduceOnPointerParameters programEnvironment possibleFunctions reducedParameterTypes in 
+                case maybeFuncToGenerate of
+                    Just funcToGenerate ->
+                        let finalReducedParameterTypes = parameterSetsFromPossibleFunctions possibleFunctions paramExpressions in
+                        reduceParameterTypes programEnvironment finalReducedParameterTypes paramExpressions >>= 
+                            (\finalReducedParameterTypeEithers ->
+                                providePositionInfo spFunctionCall $
+                                    generateDFunctionCall programEnvironment funcName funcToGenerate finalReducedParameterTypeEithers paramExpressions >>=
+                                        (foundFunctionReturn funcToGenerate))
+                    _ -> let reducedParameterTypes = parameterTypesFromEithers reducedParameterTypeEithers in
+                        if reductionWasMade possibleReturnTypes reducedReturnTypes possibleParameterTypes reducedParameterTypes then 
+                            validateAndGenerateD' programEnvironment reducedReturnTypes reducedParameterTypes spFunctionCall
+                        else 
+                            return $ Left reducedReturnTypes
     where
         foundFunctionReturn functionOverload compileString = case (parentModule functionOverload) of
             (Just dependency) -> dependencyRequired dependency $ Right ((returnType functionOverload), compileString)
@@ -199,7 +207,7 @@ reduceOnPointerParameters'' pg (x:xs) (y:ys)
     | getAlphaTypeName (aliases pg) x == (return y) = reduceOnPointerParameters'' pg xs ys
     | otherwise = False
 
-reduceParameterTypes::ProgramEnvironment -> [Set Ident] -> [Expression] -> CompilerStatus [(Either (Set Ident) (Ident, String))]
+reduceParameterTypes::ProgramEnvironment -> [Set Ident] -> [SourcePosition Expression] -> CompilerStatus [(Either (Set Ident) (Ident, String))]
 reduceParameterTypes programEnvironment possibleParameterTypes parameterExpressions = do
     let typesAndExprs = zip possibleParameterTypes parameterExpressions in
         let typeReducer = \(paramTypes, paramExpr) -> validateAndGenerateD programEnvironment paramTypes paramExpr in
@@ -220,27 +228,28 @@ parameterTypesFromEithers parameterTypeEithers =
     Prelude.map (either id (\(x,_) -> Set.singleton x)) parameterTypeEithers
 
 
-zipVariablesToParameterTypesAndExpressions::[(Ident, Variable)]->[String]->[Expression]->CompilerStatus [((Ident, Variable), String, Expression)]
+zipVariablesToParameterTypesAndExpressions::[(Ident, Variable)]->[String]->[SourcePosition Expression]->CompilerStatus [((Ident, Variable), String, SourcePosition Expression)]
 zipVariablesToParameterTypesAndExpressions [] [] [] = return []
 zipVariablesToParameterTypesAndExpressions ((_, (VVariadic _ _)):[]) [] [] = return []
 zipVariablesToParameterTypesAndExpressions (x@(_, paramVar@(VVariadic _ _)):[]) (y:ys) (z:zs) = do
     rest <- zipVariablesToParameterTypesAndExpressions (x:[]) ys zs
     return $ (x, y, z):rest
-zipVariablesToParameterTypesAndExpressions xs@((x@(_, (VVariadic _ _)):_)) ys zs = 
-    Error "Variadic parameters must only be placed at the end of a parameter list" (show (xs, ys, zs))
+zipVariablesToParameterTypesAndExpressions xs@((x@(_, (VVariadic _ _)):_)) ys (z:zs) = 
+    PositionedError (getSourcePosition z) "Variadic parameters must only be placed at the end of a parameter list" (show (xs, ys, z:zs))
 zipVariablesToParameterTypesAndExpressions (x:xs) (y:ys) (z:zs) = do
     rest <- zipVariablesToParameterTypesAndExpressions xs ys zs
     return $ (x, y, z):rest
     
-generateExpressionForPointerParameter::ProgramEnvironment -> String -> Expression -> CompilerStatus String
-generateExpressionForPointerParameter programEnvironment generatedExpression (EIdent varName) = do
-    variable <- lookupVariableType programEnvironment varName
-    case variable of
-        (VPointer _ _) -> return generatedExpression
-        (VConst _ _) -> return $ "&" ++ generatedExpression
-generateExpressionForPointerParameter _ _ expr = Error ((show expr) ++ " cannot be referenced in a pointer context") (show expr)
+generateExpressionForPointerParameter::ProgramEnvironment -> String -> SourcePosition Expression -> CompilerStatus String
+generateExpressionForPointerParameter programEnvironment generatedExpression spExp = case getContents spExp of
+    EIdent varName -> do
+        variable <- lookupVariableType programEnvironment varName
+        case variable of
+            (VPointer _ _) -> return generatedExpression
+            (VConst _ _) -> return $ "&" ++ generatedExpression
+    expr -> PositionedError (getSourcePosition spExp) ((show expr) ++ " cannot be referenced in a pointer context") (show expr)
 
-generateDFunctionCall::ProgramEnvironment -> Ident -> FunctionOverload -> [Either (Set Ident) (Ident, String)] -> [Expression] -> CompilerStatus String
+generateDFunctionCall::ProgramEnvironment -> Ident -> FunctionOverload -> [Either (Set Ident) (Ident, String)] -> [SourcePosition Expression] -> CompilerStatus String
 generateDFunctionCall programEnvironment funcName functionOverload paramTypeEithers parameterExpressions = do
     generatedParameters <- sequence $ Prelude.map (either (\x -> Error "Parameter expression could not be generated" (show (x, (funcName, functionOverload)))) (\(_,x) -> return x)) paramTypeEithers
     zippedParameters <- (zipVariablesToParameterTypesAndExpressions (OrderMap.assocs (parameters functionOverload)) generatedParameters parameterExpressions)

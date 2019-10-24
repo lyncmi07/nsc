@@ -1,8 +1,10 @@
 module Com.NoSyn.Ast.If.Constant where
 
+import Prelude hiding (getContents)
 import Com.NoSyn.Ast.Traits.Typeable
 import Com.NoSyn.Ast.Traits.TargetCodeGeneratable
 import Com.NoSyn.Environment.ProgramEnvironment
+import Com.NoSyn.Error.SourcePosition
 
 data Constant =
     CInt Int
@@ -12,12 +14,11 @@ data Constant =
     deriving Show
 
 instance TargetCodeGeneratable Constant where
-    generateD _ (CInt i) = return (show i)
-    generateD _ (CDouble d) = return (show d)
-    generateD _ (CChar c) = return (show c)
-    generateD _ (CString s) = return (show s)
-
-
+    generateD _ spConstant = case getContents spConstant of
+        CInt i -> return (show i)
+        CDouble d -> return (show d)
+        CChar c -> return (show c)
+        CString s -> return (show s)
 
 instance Typeable Constant where
     getTypeNoCheck (CInt _) = "Int"

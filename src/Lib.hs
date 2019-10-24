@@ -26,6 +26,8 @@ import Com.NoSyn.Ast.If.IfElement as IfElement
 import Com.NoSyn.Ast.Traits.IfElementGeneratable
 import Com.NoSyn.Data.Operators
 
+{-
+
 ifExampleProgram = StandardBlock [
         IfProgram.PSFuncDef (IfFunctionDefinition.FDNoSyn "foo" "Int" (StandardBlock [
             IfParameter.PPointer "Int" "a",
@@ -105,3 +107,5 @@ generateIfm1ExampleProgram = do
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
+
+-}
