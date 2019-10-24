@@ -2,7 +2,6 @@ module Main where
 
 import System.Environment
 
-import Lib
 import Com.NoSyn.Parser.NoSynParser
 import Com.NoSyn.Parser.Lexer
 import Com.NoSyn.Parser.ConcreteSyntaxConverter
