@@ -12,7 +12,7 @@ fi
 
 stack install
 
-echo "root login required for copying procram to /usr/local/bin.nsc"
+echo "root login required for copying program to /usr/local/bin.nsc"
 sudo mv "$(stack path --local-bin)/no-syn-exe" /usr/bin/nsc
 
 echo "Install complete"
