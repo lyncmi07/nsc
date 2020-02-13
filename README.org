@@ -16,14 +16,14 @@ Unlike other languages however. There are almost no operators defined by default
 great flexibility in the workings and syntax of the language based on the source code itself.
 ** Minimalism
    NoSyn seeks to reduce the compiler to its most basic form without compromising on capability or readbility of language source
-   code. The syntax of the language gas been reduced to the absolute minimum in order to allow the language user to create their
+   code. The syntax of the language has been reduced to the absolute minimum in order to allow the language user to create their
    own syntax in whatever way they would like using the operator overloading features.
    NoSyn provides a simple process to define operators to do whatever you want with compile time checks to ensure validity.
 ** Function Inference
    Function Inference is the key to producing compile time checks on user defined operators in NoSyn's function inference algorithm.
    Unlike functions in most other languages. The return value of a function in /NoSyn/ is dependent on the context in which it is being
-   used. This allows overloaded operators to work differently in different parts of the source code making it east to create syntactic 
-   changed to the language without changing the lexer of parser of the compiler, while maintaining compile time checks on operator validity.
+   used. This allows overloaded operators to work differently in different parts of the source code making it easier to create syntactic 
+   changes to the language without changing the lexer of parser of the compiler, while maintaining compile time checks on operator validity.
    A detailed description on how the Function Inference algorithm works can be found [[https://github.com/lyncmi07/nsc/blob/master/documents/FunctionInference.org][here]]
 * Getting Started
 ** Prerequisites
